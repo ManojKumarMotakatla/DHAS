@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symptoms - Digital Health Assistant</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="container mt-4">
+
+        <h3 class="text-center mb-4">Select Symptoms</h3>
+
+        <form id="symptomForm">
+
+            <!-- Symptom Options -->
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" value="fever" id="fever">
+                <label class="form-check-label">Fever</label>
+            </div>
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" value="cold" id="cold">
+                <label class="form-check-label">Cold</label>
+            </div>
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" value="headache" id="headache">
+                <label class="form-check-label">Headache</label>
+            </div>
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" value="cough" id="cough">
+                <label class="form-check-label">Cough</label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" value="fatigue" id="fatigue">
+                <label class="form-check-label">Fatigue</label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100">Check Condition</button>
+
+        </form>
+
+    </div>
+
+    <!-- JS -->
+    <script src="js/symptom.js"></script>
+
+</body>
+</html>
