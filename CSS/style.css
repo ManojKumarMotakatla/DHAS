@@ -1,0 +1,45 @@
+/* General Reset */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f9;
+}
+
+/* Login Card */
+.login-card {
+    width: 100%;
+    max-width: 350px;
+    border-radius: 15px;
+    background: #ffffff;
+}
+
+/* Heading */
+.login-card h3 {
+    font-weight: 600;
+}
+
+/* Button */
+.btn-primary {
+    background-color: #4CAF50;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #45a049;
+}
+
+/* Input fields */
+.form-control {
+    border-radius: 8px;
+}
+
+/* Link */
+a {
+    text-decoration: none;
+    color: #4CAF50;
+}
+
+a:hover {
+    text-decoration: underline;
+}
