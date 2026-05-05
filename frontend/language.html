@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language - DHAS</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand">🏥 DHAS</div>
+    <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;opacity:0.85;">← Dashboard</a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <h2 class="page-title">
+      <span class="emoji">🌐</span>
+      Select Language
+    </h2>
+
+    <div class="dhas-card">
+      <button class="lang-btn" id="btn-English" onclick="setLanguage('English')">
+        <span style="font-size:1.5rem;">🇬🇧</span> English
+      </button>
+      <button class="lang-btn" id="btn-Hindi" onclick="setLanguage('Hindi')">
+        <span style="font-size:1.5rem;">🇮🇳</span> हिंदी (Hindi)
+      </button>
+      <button class="lang-btn" id="btn-Telugu" onclick="setLanguage('Telugu')">
+        <span style="font-size:1.5rem;">🇮🇳</span> తెలుగు (Telugu)
+      </button>
+    </div>
+
+    <div id="selectedLangMsg" class="dhas-alert success" style="display:none;text-align:center;"></div>
+
+    <p class="text-muted text-center mt-12" style="font-size:0.82rem;">
+      Note: Language selection is saved. Full translation coming in a future update.
+    </p>
+
+  </div>
+
+  <script src="js/language.js"></script>
+
+</body>
+</html>
