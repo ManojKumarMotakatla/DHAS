@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - DHAS</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <div class="logo-icon">✨</div>
+        <h2>Create Account</h2>
+        <p>Join your personal health assistant</p>
+      </div>
+
+      <div id="errorMsg" class="dhas-alert danger" style="display:none;"></div>
+      <div id="successMsg" class="dhas-alert success" style="display:none;"></div>
+
+      <label class="dhas-label">Full Name</label>
+      <input type="text" id="name" class="dhas-input" placeholder="Your full name">
+
+      <label class="dhas-label">Email</label>
+      <input type="email" id="email" class="dhas-input" placeholder="you@example.com">
+
+      <label class="dhas-label">Password</label>
+      <input type="password" id="password" class="dhas-input" placeholder="Min. 6 characters">
+
+      <button class="btn-dhas primary" onclick="handleRegister()">Create Account</button>
+
+      <p class="text-center mt-16 text-muted">
+        Already have an account? <a href="login.html" style="color:var(--primary);font-weight:700;">Login</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+
+</body>
+</html>
