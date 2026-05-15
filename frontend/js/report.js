@@ -144,37 +144,44 @@ async function viewReport(id) {
 
         const win = window.open();
         if (data.filetype === "application/pdf") {
-            win.document.write(`
-                <html><head><title>${data.filename}</title></head>
-                <body style="margin:0">
-    <button onclick="window.close()"
-        style="
-            position:fixed;
-            top:10px;
-            right:10px;
-            z-index:9999;
-            padding:8px 14px;
-            border:none;
-            border-radius:8px;
-            background:#e74c3c;
-            color:white;
-            cursor:pointer;
-            font-size:14px;">
-         Close
-    </button>
+          win.document.write(`
+<html>
+<head>
+    <title>${data.filename}</title>
+</head>
 
-                    <iframe src="${data.dataurl}" width="100%" height="100%"
-                            style="border:none;position:fixed;top:0;left:0;width:100%;height:100%">
-                    </iframe>
-                </body></html>`);
-        } else {
-            win.document.write(`
-                <html><head><title>${data.filename}</title></head>
-                <body style="margin:0;background:#111;display:flex;
-                             align-items:center;justify-content:center;min-height:100vh;">
-                    <img src="${data.dataurl}"
-                         style="max-width:100%;max-height:100vh;object-fit:contain;">
-                </body></html>`);
+<body style="
+    margin:0;
+    background:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+">
+
+<button onclick="history.back()"
+    style="
+        position:fixed;
+        top:10px;
+        right:10px;
+        z-index:9999;
+        padding:10px 16px;
+        border:none;
+        border-radius:8px;
+        background:#e74c3c;
+        color:white;
+        font-size:14px;
+        cursor:pointer;
+    ">
+    ← Back
+</button>
+
+<img src="${data.dataurl}"
+     style="max-width:100%;max-height:100vh;object-fit:contain;">
+
+</body>
+</html>
+`);
         }
         win.document.close();
 
