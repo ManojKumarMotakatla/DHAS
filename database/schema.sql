@@ -4,8 +4,6 @@
 -- Every structural change uses IF NOT EXISTS / MODIFY safely.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS dhas_db;
-USE dhas_db;
 
 -- ── users ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
@@ -79,34 +77,3 @@ CREATE TABLE IF NOT EXISTS reports (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-
--- ============================================================
--- MIGRATION — run these if upgrading an EXISTING database.
--- MySQL 8.0+: ALTER TABLE ... ADD COLUMN IF NOT EXISTS works.
--- MySQL 5.7 : run manually only if the column is missing.
--- ============================================================
-
--- 1. Add profile_image if it doesn't exist
-ALTER TABLE user_profiles
-    ADD COLUMN IF NOT EXISTS profile_image MEDIUMTEXT NULL DEFAULT NULL
-    AFTER emergency_contact;
-
--- 2. Widen profile_image if it was created as VARCHAR(500) previously
---    (safe to re-run — MODIFY is idempotent for same type)
-ALTER TABLE user_profiles
-    MODIFY COLUMN profile_image MEDIUMTEXT NULL DEFAULT NULL;
-
--- 3. Rename medicine → medicine_name (only if old column exists)
---    Run manually: ALTER TABLE reminders RENAME COLUMN medicine TO medicine_name;
-
--- 4. Rename filename → file_name in reports (only if old column exists)
---    Run manually: ALTER TABLE reports RENAME COLUMN filename TO file_name;
-
--- 5. Widen password field (100 chars is too short for bcrypt hashes)
-ALTER TABLE users
-    MODIFY COLUMN password VARCHAR(255) NULL DEFAULT NULL;
-
--- 6. Make sure express can store large JSON bodies for profile_image.
---    In your app.js / server.js add:
---      app.use(express.json({ limit: "5mb" }));
---      app.use(express.urlencoded({ extended: true, limit: "5mb" }));
