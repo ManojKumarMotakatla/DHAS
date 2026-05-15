@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DHAS - Digital Health Assistant</title>
   <link rel="manifest" href="/manifest.json">
-
-<meta name="theme-color" content="#e53935">
-
-<meta name="mobile-web-app-capable" content="yes">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="theme-color" content="#e53935">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -43,15 +40,15 @@ const CLIENT_ID = "935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleuser
 let accessToken = null;
 
 function loginGoogleFit() {
+    if (typeof google === "undefined" || !google.accounts) {
+        alert("Google services are still loading. Please try again in a moment.");
+        return;
+    }
     google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: "https://www.googleapis.com/auth/fitness.activity.read",
         callback: async (response) => {
-
             accessToken = response.access_token;
-
-            console.log("Access Token:", accessToken);
-
             getTodaySteps();
         }
     }).requestAccessToken();

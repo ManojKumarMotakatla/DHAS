@@ -899,10 +899,39 @@ body {
 @media (min-width: 769px) {
   .sidebar {
     transform: translateX(0);
+    position: fixed;
   }
 
   .menu-toggle {
     display: none;
+  }
+
+  /* Push main content right of sidebar on desktop */
+  .page-wrap,
+  .dash-content {
+    margin-left: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 80vw;
+    max-width: 280px;
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  /* Ensure no left margin on mobile */
+  .page-wrap,
+  .dash-content {
+    margin-left: 0;
   }
 }
 /* =========================
@@ -971,7 +1000,36 @@ body.dark .tool-btn{
   background:var(--navy);
 }
 
-.tool-btn svg{
-  width:16px;
-  height:16px;
+/* =========================
+   MOBILE SIDEBAR OVERLAY
+========================= */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1999;
+}
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* =========================
+   LOGIN CARD MOBILE FIX
+========================= */
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 24px 18px;
+  }
+  .landing-title {
+    font-size: 1.8rem;
+  }
+  .steps-display {
+    font-size: 3.5rem;
+  }
 }

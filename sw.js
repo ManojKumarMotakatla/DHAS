@@ -1,8 +1,7 @@
 const CACHE_NAME = "dhas-cache-v2";
 
 const urlsToCache = [
-  "/",
-  "/frontend/index.html"
+  "/"
 ];
 
 self.addEventListener("install", event => {
