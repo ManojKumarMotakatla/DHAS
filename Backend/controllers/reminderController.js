@@ -100,7 +100,7 @@ const getReminders = (req, res) => {
             const data = rows.map(r => ({
                 // Pass through the raw DB id
                 id:            r.id,
-                medicine:      r.medicine,
+                medicine:      r.medicine_name,
 
                 // ── camelCase mapping for reminder.js ──
                 sched:         r.schedule_type,

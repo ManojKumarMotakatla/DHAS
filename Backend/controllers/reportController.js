@@ -14,7 +14,7 @@ const uploadReport = (req, res) => {
 
 const getReports = (req, res) => {
     const { user_id } = req.params;
-    db.query("SELECT id, filename, filesize, filetype, uploaded_at FROM reports WHERE user_id = ? ORDER BY uploaded_at DESC", [user_id], (err, result) => {
+    db.query("SELECT id, file_name, filesize, filetype, uploaded_at FROM reports WHERE user_id = ? ORDER BY uploaded_at DESC", [user_id], (err, result) => {
         if (err) return res.json({ success: false });
         res.json({ success: true, data: result });
     });
@@ -23,7 +23,7 @@ const getReports = (req, res) => {
 // New — fetch single report with dataurl for viewing
 const viewReport = (req, res) => {
     const { id } = req.params;
-    db.query("SELECT filename, filetype, dataurl FROM reports WHERE id = ?", [id], (err, result) => {
+    db.query("SELECT file_name, filetype, dataurl FROM reports WHERE id = ?", [id], (err, result) => {
         if (err || result.length === 0) return res.json({ success: false });
         res.json({ success: true, ...result[0] });
     });
