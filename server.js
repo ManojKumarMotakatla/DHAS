@@ -22,11 +22,11 @@ app.get("/test", (req, res) => {
 });
 
 // ── API Routes ──────────────────────────────
-const authRoutes     = require("./backend/routes/authRoutes");
-const symptomRoutes  = require("./backend/routes/symptomRoutes");
-const reminderRoutes = require("./backend/routes/reminderRoutes");
-const reportRoutes   = require("./backend/routes/reportRoutes");
-const profileRoutes = require("./backend/routes/profileRoutes");
+const authRoutes     = require("./Backend/routes/authRoutes");
+const symptomRoutes  = require("./Backend/routes/symptomRoutes");
+const reminderRoutes = require("./Backend/routes/reminderRoutes");
+const reportRoutes   = require("./Backend/routes/reportRoutes");
+const profileRoutes = require("./Backend/routes/profileRoutes");
 app.use("/", profileRoutes);  
 app.use("/",          authRoutes);
 app.use("/symptoms",  symptomRoutes);
