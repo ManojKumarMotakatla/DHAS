@@ -1,10 +1,8 @@
-const CACHE_NAME = "dhas-cache-v1";
+const CACHE_NAME = "dhas-cache-v2";
 
 const urlsToCache = [
   "/",
-  "/frontend/index.html",
-  "/frontend/css/",
-  "/frontend/js/"
+  "/frontend/index.html"
 ];
 
 self.addEventListener("install", event => {
@@ -13,26 +11,34 @@ self.addEventListener("install", event => {
       return cache.addAll(urlsToCache);
     })
   );
+
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      );
+    })
+  );
+
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
-
-// ===============================
-// Notification Click Support
-// ===============================
-
 self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
 
-    event.notification.close();
-
-    event.waitUntil(
-        clients.openWindow("/")
-    );
+  event.waitUntil(
+    clients.openWindow("/")
+  );
 });
