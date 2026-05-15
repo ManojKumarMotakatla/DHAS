@@ -5,7 +5,7 @@ const uploadReport = (req, res) => {
     if (!user_id || !filename || !dataurl)
         return res.json({ success: false, message: "All fields required." });
 
-    const sql = "INSERT INTO reports (user_id, filename, filesize, filetype, dataurl) VALUES (?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO reports (user_id, file_name, filesize, filetype, dataurl) VALUES (?, ?, ?, ?, ?)";
     db.query(sql, [user_id, filename, filesize, filetype, dataurl], (err) => {
         if (err) { console.error(err); return res.json({ success: false, message: "Failed to upload." }); }
         res.json({ success: true, message: "Report uploaded." });
