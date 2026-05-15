@@ -147,6 +147,22 @@ async function viewReport(id) {
             win.document.write(`
                 <html><head><title>${data.filename}</title></head>
                 <body style="margin:0">
+    <button onclick="window.close()"
+        style="
+            position:fixed;
+            top:10px;
+            right:10px;
+            z-index:9999;
+            padding:8px 14px;
+            border:none;
+            border-radius:8px;
+            background:#e74c3c;
+            color:white;
+            cursor:pointer;
+            font-size:14px;">
+         Close
+    </button>
+
                     <iframe src="${data.dataurl}" width="100%" height="100%"
                             style="border:none;position:fixed;top:0;left:0;width:100%;height:100%">
                     </iframe>
