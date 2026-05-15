@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Results - DHAS</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,56 +21,57 @@
       Your Results
     </h2>
 
-    <!-- Severity Alert Box -->
     <div id="alertBox" class="dhas-alert info">Analysing your symptoms...</div>
 
+    <!-- Condition Card -->
     <div class="dhas-card">
-
       <div class="result-section">
         <div class="result-label">Your Symptoms</div>
         <div id="symptomDisplay" class="result-value">—</div>
       </div>
-
       <hr class="dhas-divider">
-
       <div class="result-section">
         <div class="result-label">Likely Condition</div>
         <div id="conditionDisplay" class="result-value">—</div>
       </div>
-
       <hr class="dhas-divider">
-
       <div class="result-section">
         <div class="result-label">Severity Level</div>
         <div id="severityDisplay">—</div>
       </div>
-
       <hr class="dhas-divider">
-
       <div class="result-section">
         <div class="result-label">Recommendation</div>
         <div id="suggestionDisplay" class="result-value">—</div>
       </div>
-
     </div>
 
-    <!-- Quick Links -->
-    <div class="dash-grid mt-16">
-      <a href="diet.html" class="dash-tile">
-        <span class="tile-icon">🥗</span>
-        <span class="tile-label">Diet Tips</span>
-      </a>
-      <a href="remedies.html" class="dash-tile">
-        <span class="tile-icon">🌿</span>
-        <span class="tile-label">Remedies</span>
-      </a>
+    <!-- Diet Section -->
+    <div class="dhas-card" id="dietSection">
+      <h5>🥗 Diet for Your Condition</h5>
+      <div style="margin-bottom:12px;">
+        <div style="font-weight:700;color:var(--success);margin-bottom:6px;">✅ Eat These</div>
+        <ul id="dietEat" style="padding-left:18px;"></ul>
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--danger);margin-bottom:6px;">❌ Avoid These</div>
+        <ul id="dietAvoid" style="padding-left:18px;"></ul>
+      </div>
+      <a href="diet.html" style="display:inline-block;margin-top:12px;color:var(--primary);font-weight:700;font-size:0.88rem;">View full diet guide →</a>
+    </div>
+
+    <!-- Remedies Section -->
+    <div class="dhas-card" id="remediesSection">
+      <h5>🌿 Home Remedies for Your Condition</h5>
+      <ul id="remediesList" style="padding-left:18px;"></ul>
+      <a href="remedies.html" style="display:inline-block;margin-top:12px;color:var(--primary);font-weight:700;font-size:0.88rem;">View all remedies →</a>
     </div>
 
     <button class="btn-dhas secondary mt-8" onclick="window.location.href='symptom.html'">← Check Again</button>
     <button class="btn-dhas primary mt-12" onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
 
     <p class="text-center text-muted mt-16" style="font-size:0.78rem;">
-      ⚠️ This is not a medical diagnosis. Please consult a doctor for professional advice.
+      ⚠️ Not a medical diagnosis. Please consult a doctor for professional advice.
     </p>
 
   </div>

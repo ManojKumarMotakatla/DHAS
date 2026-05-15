@@ -1,9 +1,9 @@
 const express = require("express");
 const router  = express.Router();
-const { uploadReport, getReports, deleteReport } = require("../controllers/reportController");
+const { addReminder, getReminders, deleteReminder } = require("../controllers/reminderController");
 
-router.post("/upload",       uploadReport);
-router.get("/get/:user_id",  getReports);
-router.delete("/delete/:id", deleteReport);
+router.post("/add",          addReminder);
+router.get("/get/:user_id",  getReminders);
+router.delete("/delete/:id", deleteReminder);
 
 module.exports = router;

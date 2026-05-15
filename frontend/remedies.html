@@ -4,123 +4,506 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home Remedies - DHAS</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --success: #10b981;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #94a3b8;
+      --radius-sm: 12px;
+      --bg: #f0fff4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    .dhas-navbar {
+      background: linear-gradient(135deg, #064e3b, #059669);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(5,150,105,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .dhas-navbar a {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.85rem;
+      text-decoration: none;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+
+    .page-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%);
+      border-radius: 20px;
+      padding: 24px 20px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50%;
+    }
+    .page-header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 40px;
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 1.7rem;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .page-subtitle {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .header-emoji {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .note-ticker-wrap {
+      background: linear-gradient(135deg, #065f46, #059669);
+      padding: 10px 0;
+      overflow: hidden;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(5,150,105,0.2);
+    }
+    .note-ticker {
+      display: flex;
+      gap: 60px;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+      width: max-content;
+    }
+    .note-ticker:hover { animation-play-state: paused; }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .ticker-item {
+      color: #fff;
+      font-size: 0.83rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .ticker-dot {
+      width: 5px; height: 5px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 50%;
+    }
+
+    .search-wrap { position: relative; margin-bottom: 14px; }
+    .search-wrap input {
+      width: 100%;
+      padding: 13px 16px 13px 44px;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      font-size: 0.92rem;
+      font-family: 'DM Sans', sans-serif;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(16,185,129,0.12);
+    }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.05rem; }
+
+    .content-layout { display: flex; gap: 10px; align-items: flex-start; }
+    .main-content { flex: 1; min-width: 0; }
+
+    .alpha-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      position: sticky;
+      top: 70px;
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+      background: rgba(6, 78, 59, 0.9);
+      border-radius: 14px;
+      padding: 8px 5px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .alpha-sidebar::-webkit-scrollbar { display: none; }
+
+    .alpha-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      font-weight: 700;
+      font-size: 0.72rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s;
+      color: rgba(255,255,255,0.65);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .alpha-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .alpha-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.5);
+    }
+    .alpha-btn.hash {
+      color: rgba(255,255,255,0.35);
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+      pointer-events: none;
+    }
+
+    .disease-item {
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .disease-item:hover {
+      border-color: var(--accent);
+      background: #f0fdf4;
+      transform: translateX(-3px);
+      box-shadow: 4px 4px 16px rgba(16,185,129,0.12);
+    }
+    .disease-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .disease-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #34d399);
+      flex-shrink: 0;
+    }
+    .disease-arrow {
+      color: var(--text-muted);
+      font-size: 1rem;
+      transition: transform 0.2s;
+    }
+    .disease-item:hover .disease-arrow { transform: translateX(3px); color: var(--accent); }
+
+    .remedy-result { display: none; animation: fadeIn 0.35s ease; }
+    .remedy-result.show { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 22px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 2px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .result-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px dashed var(--border);
+    }
+
+    .remedy-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #f0fdf4;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--accent);
+      transition: transform 0.15s;
+    }
+    .remedy-step:hover { transform: translateX(3px); }
+    .step-num {
+      background: linear-gradient(135deg, var(--accent), #34d399);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+    }
+    .step-text { font-size: 0.9rem; line-height: 1.55; padding-top: 2px; }
+
+    .warning-card {
+      background: linear-gradient(135deg, #fff8f0, #fff);
+      border: 2px solid #fed7aa;
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+    .warning-title { color: #c2410c; font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
+    .warning-card ul { padding-left: 18px; margin: 0; }
+    .warning-card ul li { font-size: 0.87rem; color: #7c2d12; margin-bottom: 5px; line-height: 1.45; }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.87rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+      margin-top: 16px;
+    }
+    .back-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: #f0fdf4;
+    }
+
+    .no-result { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 0.92rem; }
+  </style>
 </head>
 <body>
 
   <nav class="dhas-navbar">
     <div class="brand">🏥 DHAS</div>
-    <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;opacity:0.85;">← Dashboard</a>
+    <a href="dashboard.html">← Dashboard</a>
   </nav>
 
   <div class="page-wrap">
 
-    <h2 class="page-title">
-      <span class="emoji">🌿</span>
-      Home Remedies
-    </h2>
-
-    <div id="conditionNote" class="dhas-alert info" style="display:none;"></div>
-
-    <div class="dhas-card" id="remediesCard">
-      <h5>💚 Recommended Remedies</h5>
-      <ul id="remediesList"></ul>
+    <div class="page-header">
+      <span class="header-emoji">🌿</span>
+      <div class="page-title">Home Remedies</div>
+      <div class="page-subtitle">Natural relief for everyday conditions</div>
     </div>
 
-    <div class="dhas-card">
-      <h5>⚠️ When to See a Doctor</h5>
-      <ul>
-        <li>Symptoms last more than 3–5 days</li>
-        <li>High fever above 103°F (39.4°C)</li>
-        <li>Difficulty breathing or chest pain</li>
-        <li>Symptoms keep getting worse</li>
-        <li>You are pregnant, elderly, or have chronic illness</li>
-      </ul>
+    <div class="note-ticker-wrap">
+      <div class="note-ticker" id="ticker"></div>
     </div>
 
-    <button class="btn-dhas secondary" onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput"
+        placeholder="Search disease (e.g. Dengue, Fever, Cold...)"
+        oninput="handleSearch()">
+    </div>
 
+    <div class="content-layout">
+      <div class="main-content">
+        <div id="diseaseList"></div>
+
+        <div class="remedy-result" id="remedyResult">
+          <div class="result-card">
+            <div class="result-title" id="remedyTitle">—</div>
+            <div id="remedySteps"></div>
+          </div>
+          <div class="warning-card">
+            <div class="warning-title">⚠️ When to See a Doctor</div>
+            <ul>
+              <li>Symptoms last more than 3–5 days</li>
+              <li>High fever above 103°F (39.4°C)</li>
+              <li>Difficulty breathing or chest pain</li>
+              <li>Symptoms keep getting worse</li>
+            </ul>
+          </div>
+          <button class="back-btn" onclick="clearResult()">← Back to List</button>
+        </div>
+      </div>
+
+      <div class="alpha-sidebar" id="alphaSidebar"></div>
+    </div>
   </div>
 
   <script>
-    const remediesData = {
-      flu: [
-        "Drink warm ginger tea with honey twice a day",
-        "Steam inhalation with eucalyptus oil or Vicks for 10 min",
-        "Rest and sleep for at least 8 hours",
-        "Gargle with warm salt water for sore throat",
-        "Use a humidifier in your room",
-        "Take Vitamin C (orange juice, amla)"
-      ],
-      viral_fever: [
-        "Apply a cool, damp cloth on forehead to reduce fever",
-        "Drink tulsi (basil) + black pepper + ginger decoction",
-        "Take complete bed rest",
-        "Drink at least 2–3 liters of water daily",
-        "Sponge bath with lukewarm water if fever is high",
-        "Eat light, easy-to-digest food"
-      ],
-      common_cold: [
-        "Steam inhalation 2–3 times a day",
-        "Drink turmeric milk (haldi doodh) at night",
-        "Ginger + honey + lemon in warm water",
-        "Keep your nose and head warm",
-        "Blow your nose gently to clear congestion",
-        "Use saline nasal drops for relief"
-      ],
-      headache: [
-        "Massage temples with peppermint or lavender oil",
-        "Drink a large glass of water (dehydration causes headaches)",
-        "Apply cold or hot compress on forehead/neck",
-        "Rest in a dark, quiet room",
-        "Practice deep breathing or meditation",
-        "Avoid screen time for 30–60 minutes"
-      ],
-      covid_like: [
-        "Isolate yourself and wear a mask",
-        "Drink Kadha (boil tulsi, ginger, black pepper, cloves)",
-        "Steam inhalation twice daily",
-        "Monitor oxygen levels with a pulse oximeter",
-        "Take complete rest and stay hydrated",
-        "Consult a doctor if breathlessness develops"
-      ],
-      gastro: [
-        "Drink ORS (oral rehydration solution) to prevent dehydration",
-        "Sip small amounts of water or coconut water frequently",
-        "Eat bananas, rice, toast (BRAT diet)",
-        "Avoid solid food for a few hours if vomiting",
-        "Take probiotic curd once symptoms ease",
-        "Rest and avoid physical activity"
-      ],
-      general: [
-        "Drink warm water regularly (8–10 glasses/day)",
-        "Take proper rest (7–8 hours sleep)",
-        "Do steam inhalation for cold/cough",
-        "Use turmeric milk at night",
-        "Maintain hydration throughout the day",
-        "Eat light and easy to digest meals",
-        "Avoid stress and practice deep breathing"
-      ]
-    };
+    const REMEDIES = [
+      { name: "Acidity",           letter: "A", steps: ["Drink cold milk or buttermilk for instant relief", "Eat a banana — acts as a natural antacid", "Chew fennel seeds (saunf) after every meal", "Drink coconut water to neutralize stomach acid", "Avoid lying down immediately after eating"] },
+      { name: "Arthritis",         letter: "A", steps: ["Apply warm mustard oil and massage joints gently", "Add turmeric to warm milk — drink nightly", "Soak in warm water with Epsom salt for 15 min", "Apply hot/cold compress alternately on painful joints", "Practice gentle yoga and stretching daily"] },
+      { name: "Asthma",            letter: "A", steps: ["Steam inhalation with eucalyptus oil for 10 minutes", "Drink warm ginger tea with honey twice daily", "Keep home dust-free and well-ventilated", "Practice pursed-lip breathing exercises daily", "Avoid cold air, dust, and smoke triggers"] },
+      { name: "Common Cold",       letter: "C", steps: ["Steam inhalation 2–3 times a day for 10 min", "Drink turmeric milk (haldi doodh) at night", "Mix ginger + honey + lemon in warm water and sip", "Gargle with warm salt water twice a day", "Use saline nasal drops for congestion relief"] },
+      { name: "Constipation",      letter: "C", steps: ["Drink 2 glasses of warm water on empty stomach each morning", "Eat high-fibre foods — papaya, guava, oats", "Soak raisins overnight, eat in morning with water", "Mix 1 tsp ghee in warm milk at night", "Walk for 30 minutes daily to stimulate digestion"] },
+      { name: "Cough",             letter: "C", steps: ["Mix 1 tsp honey with ginger juice — take twice daily", "Gargle with warm salt water 3 times a day", "Drink hot water with turmeric and black pepper", "Steam inhalation with Vicks or eucalyptus oil", "Suck on a clove (laung) to soothe the throat"] },
+      { name: "Dengue",            letter: "D", steps: ["Drink papaya leaf juice twice daily to boost platelets", "Have pomegranate juice for iron and platelet support", "Stay hydrated with ORS and coconut water", "Take complete rest — avoid physical exertion", "Monitor platelet count daily and consult doctor"] },
+      { name: "Diarrhea",          letter: "D", steps: ["Drink ORS solution every hour to prevent dehydration", "Eat banana — firms up loose stools naturally", "Have plain boiled rice or toast (BRAT diet)", "Eat curd (probiotic) to restore gut bacteria", "Rest and avoid physical activity completely"] },
+      { name: "Fever",             letter: "F", steps: ["Apply cool wet cloth on forehead to reduce temperature", "Drink tulsi + ginger + black pepper decoction", "Take lukewarm sponge bath if fever above 102°F", "Stay hydrated — water, coconut water, ORS", "Monitor temperature every 2 hours"] },
+      { name: "Flu",               letter: "F", steps: ["Drink warm ginger tea with honey twice a day", "Steam inhalation with eucalyptus oil for 10 min", "Rest and sleep at least 8 hours daily", "Gargle warm salt water for sore throat", "Take Vitamin C through orange juice or amla"] },
+      { name: "Gastritis",         letter: "G", steps: ["Drink cold milk or coconut water for quick relief", "Eat a banana on empty stomach each morning", "Chew fennel seeds (saunf) after meals", "Have curd (probiotic) with every meal", "Avoid spicy, oily, and acidic foods completely"] },
+      { name: "Headache",          letter: "H", steps: ["Massage temples with peppermint or lavender oil", "Drink a large glass of water immediately", "Apply cold compress on forehead for 10 minutes", "Rest in a dark, quiet room completely", "Practice deep breathing for 5–10 minutes"] },
+      { name: "Indigestion",       letter: "I", steps: ["Drink warm water with black salt and lemon", "Chew fennel seeds or ajwain after meals", "Ginger tea after meals aids digestion", "Walk slowly for 10 minutes after meals", "Avoid overeating and eating too fast"] },
+      { name: "Insomnia",          letter: "I", steps: ["Drink warm turmeric milk with nutmeg before bed", "Massage feet with warm sesame oil at bedtime", "Keep screens away 1 hour before sleep", "Practice 4-7-8 breathing before sleeping", "Maintain a consistent sleep schedule every day"] },
+      { name: "Jaundice",          letter: "J", steps: ["Drink fresh sugarcane juice 2–3 times a day", "Have buttermilk with a pinch of turmeric daily", "Eat ripe papaya — great for liver recovery", "Drink plenty of water and coconut water", "Avoid all oily, fried, and spicy food strictly"] },
+      { name: "Malaria",           letter: "M", steps: ["Drink neem leaf tea to help reduce fever", "Apply cold compress on forehead during fever spikes", "Stay hydrated with warm water and coconut water", "Eat light food like khichdi and vegetable soup", "Use mosquito nets and repellents strictly"] },
+      { name: "Nausea",            letter: "N", steps: ["Sip ginger tea slowly — best anti-nausea remedy", "Inhale peppermint oil or apply to wrists", "Eat plain crackers or dry rusk in small amounts", "Sip cold water with lemon slowly", "Rest in upright position — do not lie flat"] },
+      { name: "Sore Throat",       letter: "S", steps: ["Gargle with warm salt water every 2–3 hours", "Mix 1 tsp honey with black pepper — swallow slowly", "Drink warm turmeric milk at night before bed", "Suck on a clove (laung) for natural pain relief", "Have ginger tea with honey 2–3 times a day"] },
+      { name: "Typhoid",           letter: "T", steps: ["Drink only boiled or filtered water strictly", "Eat light food — khichdi, soup, curd", "Have banana and boiled potato for gentle nutrition", "Drink ORS to prevent dehydration", "Take complete bed rest — avoid all physical activity"] },
+      { name: "Viral Fever",       letter: "V", steps: ["Apply cool damp cloth on forehead to reduce fever", "Drink tulsi + black pepper + ginger decoction twice daily", "Take complete bed rest", "Drink 2–3 liters of water daily", "Sponge bath with lukewarm water if fever is high"] }
+    ];
 
-    window.onload = function () {
-      const condition = localStorage.getItem("dhas_condition") || "general";
-      const remedies = remediesData[condition] || remediesData["general"];
+    const TIPS = [
+      "⚕️ NOTE: These are just for general home health care",
+      "💊 Always consult a doctor for serious symptoms",
+      "🌿 Natural remedies support recovery — not a replacement for medical care",
+      "⚠️ Do not delay emergency medical care",
+      "🏥 DHAS is informational only — not a medical diagnosis",
+      "💧 Staying hydrated is the most important home remedy",
+      "😴 Proper rest speeds up recovery from most illnesses",
+      "🧄 Ginger, turmeric and garlic are powerful natural healers"
+    ];
 
-      if (condition !== "general") {
-        const note = document.getElementById("conditionNote");
-        note.style.display = "block";
-        note.textContent = "💡 Remedies tailored for: " + condition.replace(/_/g, " ").toUpperCase();
+    // Build ticker
+    const ticker = document.getElementById("ticker");
+    [...TIPS, ...TIPS].forEach(tip => {
+      const el = document.createElement("div");
+      el.className = "ticker-item";
+      el.innerHTML = `<span class="ticker-dot"></span>${tip}`;
+      ticker.appendChild(el);
+    });
+
+    let activeLetter = "All";
+
+    function buildAlpha() {
+const letters = ["All", ...new Set(REMEDIES.map(d => d.letter))].sort((a, b) => a === "All" ? -1 : b === "All" ? 1 : a.localeCompare(b));
+      const sidebar = document.getElementById("alphaSidebar");
+      sidebar.innerHTML = ``;
+      letters.forEach(l => {
+        const btn = document.createElement("button");
+        btn.className = "alpha-btn" + (l === activeLetter ? " active" : "");
+        btn.textContent = l;
+        btn.onclick = () => {
+          activeLetter = l;
+          document.getElementById("searchInput").value = "";
+          buildAlpha();
+          renderList();
+        };
+        sidebar.appendChild(btn);
+      });
+    }
+
+    function renderList(filter = "") {
+      const list = document.getElementById("diseaseList");
+      document.getElementById("remedyResult").classList.remove("show");
+
+      let diseases = REMEDIES;
+      if (activeLetter !== "All") diseases = diseases.filter(d => d.letter === activeLetter);
+      if (filter) diseases = REMEDIES.filter(d => d.name.toLowerCase().includes(filter.toLowerCase()));
+
+      if (diseases.length === 0) {
+        list.innerHTML = `<div class="no-result">😔 No results for "<strong>${filter}</strong>"</div>`;
+        return;
       }
 
-      const list = document.getElementById("remediesList");
-      remedies.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item;
-        list.appendChild(li);
-      });
+      list.innerHTML = diseases.map(d => `
+        <div class="disease-item" onclick="showRemedy(${REMEDIES.indexOf(d)})">
+          <span class="disease-name"><span class="disease-dot"></span>${d.name}</span>
+          <span class="disease-arrow">›</span>
+        </div>
+      `).join("");
+    }
+
+    function showRemedy(index) {
+      const d = REMEDIES[index];
+      document.getElementById("diseaseList").innerHTML = "";
+      document.getElementById("searchWrap").style.display = "none";
+      document.getElementById("alphaSidebar").style.display = "none";
+
+      document.getElementById("remedyTitle").textContent = "🌿 Remedies for " + d.name;
+      document.getElementById("remedySteps").innerHTML = d.steps.map((s, i) => `
+        <div class="remedy-step">
+          <div class="step-num">${i + 1}</div>
+          <div class="step-text">${s}</div>
+        </div>
+      `).join("");
+
+      document.getElementById("remedyResult").classList.add("show");
+    }
+
+    function clearResult() {
+      document.getElementById("remedyResult").classList.remove("show");
+      document.getElementById("searchWrap").style.display = "block";
+      document.getElementById("alphaSidebar").style.display = "flex";
+      renderList();
+    }
+
+    function handleSearch() {
+      activeLetter = "All";
+      buildAlpha();
+      renderList(document.getElementById("searchInput").value);
+    }
+
+    // Always start fresh — show search list, never auto-load from localStorage
+    window.onload = function () {
+      buildAlpha();
+      renderList();
     };
   </script>
-
 </body>
 </html>

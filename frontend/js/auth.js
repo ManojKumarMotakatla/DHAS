@@ -1,39 +1,44 @@
 // ============================================
 // DHAS - auth.js (frontend)
 // Handles login & register with DB responses
+//
+// SECURITY: This file receives SHA-256 hashed
+// passwords from login.html / register.html.
+// Plain-text passwords NEVER reach this file.
+// The hash is sent to the backend, where it
+// should be hashed again (bcrypt) before storage.
 // ============================================
 
-function handleLogin() {
-    const email    = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
 
-    // Basic validation
-    if (!email || !password) {
+// ── LOGIN ─────────────────────────────────────────────────────
+// Called by login.html AFTER the password is hashed.
+// Parameters: email (string), hashedPassword (SHA-256 hex string)
+// ──────────────────────────────────────────────────────────────
+function handleLogin(email, hashedPassword) {
+
+    if (!email || !hashedPassword) {
         showError("Please fill in all fields.");
         return;
     }
 
-    fetch("http://localhost:3007/login", {
+    fetch("http://localhost:3006/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        // ✅ Only the hash is sent — plain text NEVER leaves the browser
+        body: JSON.stringify({ email, password: hashedPassword })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // Save user info to localStorage
+            // ✅ Store only safe session info — NEVER store password or hash
             localStorage.setItem("dhas_user", JSON.stringify(data.user));
-            // Go to dashboard
             window.location.href = "dashboard.html";
 
         } else if (data.notRegistered) {
-            // User doesn't exist → tell them to register
             showError("No account found with this email. Please register first.");
-            // Show register link button
             showRegisterLink();
 
         } else {
-            // Wrong password or other error
             showError(data.message || "Login failed. Please try again.");
         }
     })
@@ -44,29 +49,22 @@ function handleLogin() {
 }
 
 
-function handleRegister() {
-    const name     = document.getElementById("name").value.trim();
-    const email    = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
+// ── REGISTER ──────────────────────────────────────────────────
+// Called by register.html AFTER the password is hashed.
+// Parameters: name, email (strings), hashedPassword (SHA-256 hex)
+// ──────────────────────────────────────────────────────────────
+function handleRegister(name, email, hashedPassword) {
 
-    // Validation
-    if (!name || !email || !password) {
+    if (!name || !email || !hashedPassword) {
         showError("Please fill in all fields.");
         return;
     }
-    if (password.length < 6) {
-        showError("Password must be at least 6 characters.");
-        return;
-    }
-    if (!email.includes("@")) {
-        showError("Please enter a valid email address.");
-        return;
-    }
 
-    fetch("http://localhost:3007/register", {
+    fetch("http://localhost:3006/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
+        // ✅ Only the hash is sent — plain text NEVER leaves the browser
+        body: JSON.stringify({ name, email, password: hashedPassword })
     })
     .then(res => res.json())
     .then(data => {
@@ -75,7 +73,6 @@ function handleRegister() {
             setTimeout(() => window.location.href = "login.html", 1500);
 
         } else if (data.alreadyExists) {
-            // Already registered → go to login
             showError("This email is already registered.");
             showLoginLink();
 
@@ -90,15 +87,31 @@ function handleRegister() {
 }
 
 
-// ── Show error message ──────────────────────
+// ── LOGOUT ────────────────────────────────────────────────────
+// Called from dashboard.html navbar
+// ──────────────────────────────────────────────────────────────
+function handleLogout() {
+    if (confirm("Are you sure you want to logout?")) {
+        localStorage.removeItem("dhas_user");   // clear session only
+        window.location.href = "login.html";
+    }
+}
+
+
+// ── Show error message ─────────────────────────────────────────
 function showError(msg) {
+    // register.html style
     const el = document.getElementById("errorMsg");
     const ok = document.getElementById("successMsg");
     if (ok) ok.style.display = "none";
     if (el) { el.textContent = msg; el.style.display = "block"; }
+
+    // login.html Bootstrap style
+    const el2 = document.getElementById("loginError");
+    if (el2) { el2.textContent = msg; el2.classList.remove("d-none"); }
 }
 
-// ── Show success message ────────────────────
+// ── Show success message ───────────────────────────────────────
 function showSuccess(msg) {
     const el = document.getElementById("successMsg");
     const er = document.getElementById("errorMsg");
@@ -106,32 +119,59 @@ function showSuccess(msg) {
     if (el) { el.textContent = msg; el.style.display = "block"; }
 }
 
-// ── Show "Go to Register" button on login page ──
+// ── "Go to Register" button on login page ─────────────────────
 function showRegisterLink() {
     let btn = document.getElementById("registerRedirectBtn");
     if (!btn) {
         btn = document.createElement("a");
-        btn.id = "registerRedirectBtn";
-        btn.href = "regiester.html";
-        btn.className = "btn-dhas primary mt-12";
-        btn.style.display = "block";
-        btn.style.textAlign = "center";
-        btn.textContent = "Go to Register →";
-        document.getElementById("errorMsg").after(btn);
+        btn.id            = "registerRedirectBtn";
+        btn.href          = "register.html";   // ✅ Fixed typo: was "regiester.html"
+        btn.className     = "btn-dhas primary mt-12";
+        btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
+        btn.textContent   = "Go to Register →";
+        const anchor = document.getElementById("loginError") || document.getElementById("errorMsg");
+        if (anchor) anchor.after(btn);
     }
 }
 
-// ── Show "Go to Login" button on register page ──
+// ── "Go to Login" button on register page ─────────────────────
 function showLoginLink() {
     let btn = document.getElementById("loginRedirectBtn");
     if (!btn) {
         btn = document.createElement("a");
-        btn.id = "loginRedirectBtn";
-        btn.href = "login.html";
-        btn.className = "btn-dhas primary mt-12";
-        btn.style.display = "block";
-        btn.style.textAlign = "center";
-        btn.textContent = "Go to Login →";
-        document.getElementById("errorMsg").after(btn);
+        btn.id            = "loginRedirectBtn";
+        btn.href          = "login.html";
+        btn.className     = "btn-dhas primary mt-12";
+        btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
+        btn.textContent   = "Go to Login →";
+        const anchor = document.getElementById("errorMsg");
+        if (anchor) anchor.after(btn);
+    }
+}
+// ── GOOGLE AUTH ───────────────────────────────────────────────
+// Called by handleCredentialResponse in login.html / register.html
+// after decoding the Google JWT. Saves user to DB if new,
+// or logs them in if they already exist.
+// ──────────────────────────────────────────────────────────────
+async function handleGoogleAuth(name, email, googleId) {
+    try {
+        const res = await fetch("http://localhost:3006/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, google_id: googleId })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem("dhas_user", JSON.stringify(data.user));
+            window.location.href = "dashboard.html";
+        } else {
+            showError(data.message || "Google sign-in failed.");
+        }
+
+    } catch (err) {
+        console.error("Google auth error:", err);
+        showError("Cannot connect to server. Make sure backend is running.");
     }
 }

@@ -5,6 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Step Counter - DHAS</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    .gauge-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:8px; }
+    .gauge-svg  { overflow:visible; }
+
+    /* live indicator pill */
+    .live-pill {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:0.78rem; padding:4px 14px; border-radius:20px;
+      margin-bottom:14px; border:1px solid transparent;
+      transition: all 0.4s;
+    }
+    .live-pill.waiting { background:#f5f5f5; color:#888; border-color:#ddd; }
+    .live-pill.walking { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+    .live-pill.still   { background:#fff8e1; color:#f57f17; border-color:#ffe082; }
+    .dot-pulse { width:7px; height:7px; border-radius:50%; background:#4caf50; animation:pulse 1s infinite; flex-shrink:0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* walking type bar */
+    .walk-type-row { display:flex; justify-content:space-between; font-size:0.75rem; color:#888; margin:12px 0 4px; }
+    .walk-bar-bg   { height:6px; border-radius:3px; background:#eee; position:relative; overflow:hidden; margin-bottom:4px; }
+    .walk-bar-slow  { position:absolute; left:0; top:0; height:100%; background:#ffb3a0; border-radius:3px; transition:width .4s; }
+    .walk-bar-brisk { position:absolute; right:0; top:0; height:100%; background:var(--primary,#e55); border-radius:3px 0 0 3px; transition:width .4s; }
+
+    /* calorie fun card */
+    .cal-fun-card {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#fff3e0; border:1px solid #ffcc80; border-radius:12px;
+      padding:14px 18px; margin-top:12px;
+    }
+    .cal-fun-card .val { font-size:1.6rem; font-weight:700; color:#bf360c; }
+    .cal-fun-card .sub { font-size:0.75rem; color:#a0522d; margin-top:2px; }
+    .cal-fun-card .ico { font-size:2.4rem; }
+
+    /* WHO ring */
+    .who-row { display:flex; align-items:center; gap:18px; margin-top:10px; }
+    .who-ring-wrap { position:relative; flex-shrink:0; }
+    .who-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; line-height:1.3; }
+    .who-center .pct  { font-size:1rem; font-weight:700; }
+    .who-center .mins { font-size:0.7rem; color:#888; }
+    .who-breakdown .item { display:flex; justify-content:space-between; font-size:0.8rem; padding:4px 0; border-bottom:1px solid #f0f0f0; }
+    .who-breakdown .item:last-child { border:none; }
+    .dot-icon { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+
+    /* weekly bar chart */
+    .week-chart { display:flex; align-items:flex-end; gap:5px; height:80px; margin:10px 0 4px; }
+    .week-col   { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .week-bar   { width:100%; border-radius:4px 4px 0 0; background:#ffd54f; min-height:3px; position:relative; transition:height .4s; }
+    .week-bar.today { background:var(--primary,#e55); }
+    .week-crown { position:absolute; top:-14px; left:50%; transform:translateX(-50%); font-size:9px; display:none; }
+    .week-day-label { font-size:9px; color:#aaa; }
+
+    .steps-big { font-size:2.8rem; font-weight:700; margin:4px 0 2px; }
+    .steps-sub  { font-size:0.8rem; color:#888; margin-bottom:6px; }
+  </style>
 </head>
 <body>
 
@@ -19,27 +74,152 @@
       <span class="emoji">👟</span>
       Step Counter
     </h2>
+<div class="dhas-card" id="fitConnectCard" style="margin-bottom:15px;">
 
+  <h4 style="margin-bottom:10px;">
+    🔗 Sync Activity Data
+  </h4>
+
+  <p class="text-muted" style="font-size:0.9rem; line-height:1.5;">
+    Connect your fitness account securely to enable
+    real-time step tracking, calorie analysis,
+    distance monitoring, and weekly health insights.
+  </p>
+<div
+  style="
+    background:#fff8e1;
+    border:1px solid #ffe082;
+    border-radius:10px;
+    padding:12px;
+    margin-top:12px;
+    font-size:0.82rem;
+    color:#795548;
+    line-height:1.6;
+  "
+>
+
+  <strong>First time using this feature?</strong><br>
+
+  To sync real activity data, install
+  Google Fit and allow Activity Tracking
+  permissions on your phone.
+
+  <br><br>
+
+  <a
+    href="https://play.google.com/store/apps/details?id=com.google.android.apps.fitness"
+    target="_blank"
+    style="
+      display:inline-block;
+      background:#34a853;
+      color:white;
+      padding:8px 14px;
+      border-radius:8px;
+      text-decoration:none;
+      font-size:0.8rem;
+      font-weight:600;
+    "
+  >
+    Install Google Fit
+  </a>
+
+  <br><br>
+
+  <strong>Setup Steps:</strong>
+
+  <ol style="padding-left:18px; margin-top:6px;">
+    <li>Install Google Fit on your phone</li>
+    <li>Login using the same Google account</li>
+    <li>Allow Activity & Fitness permissions</li>
+    <li>Walk with your phone for a few minutes</li>
+    <li>Open Google Fit once to sync data</li>
+    <li>Return here and click "Continue with Google Fit"</li>
+  </ol>
+
+</div>
+  <button onclick="connectGoogleFit()" class="dhas-btn" style="margin-top:12px;">
+      Continue with Google Fit
+  </button>
+
+</div>
+    <!-- Main counter card -->
     <div class="dhas-card text-center">
 
-      <div class="steps-display" id="stepCount">0</div>
+      <!-- Auto live status pill -->
+      <div id="livePill" class="live-pill waiting">
+        <span class="dot-pulse" id="dotPulse" style="display:none"></span>
+        <span id="pillText">Initialising sensor…</span>
+      </div>
+
+      <!-- Semicircle gauge -->
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" width="210" height="115" viewBox="0 0 210 115"
+             role="img" aria-label="Step progress gauge">
+          <path d="M20,105 A85,85 0 0,1 190,105"
+            fill="none" stroke="#eee" stroke-width="10" stroke-linecap="round"/>
+          <path id="gaugeArc"
+            d="M20,105 A85,85 0 0,1 190,105"
+            fill="none" stroke="var(--primary,#e55)" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="0 267"
+            style="transition:stroke-dasharray .5s ease;"/>
+          <line id="gaugeNeedle"
+            x1="105" y1="105" x2="20" y2="105"
+            stroke="var(--primary,#e55)" stroke-width="3" stroke-linecap="round"
+            style="transform-origin:105px 105px; transition:transform .5s ease;"/>
+          <circle cx="105" cy="105" r="6" fill="var(--primary,#e55)"/>
+          <text x="18"  y="120" font-size="9" fill="#aaa" text-anchor="middle">0</text>
+          <text x="192" y="120" font-size="9" fill="#aaa" text-anchor="middle">10k</text>
+        </svg>
+
+        <div class="steps-big" id="stepCount">0</div>
+        <div class="steps-sub">Steps</div>
+        <div id="fitStatus"
+     style="font-size:0.8rem;color:#2e7d32;margin-top:4px;display:none;">
+     🟢 Connected to Google Fit
+</div>
+      </div>
+
       <div class="steps-goal">Goal: <span id="goalDisplay">10,000</span> steps</div>
 
-      <div class="steps-progress">
+      <div class="steps-progress" style="margin:8px 0 4px;">
         <div class="steps-bar" id="progressBar" style="width:0%"></div>
       </div>
+      <div class="text-muted" id="progressText"
+           style="font-size:0.8rem; margin-bottom:14px;">0% of daily goal</div>
 
-      <div class="text-muted" id="progressText" style="font-size:0.85rem; margin-bottom:16px;">0% of daily goal</div>
-
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn-dhas primary" style="width:auto;padding:12px 28px;" onclick="addStep()">+ Add Step</button>
-        <button class="btn-dhas primary" style="width:auto;padding:12px 28px;background:var(--success);" onclick="addHundred()">+100 Steps</button>
-        <button class="btn-dhas danger sm" onclick="resetSteps()">Reset</button>
+      <!-- Walking type bar -->
+      <div class="walk-type-row">
+        <span id="slowLabel">0 · 0%</span>
+        <span>Slow &nbsp;&nbsp; Brisk</span>
+        <span id="briskLabel">0 · 0%</span>
       </div>
+      <div class="walk-bar-bg">
+        <div class="walk-bar-slow"  id="slowBar"  style="width:0%"></div>
+        <div class="walk-bar-brisk" id="briskBar" style="width:0%"></div>
+      </div>
+
+      <!-- Distance / Calories -->
+      <div style="display:flex;justify-content:space-around;margin:12px 0 16px;">
+        <div>
+          <div style="font-size:0.75rem;color:#888;">Distance</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--accent,#29b6f6);">
+            <span id="kmDisplay">0.00</span> km
+          </div>
+        </div>
+        <div style="width:1px;background:#eee;"></div>
+        <div>
+          <div style="font-size:0.75rem;color:#888;">Calories</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--primary,#e55);">
+            <span id="calDisplay">0</span> kcal
+          </div>
+        </div>
+      </div>
+
+
 
     </div>
 
-    <!-- Stats Card -->
+    <!-- Stats card -->
     <div class="dhas-card">
       <h5>📊 Today's Stats</h5>
       <div style="display:flex;justify-content:space-around;text-align:center;margin-top:8px;">
@@ -48,7 +228,7 @@
           <div class="text-muted" style="font-size:0.8rem;">Calories Burned</div>
         </div>
         <div>
-          <div style="font-size:1.4rem;font-weight:700;color:var(--accent)" id="kmDisplay">0.0</div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--accent)" id="kmStatDisplay">0.00</div>
           <div class="text-muted" style="font-size:0.8rem;">Km Walked</div>
         </div>
         <div>
@@ -56,6 +236,79 @@
           <div class="text-muted" style="font-size:0.8rem;">Minutes Active</div>
         </div>
       </div>
+    </div>
+
+    <!-- Calorie fun card -->
+    <div class="cal-fun-card">
+      <div>
+        <div style="font-size:0.8rem;color:#a0522d;">Total calories burned</div>
+        <div class="val"><span id="calFunVal">0</span> kcal</div>
+        <div class="sub" id="calFunSub">≈ 0.00 banana chips</div>
+      </div>
+      <div class="ico">🍌</div>
+    </div>
+
+    <!-- WHO aerobic goal card -->
+    <div class="dhas-card" style="margin-top:12px;">
+      <h5>🏃 Aerobic Exercise (WHO Goal)</h5>
+      <div style="font-size:0.8rem;color:#888;margin-bottom:8px;">
+        Goal this week: 150 Min (<span id="whoRemaining">150</span> Min remaining)
+      </div>
+      <div class="who-row">
+        <div class="who-ring-wrap">
+          <svg width="76" height="76" viewBox="0 0 76 76"
+               role="img" aria-label="WHO aerobic goal ring">
+            <circle cx="38" cy="38" r="30" fill="none" stroke="#eee" stroke-width="7"/>
+            <circle cx="38" cy="38" r="30" fill="none"
+              stroke="var(--primary,#e55)" stroke-width="7"
+              stroke-linecap="round"
+              stroke-dasharray="188.5" stroke-dashoffset="188.5"
+              transform="rotate(-90 38 38)" id="whoCircle"
+              style="transition:stroke-dashoffset .5s;"/>
+          </svg>
+          <div class="who-center">
+            <div class="pct"  id="whoPct">0%</div>
+            <div class="mins" id="whoMins">0 Min</div>
+          </div>
+        </div>
+        <div class="who-breakdown" style="flex:1;">
+          <div class="item">
+            <span><span class="dot-icon" style="background:var(--primary,#e55);"></span>Brisk walking</span>
+            <span id="briskMinsDisplay">0 Min</span>
+          </div>
+          <div class="item">
+            <span><span class="dot-icon" style="background:#42a5f5;"></span>Running</span>
+            <span>0 Min</span>
+          </div>
+          <div class="item">
+            <span><span class="dot-icon" style="background:#ab47bc;"></span>Cycling</span>
+            <span>0 Min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly summary card -->
+    <div class="dhas-card" style="margin-top:12px;">
+      <h5>📅 This Week's Record</h5>
+      <div style="display:flex;gap:12px;text-align:center;margin-bottom:10px;">
+        <div style="flex:1;">
+          <div style="font-size:1.2rem;font-weight:700;" id="weekSteps">0</div>
+          <div class="text-muted" style="font-size:0.75rem;">Steps</div>
+        </div>
+        <div style="width:1px;background:#eee;"></div>
+        <div style="flex:1;">
+          <div style="font-size:1.2rem;font-weight:700;" id="weekKm">0.00 km</div>
+          <div class="text-muted" style="font-size:0.75rem;">Distance</div>
+        </div>
+        <div style="width:1px;background:#eee;"></div>
+        <div style="flex:1;">
+          <div style="font-size:1.2rem;font-weight:700;" id="weekCal">0 kcal</div>
+          <div class="text-muted" style="font-size:0.75rem;">Calories</div>
+        </div>
+      </div>
+      <div class="week-chart"      id="weekChart"></div>
+      <div style="display:flex;justify-content:space-between;" id="weekDayLabels"></div>
     </div>
 
   </div>

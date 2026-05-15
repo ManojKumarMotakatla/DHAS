@@ -1,50 +1,317 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medicine Reminder - Digital Health Assistant</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine Reminder - DHAS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    /* ── Notification banner ─────────────────────────────────── */
+    #notifBanner {
+      border-radius: 10px;
+      border: 1.5px solid #86efac;
+      padding: 10px 14px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    /* ── Save confirm flash ──────────────────────────────────── */
+    #saveConfirm {
+      display: none;
+      background: #dcfce7;
+      color: #166534;
+      border: 1.5px solid #86efac;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    /* ── Sound selector row ──────────────────────────────────── */
+    .sound-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .sound-row select  { flex: 1; min-width: 160px; }
+    .sound-preview-btn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .sound-preview-btn:hover { opacity: 0.85; }
+
+    /* ── Schedule cards grid ──────────────────────────────────── */
+    .sched-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .sched-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fff;
+      user-select: none;
+    }
+    .sched-card:hover  { border-color: var(--primary,#0d6efd); background: #f0f6ff; }
+    .sched-card.active { border-color: var(--primary,#0d6efd); background: #e8f1ff;
+                         box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
+    .sched-card .sched-icon  { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+    .sched-card .sched-label { font-size: 0.76rem; font-weight: 700; color: #334155; line-height: 1.3; }
+
+    /* ── Day picker circles ───────────────────────────────────── */
+    .day-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .day-tile {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.74rem; font-weight: 700;
+      cursor: pointer; color: #475569; background: #f8fafc;
+      transition: all 0.18s; user-select: none;
+    }
+    .day-tile:hover  { border-color: var(--primary,#0d6efd); color: var(--primary,#0d6efd); }
+    .day-tile.active { background: var(--primary,#0d6efd); border-color: var(--primary,#0d6efd); color:#fff; }
+
+    /* ── Section label ────────────────────────────────────────── */
+    .section-label {
+      font-size: 0.76rem; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: 14px 0 8px;
+    }
+    .hint-text { font-size: 0.78rem; color: #64748b; margin-bottom: 10px; }
+
+  </style>
 </head>
-
 <body>
 
-    <div class="container mt-4">
+  <nav class="dhas-navbar">
+    <div class="brand">🏥 DHAS</div>
+    <a href="dashboard.html"
+       style="color:#fff;font-size:0.85rem;text-decoration:none;opacity:0.85;">← Dashboard</a>
+  </nav>
 
-        <h3 class="text-center mb-4">Medicine Reminder</h3>
+  <div class="page-wrap">
 
-        <form id="reminderForm">
+    <h2 class="page-title"><span class="emoji">💊</span> Medicine Reminder</h2>
 
-            <div class="mb-3">
-                <label class="form-label">Medicine Name</label>
-                <input type="text" class="form-control" id="medicine" placeholder="Enter medicine name" required>
-            </div>
+    <!-- ── NOTIFICATION STATUS BANNER ───────────────────────── -->
+    <div id="notifBanner">Checking notification permission…</div>
 
-            <div class="mb-3">
-                <label class="form-label">Time</label>
-                <input type="time" class="form-control" id="time" required>
-            </div>
+    <!-- ── ADD REMINDER ──────────────────────────────────────── -->
+    <div class="dhas-card">
+      <h5>➕ Add Reminder</h5>
 
-            <button type="submit" class="btn btn-primary w-100">Set Reminder</button>
+      <!-- Save confirm -->
+      <div id="saveConfirm"></div>
 
-        </form>
+      <!-- Medicine name -->
+      <label class="dhas-label">Medicine Name</label>
+      <input type="text" id="medicine" class="dhas-input"
+             placeholder="e.g. Paracetamol, Metformin…"
+             style="margin-bottom:18px;">
 
-        <div class="mt-4">
-            <h5>Saved Reminders</h5>
-            <ul id="reminderList" class="list-group"></ul>
-        </div>
+      <!-- Schedule dropdown -->
+      <label class="dhas-label">Schedule</label>
+      <div class="section-label">
+  Start Date
+</div>
 
-        <button class="btn btn-primary w-100 mt-3" onclick="goBack()">Back</button>
+<input
+  type="date"
+  id="startDate"
+  class="dhas-input"
+  style="margin-bottom:18px;"
+>
+      <select id="scheduleType" class="dhas-input"
+              onchange="renderScheduleUI()"
+              style="margin-bottom:16px;">
+        <option value="daily">Every Day</option>
+        <option value="alternate">Alternate Days</option>
+        <option value="weekly">Once a Week</option>
+        <option value="twice_week">Twice a Week</option>
+        <option value="three_week">3 Times a Week</option>
+        <option value="monthly">Once a Month</option>
+        <option value="custom">Custom Days</option>
+      </select>
 
+      <!-- Day picker -->
+      <div id="dayPickerSection" style="display:none;">
+        <div class="section-label">Select Day(s)</div>
+        <p class="hint-text" id="dayPickerHint"></p>
+        <div class="day-row" id="dayPicker"></div>
+      </div>
+
+      <!-- Month-day picker -->
+      <div id="monthDaySection" style="display:none;">
+        <div class="section-label">Day of the Month</div>
+        <select id="monthDay" class="dhas-input" style="margin-bottom:14px;"></select>
+      </div>
+
+      <!-- Times per day -->
+      <div class="section-label">Times per Day</div>
+      <select id="doseCount" class="dhas-input"
+              onchange="renderTimeSlots(this.value)"
+              style="margin-bottom:14px;">
+        <option value="1">Once a day</option>
+        <option value="2">Twice a day</option>
+        <option value="3">Three times a day</option>
+      </select>
+
+      <div class="section-label">Set Time(s)</div>
+      <div id="timeSlots"></div>
+<!-- Reminder duration -->
+<div class="section-label">Reminder Duration</div>
+
+<select id="durationType"
+        class="dhas-input"
+        style="margin-bottom:18px;">
+
+  <option value="forever">
+    Continue Until Manually Removed
+  </option>
+
+  <option value="1">
+    1 Day only
+  </option>
+
+  <option value="2">
+    2 Days
+  </option>
+
+  <option value="3">
+    3 Days
+  </option>
+
+  <option value="5">
+    5 Days
+  </option>
+
+  <option value="7">
+    1 Week
+  </option>
+
+  <option value="14">
+    2 Weeks
+  </option>
+
+  <option value="30">
+    1 Month
+  </option>
+
+</select>
+      <!-- ── ALARM SOUND SELECTOR ──────────────────────────── -->
+      <div class="section-label">Alarm Sound</div>
+      <div class="sound-row">
+        <select id="alarmSound" class="dhas-input">
+          <option value="bell">🔔 Bell</option>
+          <option value="chime">🎵 Chime</option>
+          <option value="beep">📳 Beep</option>
+          <option value="gentle">🌊 Gentle</option>
+          <option value="alarm">🚨 Alarm</option>
+        </select>
+        <button
+  type="button"
+  class="sound-preview-btn"
+  onclick="previewSound()"
+>
+  ▶ Preview
+</button>
+      </div>
+<!-- Professional Reminder Preview -->
+<div id="reminderPreview"
+     style="
+      display:none;
+      background:#ffffff;
+      border:1px solid #dbe4f0;
+      border-radius:18px;
+      padding:18px;
+      margin-bottom:20px;
+      box-shadow:0 4px 18px rgba(0,0,0,0.05);
+     ">
+
+  <!-- Header -->
+  <div style="
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+  ">
+
+    <div style="
+        font-size:1rem;
+        font-weight:700;
+        color:#0f172a;
+    ">
+      📋 Reminder Summary
     </div>
 
-    <!-- JS -->
-    <script src="js/reminder.js"></script>
+    <div style="
+        background:#dcfce7;
+        color:#166534;
+        padding:4px 10px;
+        border-radius:999px;
+        font-size:0.72rem;
+        font-weight:700;
+    ">
+      READY TO SAVE
+    </div>
 
+  </div>
+
+  <!-- Content -->
+  <div id="previewContent"
+       style="
+        display:grid;
+        gap:12px;
+       ">
+  </div>
+
+</div>
+     <button
+  type="button"
+  class="btn-dhas primary"
+  onclick="addReminder()">
+
+  💾 Save Reminder
+
+</button>
+    </div>
+
+    <!-- ── SAVED REMINDERS ───────────────────────────────────── -->
+    <div>
+      <h5 style="font-family:'Sora',sans-serif;margin-bottom:12px;">📋 Saved Reminders</h5>
+      <div id="reminderList"></div>
+    </div>
+
+    <button class="btn-dhas secondary mt-12" onclick="goBack()">← Back</button>
+
+  </div>
+
+  <script src="js/reminder.js"></script>
 </body>
 </html>

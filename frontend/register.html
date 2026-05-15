@@ -3,42 +3,320 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <title>Register - DHAS</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Password eye-toggle ───────────────────── */
+    .pw-wrap { position: relative; }
+    .pw-wrap .dhas-input  { padding-right: 2.8rem; }
+    .toggle-eye {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: #6c757d;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+      z-index: 5;
+    }
+    .toggle-eye:hover { color: var(--primary, #0d6efd); }
+    .toggle-eye svg   { width: 20px; height: 20px; pointer-events: none; }
+
+    /* ── Strength bar ──────────────────────────── */
+    .strength-bar-wrap {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .strength-segment {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: #e0e0e0;
+      transition: background 0.3s;
+    }
+    .strength-label {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* ── Requirement checklist ─────────────────── */
+    .req-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 14px;
+      font-size: 0.78rem;
+    }
+    .req-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #999;
+      margin-bottom: 3px;
+      transition: color 0.25s;
+    }
+    .req-list li::before {
+      content: "✗";
+      font-weight: 700;
+      color: #e74c3c;
+      min-width: 14px;
+    }
+    .req-list li.ok         { color: #27ae60; }
+    .req-list li.ok::before { content: "✓"; color: #27ae60; }
+
+    /* ── Email validation message ──────────────── */
+    .email-status {
+      font-size: 0.75rem;
+      margin-top: 3px;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .email-status.valid   { color: #27ae60; display: block; }
+    .email-status.invalid { color: #e74c3c; display: block; }
+
+
+  </style>
 </head>
 <body>
 
-  <div class="auth-wrap">
-    <div class="auth-card">
+<div class="auth-wrap">
+  <div class="auth-card">
 
-      <div class="auth-logo">
-        <div class="logo-icon">✨</div>
-        <h2>Create Account</h2>
-        <p>Join your personal health assistant</p>
-      </div>
-
-      <div id="errorMsg" class="dhas-alert danger" style="display:none;"></div>
-      <div id="successMsg" class="dhas-alert success" style="display:none;"></div>
-
-      <label class="dhas-label">Full Name</label>
-      <input type="text" id="name" class="dhas-input" placeholder="Your full name">
-
-      <label class="dhas-label">Email</label>
-      <input type="email" id="email" class="dhas-input" placeholder="you@example.com">
-
-      <label class="dhas-label">Password</label>
-      <input type="password" id="password" class="dhas-input" placeholder="Min. 6 characters">
-
-      <button class="btn-dhas primary" onclick="handleRegister()">Create Account</button>
-
-      <p class="text-center mt-16 text-muted">
-        Already have an account? <a href="login.html" style="color:var(--primary);font-weight:700;">Login</a>
-      </p>
-
+    <div class="auth-logo">
+      <div class="logo-icon">✨</div>
+      <h2>Create Account</h2>
+      <p>Join your personal health assistant</p>
     </div>
+
+    <div id="errorMsg"   class="dhas-alert danger"  style="display:none;"></div>
+    <div id="successMsg" class="dhas-alert success" style="display:none;"></div>
+
+    <!-- Full Name -->
+    <label class="dhas-label">Full Name</label>
+    <input type="text" id="name" class="dhas-input" placeholder="Your full name">
+
+    <!-- Email with validation -->
+    <label class="dhas-label">Email Address</label>
+    <input type="email" id="email" class="dhas-input"
+           placeholder="you@example.com"
+           oninput="validateEmail(this.value)">
+    <div class="email-status" id="emailStatus"></div>
+
+    <!-- Password with show/hide toggle -->
+    <label class="dhas-label">Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="password" class="dhas-input"
+             placeholder="Min. 6 chars — uppercase, lowercase, number & symbol"
+             oninput="evaluatePassword(this.value)">
+      <button type="button" class="toggle-eye"
+              onclick="togglePw('password','eyeReg')"
+              aria-label="Show or hide password">
+        <svg id="eyeReg" xmlns="http://www.w3.org/2000/svg"
+             fill="none" viewBox="0 0 24 24"
+             stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5
+                   c4.477 0 8.268 2.943 9.542 7
+                   -1.274 4.057-5.065 7-9.542 7
+                   -4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 4-segment strength bar -->
+    <div class="strength-bar-wrap">
+      <div class="strength-segment" id="seg1"></div>
+      <div class="strength-segment" id="seg2"></div>
+      <div class="strength-segment" id="seg3"></div>
+      <div class="strength-segment" id="seg4"></div>
+    </div>
+    <div class="strength-label" id="strengthLabel" style="color:#aaa;">—</div>
+
+    <!-- Live requirement checklist -->
+    <ul class="req-list">
+      <li id="req-len">At least 6 characters</li>
+      <li id="req-upper">At least one uppercase letter (A–Z)</li>
+      <li id="req-lower">At least one lowercase letter (a–z)</li>
+      <li id="req-num">At least one number (0–9)</li>
+      <li id="req-sym">At least one symbol (!@#$%^&amp;* …)</li>
+    </ul>
+
+    <button class="btn-dhas primary" onclick="submitRegister()">Create Account</button>
+
+    <p class="text-center mt-16 text-muted">
+      Already have an account?
+      <a href="login.html" style="color:var(--primary);font-weight:700;">Login</a>
+    </p>
+
   </div>
+</div>
 
-  <script src="js/auth.js"></script>
+<script>
+  /* ── 1. Email Validation ──────────────────────────────────── */
+  function validateEmail(email) {
+    const statusEl = document.getElementById("emailStatus");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email);
 
+    if (email.length === 0) {
+      statusEl.textContent = "";
+      statusEl.className = "email-status";
+      return;
+    }
+
+    if (isValid) {
+      statusEl.textContent = "✓ Email looks good";
+      statusEl.className = "email-status valid";
+    } else {
+      statusEl.textContent = "✗ Invalid email format";
+      statusEl.className = "email-status invalid";
+    }
+  }
+
+  /* ── 2. Show / hide password ──────────────────────────────── */
+  function togglePw(fieldId, iconId) {
+    const field  = document.getElementById(fieldId);
+    const icon   = document.getElementById(iconId);
+    const hiding = field.type === "password";
+    field.type   = hiding ? "text" : "password";
+
+    icon.innerHTML = hiding
+        // eye-off
+        ? `<path stroke-linecap="round" stroke-linejoin="round"
+                 d="M13.875 18.825A10.05 10.05 0 0112 19
+                    c-4.477 0-8.268-2.943-9.542-7
+                    a9.97 9.97 0 012.637-4.217
+                    M6.53 6.53A9.969 9.969 0 0112 5
+                    c4.477 0 8.268 2.943 9.542 7
+                    a9.965 9.965 0 01-4.107 5.02
+                    M15 12a3 3 0 00-3-3m0 0
+                    a3 3 0 00-2.122.879M3 3l18 18"/>`
+        // eye
+        : `<path stroke-linecap="round" stroke-linejoin="round"
+                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+           <path stroke-linecap="round" stroke-linejoin="round"
+                 d="M2.458 12C3.732 7.943 7.523 5 12 5
+                    c4.477 0 8.268 2.943 9.542 7
+                    -1.274 4.057-5.065 7-9.542 7
+                    -4.477 0-8.268-2.943-9.542-7z"/>`;
+  }
+
+  /* ── 3. Password rules ───────────────────────────────────── */
+  const RULES = {
+    len   : v => v.length >= 6,
+    upper : v => /[A-Z]/.test(v),
+    lower : v => /[a-z]/.test(v),
+    num   : v => /[0-9]/.test(v),
+    sym   : v => /[^A-Za-z0-9]/.test(v),
+  };
+  const COLORS = ["", "#e74c3c", "#e67e22", "#f1c40f", "#27ae60"];
+  const LABELS = ["", "Weak",    "Fair",    "Good",    "Strong" ];
+
+  function evaluatePassword(val) {
+    Object.keys(RULES).forEach(key => {
+      const li = document.getElementById("req-" + key);
+      if (li) li.classList.toggle("ok", RULES[key](val));
+    });
+    const score = Object.values(RULES).filter(fn => fn(val)).length;
+    const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+    const color = COLORS[bars] || "#e0e0e0";
+
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById("seg" + i).style.background =
+          i <= bars ? color : "#e0e0e0";
+    }
+    const lbl = document.getElementById("strengthLabel");
+    lbl.textContent = val.length === 0 ? "—" : (LABELS[bars] || "—");
+    lbl.style.color  = val.length === 0 ? "#aaa" : color;
+  }
+
+  function isPasswordValid(val) {
+    return Object.values(RULES).every(fn => fn(val));
+  }
+
+  /* ── 4. SHA-256 hash ──────────────────────────────────── */
+  async function sha256(plain) {
+    const buf = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(plain)
+    );
+    return Array.from(new Uint8Array(buf))
+                .map(b => b.toString(16).padStart(2, "0"))
+                .join("");
+  }
+
+  /* ── 5. Register button handler ─────────────────────── */
+  async function submitRegister() {
+    const name     = document.getElementById("name").value.trim();
+    const email    = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    const errBox = document.getElementById("errorMsg");
+    const okBox  = document.getElementById("successMsg");
+    const showErr = (msg) => { errBox.textContent = msg; errBox.style.display = "block"; okBox.style.display = "none"; };
+    const hideErr = ()    => { errBox.style.display = "none"; };
+
+    hideErr();
+
+    if (!name)  { showErr("Full name is required.");     return; }
+    if (!email) { showErr("Email address is required."); return; }
+
+    // ✅ Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showErr("Please enter a valid email address.");
+      return;
+    }
+
+    if (!isPasswordValid(password)) {
+      showErr(
+        "Password must be at least 6 characters and include " +
+        "an uppercase letter, a lowercase letter, a number, and a symbol."
+      );
+      return;
+    }
+
+    const hashedPassword = await sha256(password);
+    handleRegister(name, email, hashedPassword);
+  }
+
+</script>
+<div id="g_id_onload"
+     data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
+     data-callback="handleCredentialResponse">
+</div>
+
+
+<div style="display:flex; justify-content:center; margin-top:20px;">
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="pill">
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+<script>
+function handleCredentialResponse(response) {
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+
+    const name     = payload.name;
+    const email    = payload.email;
+    const googleId = payload.sub;
+
+    handleGoogleAuth(name, email, googleId);
+}
+</script>
 </body>
 </html>

@@ -3,46 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <title>Login - DHAS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ── Password eye-toggle ──────────────────── */
+        .pw-wrap { position: relative; }
+        .pw-wrap .form-control { padding-right: 2.8rem; }
+        .toggle-eye {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+            z-index: 5;
+        }
+        .toggle-eye:hover { color: #0d6efd; }
+        .toggle-eye svg   { width: 20px; height: 20px; pointer-events: none; }
+    </style>
 </head>
-
 <body>
+    
 
-    <div class="container d-flex justify-content-center align-items-center vh-100">
-        
-        <div class="card p-4 shadow-sm login-card">
-            
-            <h3 class="text-center mb-3">Login</h3>
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="card p-4 shadow-sm login-card">
 
-            <!-- NO submit -->
-            <form>
-                
-                <div class="mb-3">
-                    <input type="email" class="form-control" id="email" placeholder="Email" required>
+        <h3 class="text-center mb-3">Login</h3>
+
+        <div id="loginError" class="alert alert-danger d-none" role="alert"></div>
+
+        <form>
+            <!-- Email -->
+            <div class="mb-3">
+                <input type="email" class="form-control" id="email"
+                       placeholder="Email" required>
+            </div>
+
+            <!-- Password + show/hide toggle -->
+            <div class="mb-3">
+                <div class="pw-wrap">
+                    <input type="password" class="form-control" id="password"
+                           placeholder="Password" required>
+                    <button type="button" class="toggle-eye"
+                            onclick="togglePw('password','eyeLogin')"
+                            aria-label="Show or hide password">
+                        <svg id="eyeLogin" xmlns="http://www.w3.org/2000/svg"
+                             fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5
+                                     c4.477 0 8.268 2.943 9.542 7
+                                     -1.274 4.057-5.065 7-9.542 7
+                                     -4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </button>
                 </div>
+            </div>
 
-                <div class="mb-3">
-                    <input type="password" class="form-control" id="password" placeholder="Password" required>
-                </div>
+            <button type="button" onclick="submitLogin()"
+                    class="btn btn-primary w-100">Login</button>
+                    <div id="g_id_onload"
+     data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
+     data-callback="handleCredentialResponse"
+      data-scope="https://www.googleapis.com/auth/fitness.activity.read">
+</div>
+<p class="or-text"> OR continue with</p>
+<div class="g_id_signin"></div>
 
-                <!-- BUTTON CLICK -->
-                <button type="button" onclick="handleLogin()" class="btn btn-primary w-100">Login</button>
-
-                <p class="text-center mt-3">
-                    Don't have an account? 
-                    <a href="register.html">Register</a>
-                </p>
-
-            </form>
-
-        </div>
+            <p class="text-center mt-3">
+                Don't have an account?
+                <a href="register.html">Register</a>
+            </p>
+        </form>
 
     </div>
+</div>
 
-    <script src="js/auth.js"></script>
+<script>
+    /* ── 1. Show / hide password ──────────────────────────────── */
+    function togglePw(fieldId, iconId) {
+        const field  = document.getElementById(fieldId);
+        const icon   = document.getElementById(iconId);
+        const hiding = field.type === "password";
+        field.type   = hiding ? "text" : "password";
+
+        icon.innerHTML = hiding
+            // eye-off  (password is now visible → show slash)
+            ? `<path stroke-linecap="round" stroke-linejoin="round"
+                     d="M13.875 18.825A10.05 10.05 0 0112 19
+                        c-4.477 0-8.268-2.943-9.542-7
+                        a9.97 9.97 0 012.637-4.217
+                        M6.53 6.53A9.969 9.969 0 0112 5
+                        c4.477 0 8.268 2.943 9.542 7
+                        a9.965 9.965 0 01-4.107 5.02
+                        M15 12a3 3 0 00-3-3m0 0
+                        a3 3 0 00-2.122.879M3 3l18 18"/>`
+            // eye  (password is now hidden → show open eye)
+            : `<path stroke-linecap="round" stroke-linejoin="round"
+                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+               <path stroke-linecap="round" stroke-linejoin="round"
+                     d="M2.458 12C3.732 7.943 7.523 5 12 5
+                        c4.477 0 8.268 2.943 9.542 7
+                        -1.274 4.057-5.065 7-9.542 7
+                        -4.477 0-8.268-2.943-9.542-7z"/>`;
+    }
+
+    /* ── 2. SHA-256 hash via Web Crypto API ───────────────────────
+       The plain-text password is hashed HERE inside the browser.
+       Only the hex digest is ever passed to auth.js or the network.
+       The original value is never stored, logged, or transmitted.
+    ────────────────────────────────────────────────────────────── */
+    async function sha256(plain) {
+        const buf = await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(plain)
+        );
+        return Array.from(new Uint8Array(buf))
+                    .map(b => b.toString(16).padStart(2, "0"))
+                    .join("");
+    }
+
+    /* ── 3. Login button handler ──────────────────────────────── */
+    async function submitLogin() {
+        const email    = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;   // read once
+        const errBox   = document.getElementById("loginError");
+
+        errBox.classList.add("d-none");
+
+        if (!email || !password) {
+            errBox.textContent = "Please enter your email and password.";
+            errBox.classList.remove("d-none");
+            return;
+        }
+
+        // Hash the password — handleLogin() in auth.js NEVER sees plain text
+        const hashedPassword = await sha256(password);
+
+        // Pass email + hash to auth.js (which sends hash to backend)
+        handleLogin(email, hashedPassword);
+    }
+</script>
+
+<!-- auth.js is loaded AFTER the inline script so handleLogin() is available -->
+<script src="js/auth.js"></script>
+<script>
+function handleCredentialResponse(response) {
+    // Decode the Google JWT payload (middle part between the two dots)
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+
+    const name     = payload.name;
+    const email    = payload.email;
+    const googleId = payload.sub;  // Google's unique ID for this user
+
+    // Save to your DB (or log in if already exists)
+    handleGoogleAuth(name, email, googleId);
+}
+</script>
 
 </body>
 </html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diet for Your Condition - DHAS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #94a3b8;
+      --bg: #f0f4ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* NAVBAR */
+    .dhas-navbar {
+      background: linear-gradient(135deg, #1e40af, #2563eb);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .dhas-navbar a {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.85rem;
+      text-decoration: none;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+
+    /* PAGE WRAP */
+    .page-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 50px;
+    }
+
+    /* HERO HEADER */
+    .page-header {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0ea5e9 100%);
+      border-radius: 20px;
+      padding: 24px 20px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50%;
+    }
+    .page-header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 40px;
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .header-emoji { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 1.7rem;
+      font-weight: 900;
+      margin-bottom: 4px;
+      position: relative;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.75); font-size: 0.85rem; font-weight: 500; position: relative; }
+
+    /* SOURCE BADGE */
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 50px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 10px;
+      letter-spacing: 0.5px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* RESULT CARD */
+    .result-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 22px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 2px solid var(--border);
+      animation: fadeIn 0.35s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px dashed var(--border);
+    }
+
+    .food-section-label {
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .food-section-label.eat { color: #065f46; }
+    .food-section-label.avoid { color: #991b1b; }
+    .food-section-label::after {
+      content: '';
+      flex: 1;
+      height: 1.5px;
+      background: currentColor;
+      opacity: 0.2;
+      border-radius: 2px;
+    }
+
+    .food-tags-wrap { margin-bottom: 20px; }
+    .food-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin: 3px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .food-eat {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      color: #065f46;
+      border: 1.5px solid #6ee7b7;
+    }
+    .food-avoid {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      color: #991b1b;
+      border: 1.5px solid #fca5a5;
+    }
+
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      border-radius: 2px;
+      margin: 10px 0 16px;
+      opacity: 0.15;
+    }
+
+    /* BACK + REMEDIES BUTTONS */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.87rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+      text-decoration: none;
+    }
+    .btn-back:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+
+    .btn-remedies {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      border-radius: 12px;
+      border: 2px solid #10b981;
+      background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+      color: #065f46;
+      font-weight: 700;
+      font-size: 0.87rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+      text-decoration: none;
+      flex: 1;
+      justify-content: center;
+    }
+    .btn-remedies:hover {
+      background: linear-gradient(135deg, #a7f3d0, #d1fae5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(16,185,129,0.25);
+    }
+
+    /* NOT FOUND */
+    .not-found {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-muted);
+    }
+    .not-found .nf-emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .not-found .nf-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
+    .not-found .nf-sub { font-size: 0.87rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand">🏥 DHAS</div>
+    <a href="dashboard.html">← Dashboard</a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- Hero Header -->
+    <div class="page-header">
+      <span class="header-emoji">🥗</span>
+      <div class="page-title" id="heroTitle">Diet Guide</div>
+      <div class="page-subtitle" id="heroSub">Personalised food recommendations based on your symptoms</div>
+      <div class="source-badge"><span class="badge-dot"></span> Based on your symptom analysis</div>
+    </div>
+
+    <!-- Content injected by JS -->
+    <div id="content"></div>
+
+  </div>
+
+  <script>
+    // ── Full diet data (same as diet.html) ──
+    const DISEASES = [
+      { name: "Asthma",               key: ["asthma"],                eat: ["Ginger tea","Honey","Turmeric milk","Garlic","Spinach","Apples","Avocado"],                                               avoid: ["Processed foods","Sulphites (wine, dried fruits)","Cold drinks","Excess salt","Artificial colours"] },
+      { name: "Arthritis",            key: ["arthritis"],             eat: ["Fatty fish (salmon)","Walnuts","Berries","Spinach","Olive oil","Ginger","Turmeric"],                                      avoid: ["Fried food","Processed sugar","Red meat","Alcohol","Refined carbs"] },
+      { name: "Common Cold",          key: ["common_cold","cold"],    eat: ["Warm soups","Tulsi tea","Ginger-honey milk","Garlic","Vitamin C fruits","Warm water"],                                    avoid: ["Cold water","Ice cream","Fried snacks","Excess sugar","Alcohol"] },
+      { name: "COVID-19 Like Illness",key: ["covid_like","covid"],    eat: ["Warm turmeric milk","High protein foods (dal, eggs)","Fresh fruits","Giloy tea","Zinc-rich foods"],                       avoid: ["Cold foods","Alcohol","Junk food","Excess sugar","Processed food"] },
+      { name: "Constipation",         key: ["constipation"],          eat: ["High-fibre foods (oats, beans)","Fruits (papaya, guava)","Water (3L daily)","Leafy greens","Prunes"],                    avoid: ["Refined flour (maida)","Fried food","Red meat","Alcohol","Low-fibre foods"] },
+      { name: "Diabetes",             key: ["diabetes"],              eat: ["Bitter gourd (karela)","Fenugreek (methi)","Brown rice","Whole grains","Leafy greens","Amla"],                           avoid: ["White rice","Sugary drinks","Sweets and desserts","Refined flour","Fruit juices"] },
+      { name: "Dengue",               key: ["dengue"],                eat: ["Papaya leaf juice","Coconut water","Pomegranate juice","Kiwi","Vegetable soup","ORS"],                                   avoid: ["Oily food","Spicy food","Caffeine","Alcohol","Junk food"] },
+      { name: "Diarrhea",             key: ["gastro","diarrhea"],     eat: ["ORS solution","Banana","Plain boiled rice","Toast / rusk","Curd (probiotic)","Coconut water"],                           avoid: ["Oily food","Spicy food","Raw vegetables","Caffeinated drinks","Dairy (except curd)"] },
+      { name: "Fever",                key: ["fever"],                 eat: ["Warm water","Coconut water","Vegetable soup","Light khichdi","Fresh fruits","Herbal teas"],                               avoid: ["Oily food","Spicy food","Junk food","Cold drinks","Heavy meals"] },
+      { name: "Flu (Influenza)",      key: ["flu","influenza"],       eat: ["Warm vegetable soup","Oranges","Ginger tea with honey","Light khichdi","Bananas"],                                       avoid: ["Junk food","Cold drinks","Oily foods","Spicy food","Alcohol"] },
+      { name: "Gastritis",            key: ["gastritis"],             eat: ["Curd (probiotic)","Banana","Oats","Coconut water","Boiled vegetables","Ginger tea"],                                     avoid: ["Spicy food","Alcohol","Coffee","Citrus fruits","Fried food","Carbonated drinks"] },
+      { name: "Headache / Migraine",  key: ["headache","migraine"],   eat: ["Plenty of water","Banana","Almonds","Spinach","Ginger tea","Watermelon","Magnesium-rich foods"],                        avoid: ["Excess caffeine","Alcohol","Processed meats","Too much salt","Skipping meals"] },
+      { name: "Hypertension (High BP)",key:["hypertension","high_bp"],eat: ["Banana","Leafy greens","Beets","Garlic","Oats","Low-fat dairy","Berries"],                                              avoid: ["Excess salt","Processed foods","Alcohol","Red meat","Caffeine","Pickles"] },
+      { name: "Jaundice",             key: ["jaundice"],              eat: ["Sugarcane juice","Coconut water","Papaya","Lemon water","Vegetable soup","Rice gruel"],                                  avoid: ["Oily food","Spicy food","Alcohol","Red meat","Fried food","Junk food"] },
+      { name: "Kidney Stones",        key: ["kidney_stones"],         eat: ["Plenty of water (3–4L)","Lemon water","Coconut water","Low-oxalate fruits","Calcium-rich foods"],                       avoid: ["Spinach (excess)","Nuts (excess)","Salt","Animal protein (excess)","Vitamin C supplements"] },
+      { name: "Malaria",              key: ["malaria"],               eat: ["Warm soups","Coconut water","Papaya","Pomegranate","Light khichdi","Ginger tea"],                                        avoid: ["Spicy food","Oily food","Alcohol","Junk food","Cold drinks"] },
+      { name: "Nausea / Vomiting",    key: ["nausea","vomiting"],     eat: ["Ginger tea","Plain crackers / rusk","Banana","Clear broths","Coconut water","Small frequent meals"],                    avoid: ["Oily food","Spicy food","Strong smells","Dairy","Large heavy meals"] },
+      { name: "Obesity",              key: ["obesity"],               eat: ["Fruits and vegetables","Whole grains","Lean protein (dal, fish)","Water before meals","Green tea"],                     avoid: ["Sugary drinks","Junk food","Fried food","White bread/rice","Late-night eating"] },
+      { name: "Sore Throat",          key: ["sore_throat"],           eat: ["Warm water with honey and lemon","Ginger tea","Turmeric milk","Soft foods (khichdi)","Coconut water"],                  avoid: ["Cold drinks","Ice cream","Spicy food","Alcohol","Hard crunchy foods"] },
+      { name: "Typhoid",              key: ["typhoid"],               eat: ["Boiled water","Light khichdi","Banana","Boiled potatoes","Curd","Coconut water","Vegetable soup"],                      avoid: ["Oily food","Spicy food","Raw vegetables","Junk food","Alcohol","Unboiled water"] },
+      { name: "Viral Fever",          key: ["viral_fever","viral"],   eat: ["Warm herbal teas","Papaya, pomegranate","Light rice porridge (kanji)","Coconut water","Honey"],                         avoid: ["Oily food","Cold items","Spicy curries","Junk food","Caffeine"] },
+    ];
+
+    function findDisease() {
+      // Try dhas_symptom_condition first (set by symptom checker), then dhas_condition
+      const raw = localStorage.getItem("dhas_symptom_condition") || localStorage.getItem("dhas_condition") || "";
+      const cond = raw.toLowerCase().trim();
+      if (!cond || cond === "general") return null;
+      return DISEASES.find(d => d.key.some(k => cond.includes(k) || k.includes(cond)));
+    }
+
+    function render() {
+      const disease = findDisease();
+      const content = document.getElementById("content");
+
+      if (!disease) {
+        content.innerHTML = `
+          <div class="not-found">
+            <span class="nf-emoji">🤔</span>
+            <div class="nf-title">No condition detected</div>
+            <div class="nf-sub">Please go back and complete the symptom checker first.</div>
+            <br>
+            <a href="symptom.html" class="btn-back" style="display:inline-flex;margin-top:8px;">← Check Symptoms</a>
+          </div>`;
+        return;
+      }
+
+      // Update hero
+      document.getElementById("heroTitle").textContent = "Diet for " + disease.name;
+      document.getElementById("heroSub").textContent = "Foods recommended and to avoid for " + disease.name;
+
+      content.innerHTML = `
+        <div class="result-card">
+          <div class="result-title">🥗 Diet Plan — ${disease.name}</div>
+
+          <div class="food-section-label eat">✅ Foods to Eat</div>
+          <div class="food-tags-wrap">
+            ${disease.eat.map(f => `<span class="food-tag food-eat">✓ ${f}</span>`).join("")}
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="food-section-label avoid">❌ Foods to Avoid</div>
+          <div class="food-tags-wrap">
+            ${disease.avoid.map(f => `<span class="food-tag food-avoid">✗ ${f}</span>`).join("")}
+          </div>
+
+          <div class="action-row">
+            <a href="dashboard.html" class="btn-back">← Dashboard</a>
+            <a href="symptom_remedies.html" class="btn-remedies">🌿 View Remedies →</a>
+          </div>
+        </div>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>

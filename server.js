@@ -7,12 +7,14 @@ const app = express();
 
 // ── Middleware ──────────────────────────────
 app.use(cors());
-app.use(express.json());
 
-// ── Serve Frontend ──────────────────────────
-// server.js is inside frontend/ folder
-// so __dirname points to frontend/ directly
-app.use(express.static(__dirname));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+app.use(express.static(path.join(__dirname,"frontend")));
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname,"frontend","index.html"));
+});
 
 // ── Test Route ──────────────────────────────
 app.get("/test", (req, res) => {
@@ -24,13 +26,16 @@ const authRoutes     = require("./backend/routes/authRoutes");
 const symptomRoutes  = require("./backend/routes/symptomRoutes");
 const reminderRoutes = require("./backend/routes/reminderRoutes");
 const reportRoutes   = require("./backend/routes/reportRoutes");
-
+const profileRoutes = require("./backend/routes/profileRoutes");
+app.use("/", profileRoutes);  
 app.use("/",          authRoutes);
 app.use("/symptoms",  symptomRoutes);
 app.use("/reminders", reminderRoutes);
 app.use("/reports",   reportRoutes);
 
 // ── Start Server ────────────────────────────
-app.listen(3007, () => {
-    console.log("✅ Server running on http://localhost:3007");
+const PORT = process.env.PORT || 3006;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
