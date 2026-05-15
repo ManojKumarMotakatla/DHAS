@@ -470,8 +470,7 @@ if (!storedUser) {
 
 const user = JSON.parse(storedUser);
 
-const BASE = "http://localhost:3006";
-
+const BASE = "https://dhas-production.up.railway.app";
 /* Greet */
 const hour = new Date().getHours();
 document.getElementById("timeOfDay").textContent = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";

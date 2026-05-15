@@ -4,7 +4,7 @@
 // Files stored as base64 in MySQL database
 // ============================================
 
-const BASE_URL = "http://localhost:3006";
+const BASE_URL = "http://https://dhas-production.up.railway.app";
 
 // ── Get logged-in user from localStorage ──────────────────────
 function getUser() {

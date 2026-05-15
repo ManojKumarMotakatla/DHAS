@@ -21,7 +21,7 @@ function handleLogin(email, hashedPassword) {
         return;
     }
 
-    fetch("http://localhost:3006/login", {
+    fetch("http://https://dhas-production.up.railway.app/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // ✅ Only the hash is sent — plain text NEVER leaves the browser
@@ -60,7 +60,7 @@ function handleRegister(name, email, hashedPassword) {
         return;
     }
 
-    fetch("http://localhost:3006/register", {
+    fetch("http://https://dhas-production.up.railway.app/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // ✅ Only the hash is sent — plain text NEVER leaves the browser
@@ -155,7 +155,7 @@ function showLoginLink() {
 // ──────────────────────────────────────────────────────────────
 async function handleGoogleAuth(name, email, googleId) {
     try {
-        const res = await fetch("http://localhost:3006/auth/google", {
+        const res = await fetch("http://https://dhas-production.up.railway.app/auth/google", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, google_id: googleId })
