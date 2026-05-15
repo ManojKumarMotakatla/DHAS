@@ -40,7 +40,7 @@ const addReminder = (req, res) => {
 
     const sql = `
         INSERT INTO reminders
-          (user_id, medicine_name,
+          (user_id, medicinename,
            schedule_type, schedule_label,
            dose_count, doses_label,
            times, days, month_day,
