@@ -3,6 +3,8 @@
 -- Safe to run on BOTH fresh and existing databases.
 -- Every structural change uses IF NOT EXISTS / MODIFY safely.
 -- ============================================================
+CREATE DATABASE IF NOT EXISTS dhas_db;
+USE dhas_db;
 
 
 -- ── users ──────────────────────────────────────────────────

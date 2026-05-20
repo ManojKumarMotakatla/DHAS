@@ -4,7 +4,7 @@
 // Files stored as base64 in MySQL database
 // ============================================
 
-const BASE_URL = "https://dhas-production.up.railway.app";
+const BASE_URL = "http://localhost:3006";
 
 // ── Get logged-in user from localStorage ──────────────────────
 function getUser() {
@@ -18,8 +18,120 @@ window.onload = function () {
         window.location.href = "login.html";
         return;
     }
-    displayReports();
+
+    // If returning from viewer, restore scroll
+    const savedScroll = sessionStorage.getItem("dhas_report_scroll");
+    if (savedScroll) {
+        setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
+        sessionStorage.removeItem("dhas_report_scroll");
+    }
+
+    // Check if we're in viewer mode (hash-based routing)
+    if (window.location.hash.startsWith("#view:")) {
+        const id = window.location.hash.replace("#view:", "");
+        showReportViewer(id);
+    } else {
+        showReportList();
+    }
 };
+
+// ── Show the main report list view ──────────────────────────────
+function showReportList() {
+    document.getElementById("listSection").style.display = "block";
+    document.getElementById("viewerSection").style.display = "none";
+    displayReports();
+}
+
+// ── Show the embedded report viewer ─────────────────────────────
+async function showReportViewer(id) {
+    document.getElementById("listSection").style.display = "none";
+    const viewerSection = document.getElementById("viewerSection");
+    viewerSection.style.display = "block";
+    viewerSection.innerHTML = `<p style="text-align:center;color:#888;padding:40px 0;">Loading report…</p>`;
+
+    try {
+        const res  = await fetch(`${BASE_URL}/reports/view/${id}`);
+        const data = await res.json();
+
+        if (!data.success || !data.dataurl) {
+            viewerSection.innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                    <p style="color:red;">File data not found.</p>
+                    <button class="btn-dhas secondary" onclick="goBackToList()">← Back to Reports</button>
+                </div>`;
+            return;
+        }
+
+        const isPDF   = data.filetype === "application/pdf";
+        const isImage = data.filetype && data.filetype.startsWith("image/");
+
+        let contentHTML = "";
+        if (isPDF) {
+            contentHTML = `
+                <iframe
+                    src="${data.dataurl}"
+                    style="width:100%;height:75vh;border:none;border-radius:12px;"
+                    title="${data.filename}">
+                </iframe>`;
+        } else if (isImage) {
+            contentHTML = `
+                <img
+                    src="${data.dataurl}"
+                    alt="${data.filename}"
+                    style="max-width:100%;border-radius:12px;display:block;margin:0 auto;">`;
+        } else {
+            contentHTML = `<p style="color:#555;text-align:center;">Cannot preview this file type. Please download it.</p>`;
+        }
+
+        viewerSection.innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                <button class="btn-dhas secondary"
+                        style="width:auto;padding:8px 18px;"
+                        onclick="goBackToList()">← Back to Reports</button>
+                <div style="flex:1;font-size:0.95rem;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${fileIcon(data.filetype)} ${data.filename}
+                </div>
+                <a href="${data.dataurl}"
+                   download="${data.filename}"
+                   class="btn-dhas primary"
+                   style="width:auto;padding:8px 18px;font-size:0.85rem;text-decoration:none;">
+                    ⬇ Download
+                </a>
+            </div>
+            ${contentHTML}`;
+    } catch (err) {
+        console.error("View report error:", err);
+        viewerSection.innerHTML = `
+            <div style="text-align:center;padding:40px;">
+                <p style="color:red;">Cannot connect to server.</p>
+                <button class="btn-dhas secondary" onclick="goBackToList()">← Back to Reports</button>
+            </div>`;
+    }
+}
+
+// ── Navigate to viewer (same tab, hash routing) ─────────────────
+function viewReport(id) {
+    // Save scroll position so we restore it when going back
+    sessionStorage.setItem("dhas_report_scroll", window.scrollY);
+    window.location.hash = `view:${id}`;
+    showReportViewer(id);
+}
+
+// ── Navigate back to list ────────────────────────────────────────
+function goBackToList() {
+    window.location.hash = "";
+    showReportList();
+}
+
+// Handle browser back/forward buttons
+window.addEventListener("hashchange", () => {
+    if (window.location.hash.startsWith("#view:")) {
+        const id = window.location.hash.replace("#view:", "");
+        showReportViewer(id);
+    } else {
+        showReportList();
+    }
+});
 
 // ── Upload Report ──────────────────────────────────────────────
 function uploadReport() {
@@ -44,6 +156,9 @@ function uploadReport() {
         return;
     }
 
+    const uploadBtn = document.getElementById("uploadBtn");
+    if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.textContent = "Uploading…"; }
+
     // Read file as base64 Data URL
     const reader = new FileReader();
     reader.onload = async function (e) {
@@ -58,7 +173,7 @@ function uploadReport() {
                     filename: file.name,
                     filesize: formatSize(file.size),
                     filetype: file.type,
-                    dataurl:  dataUrl        // base64 stored in DB
+                    dataurl:  dataUrl
                 })
             });
 
@@ -68,17 +183,21 @@ function uploadReport() {
                 fileInput.value = "";
                 displayReports();
             } else {
-                alert(data.message || "Upload failed. Please try again.");
+                const detail = data.dbMessage ? `\n\nDB: ${data.dbError} — ${data.dbMessage}` : "";
+                alert((data.message || "Upload failed. Please try again.") + detail);
             }
 
         } catch (err) {
             console.error("Upload error:", err);
             alert("Cannot connect to server. Make sure backend is running.");
+        } finally {
+            if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.textContent = "Upload Report"; }
         }
     };
 
     reader.onerror = function () {
         alert("Failed to read file. Please try again.");
+        if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.textContent = "Upload Report"; }
     };
 
     reader.readAsDataURL(file);
@@ -125,69 +244,6 @@ async function displayReports() {
     } catch (err) {
         console.error("Fetch reports error:", err);
         list.innerHTML = `<p style="text-align:center;color:red;">Failed to load reports.</p>`;
-    }
-}
-
-// ── View Report ────────────────────────────────────────────────
-async function viewReport(id) {
-    const user = getUser();
-    if (!user) return;
-
-    try {
-        const res  = await fetch(`${BASE_URL}/reports/view/${id}`);
-        const data = await res.json();
-
-        if (!data.success || !data.dataurl) {
-            alert("File data not found.");
-            return;
-        }
-
-        const win = window.open();
-        if (data.filetype === "application/pdf") {
-          win.document.write(`
-<html>
-<head>
-    <title>${data.filename}</title>
-</head>
-
-<body style="
-    margin:0;
-    background:#111;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:100vh;
-">
-
-<button onclick="history.back()"
-    style="
-        position:fixed;
-        top:10px;
-        right:10px;
-        z-index:9999;
-        padding:10px 16px;
-        border:none;
-        border-radius:8px;
-        background:#e74c3c;
-        color:white;
-        font-size:14px;
-        cursor:pointer;
-    ">
-    ← Back
-</button>
-
-<img src="${data.dataurl}"
-     style="max-width:100%;max-height:100vh;object-fit:contain;">
-
-</body>
-</html>
-`);
-        }
-        win.document.close();
-
-    } catch (err) {
-        console.error("View report error:", err);
-        alert("Cannot connect to server.");
     }
 }
 

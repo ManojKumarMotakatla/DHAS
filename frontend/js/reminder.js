@@ -9,7 +9,7 @@
 // ============================================
 
 // ── API base & logged-in user ───────────────────────────────────
-const API = "/reminders";   // matches app.use("/reminders", reminderRoutes) in server.js
+const API = "http://localhost:3006/reminders";
 
 /**
  * getUserId()
@@ -199,11 +199,19 @@ function showAlarmToast(reminder, timeSlot) {
 
 // ── Schedule helpers ────────────────────────────────────────────
 function shouldFireToday(r, dow, dom) {
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+
+    // Don't fire before the reminder's start date
+    if (r.startDate) {
+        const start = new Date(r.startDate + "T00:00:00");
+        if (todayMidnight < start) return false;
+    }
+
     if (r.duration && r.duration !== "forever") {
-        const created = new Date(r.createdAt);
-        const today   = new Date();
-        created.setHours(0,0,0,0); today.setHours(0,0,0,0);
-        if (Math.floor((today - created) / 86400000) >= parseInt(r.duration)) return false;
+        // Count days from startDate (not createdAt) so duration is accurate
+        const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
+        base.setHours(0,0,0,0);
+        if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
     }
     switch (r.sched) {
         case "daily":      return true;
@@ -476,6 +484,21 @@ window.addReminder = async function () {
     if (sched === "three_week" && days.length !== 3) { alert("Please select exactly 3 days."); return; }
     if (sched === "custom"     && days.length === 0) { alert("Please select at least 1 day."); return; }
 
+    // If starting today, drop any times already in the past
+    const todayStr = new Date().toISOString().split("T")[0];
+    const effectiveTimes = (startDate === todayStr)
+        ? times.filter(t => {
+              const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
+              const now = new Date();
+              return alarmH > now.getHours() || (alarmH === now.getHours() && alarmM > now.getMinutes());
+          })
+        : times;
+
+    if (effectiveTimes.length === 0) {
+        alert("All selected times have already passed for today.\nPlease pick a future time or choose a start date from tomorrow onward.");
+        return;
+    }
+
     // Payload uses the same camelCase keys the controller expects
     const payload = {
         user_id:       uid,
@@ -484,7 +507,7 @@ window.addReminder = async function () {
         scheduleLabel: buildScheduleLabel(sched, days, monthDay),
         doseCount:     parseInt(doseCount),
         dosesLabel:    doseLabel(doseCount),
-        times,
+        times: effectiveTimes,
         days,
         monthDay,
         duration,
@@ -614,6 +637,15 @@ window.onload = async function () {
     updateNotifBanner(await requestNotifPermission());
     buildMonthDayOptions();
     renderScheduleUI();
+
+    // Disable past dates in the start-date picker
+    const today = new Date().toISOString().split("T")[0];
+    const startDateEl = document.getElementById("startDate");
+    if (startDateEl) {
+        startDateEl.min   = today;
+        startDateEl.value = today;   // default to today
+    }
+
     await loadRemindersFromServer();   // ← populates cache from DB
     startAlarmTicker();
 };

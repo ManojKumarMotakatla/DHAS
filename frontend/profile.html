@@ -289,7 +289,7 @@
 </div>
 
 <script>
-const BASE = "https://dhas-production.up.railway.app";
+const BASE = "http://localhost:3006";
 const user = JSON.parse(localStorage.getItem("dhas_user"));
 if (!user) window.location.href = "login.html";
 if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");

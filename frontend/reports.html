@@ -15,26 +15,34 @@
 
   <div class="page-wrap">
 
-    <h2 class="page-title">
-      <span class="emoji">📋</span>
-      Medical Reports
-    </h2>
+    <!-- ── LIST SECTION (upload + list) ─────────────────────── -->
+    <div id="listSection">
 
-    <!-- Upload Card -->
-    <div class="dhas-card">
-      <h5>📤 Upload Report</h5>
-      <label class="dhas-label">Select File (PDF / Image)</label>
-      <input type="file" class="dhas-input" id="reportFile" accept=".pdf,.jpg,.jpeg,.png">
-      <button class="btn-dhas primary" onclick="uploadReport()">Upload Report</button>
+      <h2 class="page-title">
+        <span class="emoji">📋</span>
+        Medical Reports
+      </h2>
+
+      <!-- Upload Card -->
+      <div class="dhas-card">
+        <h5>📤 Upload Report</h5>
+        <label class="dhas-label">Select File (PDF / Image, max 4 MB)</label>
+        <input type="file" class="dhas-input" id="reportFile" accept=".pdf,.jpg,.jpeg,.png">
+        <button id="uploadBtn" class="btn-dhas primary" onclick="uploadReport()">Upload Report</button>
+      </div>
+
+      <!-- Reports List -->
+      <div>
+        <h5 style="font-family:'Sora',sans-serif;margin-bottom:12px;">📁 Uploaded Reports</h5>
+        <div id="reportList"></div>
+      </div>
+
+      <button class="btn-dhas secondary mt-12" onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+
     </div>
 
-    <!-- Reports List -->
-    <div>
-      <h5 style="font-family:'Sora',sans-serif;margin-bottom:12px;">📁 Uploaded Reports</h5>
-      <div id="reportList"></div>
-    </div>
-
-    <button class="btn-dhas secondary mt-12" onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+    <!-- ── VIEWER SECTION (shown when viewing a report) ──────── -->
+    <div id="viewerSection" style="display:none;"></div>
 
   </div>
 

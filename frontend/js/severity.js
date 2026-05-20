@@ -178,16 +178,27 @@ function alertClass(severity) {
 
 // ── Run on page load ──────────────────────────
 window.onload = function () {
+    // Read symptoms array written by symptom.js
     const symptoms = JSON.parse(localStorage.getItem("dhas_symptoms")) || [];
 
-    if (symptoms.length === 0) {
+    // Also accept condition key directly if symptoms page already diagnosed
+    const savedConditionKey = localStorage.getItem("dhas_symptom_condition");
+
+    // If no raw symptoms but we have a saved condition key, map it back
+    let result;
+    if (symptoms.length === 0 && savedConditionKey) {
+        result = CONDITIONS.find(c => c.key === savedConditionKey) || CONDITIONS.find(c => c.key === "general");
+    } else if (symptoms.length === 0) {
         document.getElementById("alertBox").className = "dhas-alert info";
         document.getElementById("alertBox").textContent = "No symptoms found. Please go back and select your symptoms.";
         return;
+    } else {
+        result = detectCondition(symptoms);
     }
 
-    const result = detectCondition(symptoms);
     localStorage.setItem("dhas_condition", result.key);
+    // Keep both keys in sync
+    localStorage.setItem("dhas_symptom_condition", result.key);
 
     // Symptoms as tags
     document.getElementById("symptomDisplay").innerHTML =
