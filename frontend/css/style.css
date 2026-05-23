@@ -1,7 +1,6 @@
 /* ============================================
    DHAS - Digital Health Assistant System
    Style Sheet — Unified Design System v2
-   Matches dashboard.html & profile.html aesthetic
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,600;0,700;1,300;1,600&display=swap');
@@ -29,6 +28,207 @@
   --radius-sm:   10px;
 }
 
+/* ===========================
+   DARK MODE — applied to both
+   html.dark and body.dark so
+   theme works on every page
+=========================== */
+html.dark,
+body.dark {
+  --bg:          #080f28;
+  --card-bg:     #111c3c;
+  --text:        #e8efff;
+  --text-muted:  #7d93c3;
+  --border:      #1e2e58;
+  --shadow:      0 2px 20px rgba(0,0,0,.4);
+  --shadow-md:   0 6px 32px rgba(0,0,0,.5);
+}
+
+/* Dark mode body background & color */
+html.dark body,
+body.dark {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Dark mode inputs */
+html.dark input,
+html.dark select,
+html.dark textarea,
+body.dark input,
+body.dark select,
+body.dark textarea {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Dark mode cards */
+html.dark .dhas-card,
+html.dark .auth-card,
+html.dark .login-card,
+body.dark .dhas-card,
+body.dark .auth-card,
+body.dark .login-card {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+/* Dark mode symptom items */
+html.dark .symptom-item,
+body.dark .symptom-item {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+html.dark .symptom-item:hover,
+body.dark .symptom-item:hover {
+  background: #1a2e58;
+  border-color: var(--primary);
+}
+
+/* Dark mode reminder & report items */
+html.dark .reminder-item,
+html.dark .report-item,
+body.dark .reminder-item,
+body.dark .report-item {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+/* Dark mode buttons */
+html.dark .btn-dhas.secondary,
+body.dark .btn-dhas.secondary {
+  background: var(--card-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Dark mode lang buttons */
+html.dark .lang-btn,
+body.dark .lang-btn {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+html.dark .lang-btn.active,
+body.dark .lang-btn.active {
+  border-color: var(--primary);
+  background: #1a2e58;
+  color: var(--primary);
+}
+
+/* Dark mode alerts */
+html.dark .dhas-alert.info,
+body.dark .dhas-alert.info {
+  background: rgba(42,108,246,.15);
+  color: #93c5fd;
+  border-left-color: var(--primary);
+}
+
+html.dark .dhas-alert.success,
+body.dark .dhas-alert.success {
+  background: rgba(34,208,122,.12);
+  color: #6ee7b7;
+  border-left-color: var(--success);
+}
+
+html.dark .dhas-alert.warning,
+body.dark .dhas-alert.warning {
+  background: rgba(244,160,53,.12);
+  color: #fcd34d;
+  border-left-color: var(--warning);
+}
+
+html.dark .dhas-alert.danger,
+body.dark .dhas-alert.danger {
+  background: rgba(242,92,125,.12);
+  color: #fca5a5;
+  border-left-color: var(--danger);
+}
+
+/* Dark mode severity badges */
+html.dark .severity-badge.low,
+body.dark .severity-badge.low {
+  background: rgba(34,208,122,.15);
+  color: #6ee7b7;
+}
+
+html.dark .severity-badge.medium,
+body.dark .severity-badge.medium {
+  background: rgba(244,160,53,.15);
+  color: #fcd34d;
+}
+
+html.dark .severity-badge.high,
+body.dark .severity-badge.high {
+  background: rgba(242,92,125,.15);
+  color: #fca5a5;
+}
+
+/* Dark mode condition tags */
+html.dark .condition-tag,
+body.dark .condition-tag {
+  background: rgba(42,108,246,.15);
+  color: #93c5fd;
+  border-color: rgba(42,108,246,.3);
+}
+
+/* Dark mode topbar / navbar */
+html.dark .topbar,
+body.dark .topbar {
+  background: rgba(8,15,40,.88);
+  border-bottom-color: var(--border);
+}
+
+/* Dark mode profile dropdown */
+html.dark .pdrop,
+body.dark .pdrop {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+html.dark .pdrop-item:hover,
+body.dark .pdrop-item:hover {
+  background: var(--bg);
+}
+
+html.dark .pdrop-item,
+body.dark .pdrop-item {
+  color: var(--text);
+}
+
+/* Dark mode sidebar overlay close button */
+html.dark .ham,
+body.dark .ham {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+/* Dark mode text muted */
+html.dark .text-muted,
+body.dark .text-muted {
+  color: var(--text-muted);
+}
+
+/* Dark mode dividers */
+html.dark .dhas-divider,
+body.dark .dhas-divider {
+  border-top-color: var(--border);
+}
+
+/* Dark mode snap/action tiles on dashboard */
+html.dark .snap-card,
+html.dark .action-tile,
+body.dark .snap-card,
+body.dark .action-tile {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
 /* --- Base --- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -37,6 +237,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  transition: background .35s, color .35s;
 }
 
 /* --- Top Nav Bar --- */
@@ -80,7 +281,6 @@ body {
 }
 .nav-logout:hover { background: rgba(255,255,255,.22); }
 
-/* Navbar link style (← Back links) */
 .dhas-navbar a {
   color: rgba(255,255,255,.8);
   font-size: 0.83rem;
@@ -94,7 +294,6 @@ body {
 }
 .dhas-navbar a:hover { background: rgba(255,255,255,.2); color: #fff; }
 
-/* Google sign-in centering */
 .g_id_signin {
   display: flex;
   justify-content: center;
@@ -129,6 +328,7 @@ body {
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   margin-bottom: 16px;
+  transition: background .35s, border-color .35s;
 }
 .dhas-card h5 {
   font-family: 'Fraunces', serif;
@@ -197,6 +397,7 @@ body {
   max-width: 420px;
   box-shadow: 0 8px 40px rgba(42,108,246,.13);
   border: 1px solid var(--border);
+  transition: background .35s, border-color .35s;
 }
 .auth-logo {
   text-align: center;
@@ -225,7 +426,7 @@ body {
   font-size: 0.92rem;
   color: var(--text);
   background: var(--bg);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background .35s, color .35s;
   margin-bottom: 14px;
   outline: none;
   appearance: none;
@@ -273,13 +474,13 @@ body {
   background: var(--bg);
   color: var(--text);
   border: 1.5px solid var(--border);
+  transition: background .35s, color .35s, border-color .35s;
 }
 .btn-dhas.secondary:hover { background: var(--border); }
 .btn-dhas.danger { background: var(--danger); color: #fff; }
 .btn-dhas.danger:hover { opacity: 0.9; }
 .btn-dhas.sm { padding: 8px 16px; font-size: 0.85rem; width: auto; }
 
-/* Alias for reminder.html "dhas-btn" */
 .dhas-btn {
   display: inline-block;
   padding: 11px 20px;
@@ -318,6 +519,11 @@ body {
 .symptom-item label { cursor: pointer; }
 .symptom-text { font-size: 0.95rem; font-weight: 500; }
 .symptom-item.checked { border-color: var(--primary); background: #eff6ff; }
+
+html.dark .symptom-item.checked,
+body.dark .symptom-item.checked {
+  background: rgba(42,108,246,.15);
+}
 
 /* --- Severity Badge --- */
 .severity-badge {
@@ -388,7 +594,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background .35s;
 }
 .reminder-item:hover { border-color: var(--primary); }
 .reminder-name { font-weight: 600; font-size: 0.95rem; font-family: 'DM Sans', sans-serif; }
@@ -421,7 +627,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background .35s;
 }
 .report-item:hover { border-color: var(--primary); }
 .report-name { font-weight: 600; font-size: 0.95rem; word-break: break-all; }
@@ -800,18 +1006,6 @@ body {
   .menu-toggle { display: flex !important; }
   .page-wrap, .dash-content { margin-left: 0; }
 }
-
-/* === DARK THEME === */
-body.dark {
-  --bg: #080f28;
-  --card-bg: #111c3c;
-  --text: #e8efff;
-  --text-muted: #7d93c3;
-  --border: #1e2e58;
-  --shadow: 0 2px 20px rgba(0,0,0,.4);
-  --shadow-md: 0 6px 32px rgba(0,0,0,.5);
-}
-body { transition: background .35s, color .35s; }
 
 /* --- Login Card (Bootstrap layout compat) --- */
 .login-card {
