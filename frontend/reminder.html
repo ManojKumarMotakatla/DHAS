@@ -8,158 +8,143 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
-<style>
-:root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6}
-body{font-family:'DM Sans',sans-serif}
-.dhas-navbar{background:linear-gradient(145deg,var(--navy-mid),var(--navy));border-bottom:none}
-h2.page-title,.dhas-card h5{font-family:'Fraunces',serif}
-</style>
   <style>
+    :root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--teal:#00c9b1}
+    body{font-family:'DM Sans',sans-serif}
 
-    /* ── Notification banner ─────────────────────────────────── */
-    #notifBanner {
-      border-radius: 10px;
-      border: 1.5px solid #86efac;
-      padding: 10px 14px;
-      font-size: 0.83rem;
-      font-weight: 600;
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
+    .page-wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
 
-    /* ── Save confirm flash ──────────────────────────────────── */
-    #saveConfirm {
-      display: none;
-      background: #dcfce7;
-      color: #166534;
-      border: 1.5px solid #86efac;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 12px;
+    /* ── Hero Header ── */
+    .page-header{
+      background:linear-gradient(135deg,#1a1070 0%,#2a6cf6 50%,#8b5cf6 100%);
+      border-radius:20px;padding:28px 20px 24px;margin-bottom:20px;
+      position:relative;overflow:hidden;text-align:center;
     }
+    .page-header::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(255,255,255,0.07);border-radius:50%}
+    .page-header::after{content:'';position:absolute;bottom:-20px;left:40px;width:90px;height:90px;background:rgba(255,255,255,0.05);border-radius:50%}
 
-    /* ── Sound selector row ──────────────────────────────────── */
-    .sound-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
+    .header-icon-wrap{
+      width:60px;height:60px;border-radius:18px;
+      background:rgba(255,255,255,0.15);
+      border:1.5px solid rgba(255,255,255,0.25);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 14px;position:relative;
     }
-    .sound-row select  { flex: 1; min-width: 160px; }
-    .sound-preview-btn {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 9px 16px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 700;
-      white-space: nowrap;
-      transition: opacity 0.2s;
-    }
-    .sound-preview-btn:hover { opacity: 0.85; }
+    .header-icon-wrap svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.8}
+    .page-title{font-family:'Fraunces',serif;color:#fff;font-size:1.75rem;font-weight:700;margin-bottom:6px;position:relative}
+    .page-subtitle{color:rgba(255,255,255,0.72);font-size:0.85rem;font-weight:500;position:relative}
 
-    /* ── Schedule cards grid ──────────────────────────────────── */
-    .sched-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-    .sched-card {
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 12px 8px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #fff;
-      user-select: none;
-    }
-    .sched-card:hover  { border-color: var(--primary,#0d6efd); background: #f0f6ff; }
-    .sched-card.active { border-color: var(--primary,#0d6efd); background: #e8f1ff;
-                         box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
-    .sched-card .sched-icon  { font-size: 1.5rem; display: block; margin-bottom: 4px; }
-    .sched-card .sched-label { font-size: 0.76rem; font-weight: 700; color: #334155; line-height: 1.3; }
+    /* ── Notification banner ── */
+    #notifBanner{border-radius:10px;border:1.5px solid #86efac;padding:10px 14px;font-size:.83rem;font-weight:600;margin-bottom:16px;line-height:1.5}
 
-    /* ── Day picker circles ───────────────────────────────────── */
-    .day-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 6px;
-    }
-    .day-tile {
-      width: 42px; height: 42px;
-      border-radius: 50%;
-      border: 2px solid #cbd5e1;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.74rem; font-weight: 700;
-      cursor: pointer; color: #475569; background: #f8fafc;
-      transition: all 0.18s; user-select: none;
-    }
-    .day-tile:hover  { border-color: var(--primary,#0d6efd); color: var(--primary,#0d6efd); }
-    .day-tile.active { background: var(--primary,#0d6efd); border-color: var(--primary,#0d6efd); color:#fff; }
+    /* ── Card ── */
+    .dhas-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;box-shadow:0 2px 20px rgba(42,108,246,.09);border:1px solid var(--border,#e4e9f4);margin-bottom:16px;transition:background .35s,border-color .35s}
+    html.dark .dhas-card{background:#111c3c;border-color:#1e2e58}
+    .dhas-card h5{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--blue,#2a6cf6);display:flex;align-items:center;gap:8px}
+    .dhas-card h5 svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
 
-    /* ── Section label ────────────────────────────────────────── */
-    .section-label {
-      font-size: 0.76rem; font-weight: 700; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: .06em;
-      margin: 14px 0 8px;
-    }
-    .hint-text { font-size: 0.78rem; color: #64748b; margin-bottom: 10px; }
+    /* ── Save confirm ── */
+    #saveConfirm{display:none;background:#dcfce7;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.85rem;font-weight:600;margin-bottom:12px}
 
+    /* ── Inputs ── */
+    .dhas-label{font-size:.72rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+    .dhas-input{width:100%;padding:11px 14px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text,#0d1b3e);background:var(--bg,#f4f6fc);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px;appearance:none}
+    .dhas-input:focus{border-color:var(--blue,#2a6cf6);box-shadow:0 0 0 3px rgba(42,108,246,.12)}
+    html.dark .dhas-input{background:#080f28;color:#e8efff;border-color:#1e2e58}
+    select.dhas-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%236b7fa3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer}
+
+    /* ── Section label ── */
+    .section-label{font-size:.73rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
+    .hint-text{font-size:.78rem;color:#64748b;margin-bottom:10px}
+
+    /* ── Day picker ── */
+    .day-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+    .day-tile{width:42px;height:42px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;cursor:pointer;color:#475569;background:#f8fafc;transition:all .18s;user-select:none}
+    .day-tile:hover{border-color:var(--blue,#2a6cf6);color:var(--blue,#2a6cf6)}
+    .day-tile.active{background:var(--blue,#2a6cf6);border-color:var(--blue,#2a6cf6);color:#fff}
+
+    /* ── Sound row ── */
+    .sound-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+    .sound-row select{flex:1;min-width:160px}
+    .sound-preview-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:.85rem;font-weight:700;white-space:nowrap;transition:opacity .2s;display:flex;align-items:center;gap:6px}
+    .sound-preview-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
+    .sound-preview-btn:hover{opacity:.85}
+
+    /* ── Buttons ── */
+    .btn-dhas{width:100%;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .2s;display:inline-block;text-align:center}
+    .btn-dhas.primary{background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;box-shadow:0 4px 16px rgba(42,108,246,.3)}
+    .btn-dhas.primary:hover{transform:translateY(-1px)}
+    .btn-dhas.secondary{background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);border:1.5px solid var(--border,#e4e9f4)}
+    html.dark .btn-dhas.secondary{background:#111c3c;color:#e8efff;border-color:#1e2e58}
+    .mt-12{margin-top:12px}
+
+    /* ── Reminder preview ── */
+    #reminderPreview{display:none;background:#fff;border:1px solid #dbe4f0;border-radius:18px;padding:18px;margin-bottom:20px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+    html.dark #reminderPreview{background:#111c3c;border-color:#1e2e58}
+
+    /* ── Saved reminders ── */
+    .sec-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
+    .sec-title svg{width:18px;height:18px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    html.dark .sec-title{color:#e8efff}
+
+    .reminder-item{background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;transition:border-color .2s}
+    .reminder-item:hover{border-color:var(--blue,#2a6cf6)}
+    html.dark .reminder-item{background:#111c3c;border-color:#1e2e58}
+    .reminder-name{font-weight:600;font-size:.95rem;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:6px}
+    .reminder-name svg{width:16px;height:16px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    html.dark .reminder-name{color:#e8efff}
+    .reminder-delete{background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;cursor:pointer;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:8px;transition:background .2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+    .reminder-delete:hover{background:#fee2e2;border-color:#f25c7d}
+
+    .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted,#6b7fa3)}
+    .empty-state svg{width:48px;height:48px;stroke:var(--text-muted,#6b7fa3);fill:none;stroke-width:1.2;margin-bottom:12px;opacity:0.5}
+    .empty-state p{font-size:.9rem}
   </style>
 </head>
 <body>
 
   <nav class="dhas-navbar">
-    <div class="brand">🏥 DHAS</div>
-    <a href="dashboard.html"
-       style="color:#fff;font-size:0.85rem;text-decoration:none;opacity:0.85;">← Dashboard</a>
+    <div class="brand" style="font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;color:#fff;display:flex;align-items:center;gap:8px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      DHAS
+    </div>
+    <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:6px 16px;border-radius:20px;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+      Dashboard
+    </a>
   </nav>
 
   <div class="page-wrap">
 
-    <h2 class="page-title"><span class="emoji">💊</span> Medicine Reminder</h2>
+    <!-- ── Hero Header ── -->
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="page-title">Medicine Reminders</div>
+      <div class="page-subtitle">Never miss a dose — set smart medication alerts</div>
+    </div>
 
-    <!-- ── NOTIFICATION STATUS BANNER ───────────────────────── -->
+    <!-- ── NOTIFICATION BANNER ── -->
     <div id="notifBanner">Checking notification permission…</div>
 
-    <!-- ── ADD REMINDER ──────────────────────────────────────── -->
+    <!-- ── ADD REMINDER ── -->
     <div class="dhas-card">
-      <h5>➕ Add Reminder</h5>
+      <h5>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        Add Reminder
+      </h5>
 
-      <!-- Save confirm -->
       <div id="saveConfirm"></div>
 
-      <!-- Medicine name -->
       <label class="dhas-label">Medicine Name</label>
-      <input type="text" id="medicine" class="dhas-input"
-             placeholder="e.g. Paracetamol, Metformin…"
-             style="margin-bottom:18px;">
+      <input type="text" id="medicine" class="dhas-input" placeholder="e.g. Paracetamol, Metformin…" style="margin-bottom:18px">
 
-      <!-- Schedule dropdown -->
+      <div class="section-label">Start Date</div>
+      <input type="date" id="startDate" class="dhas-input" style="margin-bottom:18px" min="" onkeydown="return false">
+
       <label class="dhas-label">Schedule</label>
-      <div class="section-label">
-  Start Date
-</div>
-
-<input
-  type="date"
-  id="startDate"
-  class="dhas-input"
-  style="margin-bottom:18px;"
-  min=""
-  onkeydown="return false"
->
-      <select id="scheduleType" class="dhas-input"
-              onchange="renderScheduleUI()"
-              style="margin-bottom:16px;">
+      <select id="scheduleType" class="dhas-input" onchange="renderScheduleUI()" style="margin-bottom:16px">
         <option value="daily">Every Day</option>
         <option value="alternate">Alternate Days</option>
         <option value="weekly">Once a Week</option>
@@ -169,24 +154,19 @@ h2.page-title,.dhas-card h5{font-family:'Fraunces',serif}
         <option value="custom">Custom Days</option>
       </select>
 
-      <!-- Day picker -->
-      <div id="dayPickerSection" style="display:none;">
+      <div id="dayPickerSection" style="display:none">
         <div class="section-label">Select Day(s)</div>
         <p class="hint-text" id="dayPickerHint"></p>
         <div class="day-row" id="dayPicker"></div>
       </div>
 
-      <!-- Month-day picker -->
-      <div id="monthDaySection" style="display:none;">
+      <div id="monthDaySection" style="display:none">
         <div class="section-label">Day of the Month</div>
-        <select id="monthDay" class="dhas-input" style="margin-bottom:14px;"></select>
+        <select id="monthDay" class="dhas-input" style="margin-bottom:14px"></select>
       </div>
 
-      <!-- Times per day -->
       <div class="section-label">Times per Day</div>
-      <select id="doseCount" class="dhas-input"
-              onchange="renderTimeSlots(this.value)"
-              style="margin-bottom:14px;">
+      <select id="doseCount" class="dhas-input" onchange="renderTimeSlots(this.value)" style="margin-bottom:14px">
         <option value="1">Once a day</option>
         <option value="2">Twice a day</option>
         <option value="3">Three times a day</option>
@@ -194,131 +174,59 @@ h2.page-title,.dhas-card h5{font-family:'Fraunces',serif}
 
       <div class="section-label">Set Time(s)</div>
       <div id="timeSlots"></div>
-<!-- Reminder duration -->
-<div class="section-label">Reminder Duration</div>
 
-<select id="durationType"
-        class="dhas-input"
-        style="margin-bottom:18px;">
+      <div class="section-label">Reminder Duration</div>
+      <select id="durationType" class="dhas-input" style="margin-bottom:18px">
+        <option value="forever">Continue Until Manually Removed</option>
+        <option value="1">1 Day only</option>
+        <option value="2">2 Days</option>
+        <option value="3">3 Days</option>
+        <option value="5">5 Days</option>
+        <option value="7">1 Week</option>
+        <option value="14">2 Weeks</option>
+        <option value="30">1 Month</option>
+      </select>
 
-  <option value="forever">
-    Continue Until Manually Removed
-  </option>
-
-  <option value="1">
-    1 Day only
-  </option>
-
-  <option value="2">
-    2 Days
-  </option>
-
-  <option value="3">
-    3 Days
-  </option>
-
-  <option value="5">
-    5 Days
-  </option>
-
-  <option value="7">
-    1 Week
-  </option>
-
-  <option value="14">
-    2 Weeks
-  </option>
-
-  <option value="30">
-    1 Month
-  </option>
-
-</select>
-      <!-- ── ALARM SOUND SELECTOR ──────────────────────────── -->
       <div class="section-label">Alarm Sound</div>
       <div class="sound-row">
         <select id="alarmSound" class="dhas-input">
-          <option value="bell">🔔 Bell</option>
-          <option value="chime">🎵 Chime</option>
-          <option value="beep">📳 Beep</option>
-          <option value="gentle">🌊 Gentle</option>
-          <option value="alarm">🚨 Alarm</option>
+          <option value="bell">Bell</option>
+          <option value="chime">Chime</option>
+          <option value="beep">Beep</option>
+          <option value="gentle">Gentle</option>
+          <option value="alarm">Alarm</option>
         </select>
-        <button
-  type="button"
-  class="sound-preview-btn"
-  onclick="previewSound()"
->
-  ▶ Preview
-</button>
+        <button type="button" class="sound-preview-btn" onclick="previewSound()">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Preview
+        </button>
       </div>
-<!-- Professional Reminder Preview -->
-<div id="reminderPreview"
-     style="
-      display:none;
-      background:#ffffff;
-      border:1px solid #dbe4f0;
-      border-radius:18px;
-      padding:18px;
-      margin-bottom:20px;
-      box-shadow:0 4px 18px rgba(0,0,0,0.05);
-     ">
 
-  <!-- Header -->
-  <div style="
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:16px;
-  ">
+      <!-- Reminder Preview -->
+      <div id="reminderPreview">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:1rem;font-weight:700;color:var(--text,#0f172a);display:flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Reminder Summary
+          </div>
+          <div style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700">READY TO SAVE</div>
+        </div>
+        <div id="previewContent" style="display:grid;gap:12px"></div>
+      </div>
 
-    <div style="
-        font-size:1rem;
-        font-weight:700;
-        color:#0f172a;
-    ">
-      📋 Reminder Summary
+      <button type="button" class="btn-dhas primary" onclick="addReminder()">Save Reminder</button>
     </div>
 
-    <div style="
-        background:#dcfce7;
-        color:#166534;
-        padding:4px 10px;
-        border-radius:999px;
-        font-size:0.72rem;
-        font-weight:700;
-    ">
-      READY TO SAVE
-    </div>
-
-  </div>
-
-  <!-- Content -->
-  <div id="previewContent"
-       style="
-        display:grid;
-        gap:12px;
-       ">
-  </div>
-
-</div>
-     <button
-  type="button"
-  class="btn-dhas primary"
-  onclick="addReminder()">
-
-  💾 Save Reminder
-
-</button>
-    </div>
-
-    <!-- ── SAVED REMINDERS ───────────────────────────────────── -->
+    <!-- ── SAVED REMINDERS ── -->
     <div>
-      <h5 style="font-family:'Sora',sans-serif;margin-bottom:12px;">📋 Saved Reminders</h5>
+      <div class="sec-title">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Saved Reminders
+      </div>
       <div id="reminderList"></div>
     </div>
 
-    <button class="btn-dhas secondary mt-12" onclick="goBack()">← Back</button>
+   
 
   </div>
 
