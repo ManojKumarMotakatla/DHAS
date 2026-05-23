@@ -1,149 +1,337 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <title>Login - DHAS</title>
-    
-<link rel="stylesheet" href="css/style.css">
-<!-- In <head>, replace existing font/css imports with: -->
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="theme.js"></script>
+  <title>Login - DHAS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--teal:#00c9b1;--bg:#f4f6fc;--surface:#ffffff;--border:#e4e9f4;--text:#0d1b3e;--muted:#6b7fa3;--radius:18px;--shadow:0 2px 20px rgba(42,108,246,.09)}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:0 8px 40px rgba(42,108,246,.12);padding:36px 32px;width:100%;max-width:420px}
-.login-hero{text-align:center;margin-bottom:28px;background:linear-gradient(145deg,var(--navy-mid),var(--navy));border-radius:14px;padding:24px 20px}
-.login-hero h2{font-family:'Fraunces',serif;color:#fff;font-size:1.6rem;font-weight:700;margin:8px 0 4px}
-.login-hero p{color:rgba(255,255,255,.5);font-size:.82rem}
-.login-hero .icon{font-size:2.5rem}
-.form-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
-.form-control{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text);background:var(--bg);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px}
-.form-control:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(42,108,246,.12);background:var(--surface)}
-.btn-primary{width:100%;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;cursor:pointer;background:linear-gradient(135deg,var(--blue),#4f8ef9);color:#fff;box-shadow:0 4px 16px rgba(42,108,246,.3);transition:all .2s}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(42,108,246,.4)}
-.or-text{text-align:center;color:var(--muted);font-size:.82rem;margin:14px 0 10px}
-.pw-wrap{position:relative}.pw-wrap .form-control{padding-right:2.8rem;margin-bottom:14px}
-.toggle-eye{position:absolute;right:.75rem;top:50%;transform:translateY(-50%) translateY(-7px);background:none;border:none;padding:0;cursor:pointer;color:var(--muted);display:flex;align-items:center}
-.toggle-eye:hover{color:var(--blue)}
-.toggle-eye svg{width:20px;height:20px;pointer-events:none}
-.alert-danger{background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:10px 14px;font-size:.84rem;font-weight:600;color:#991b1b;margin-bottom:14px}
-</style>
+:root {
+  --navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--blue-lt:#4f8ef9;
+  --teal:#00c9b1;--bg:#f4f6fc;--surface:#ffffff;--border:#e4e9f4;
+  --text:#0d1b3e;--muted:#6b7fa3;--radius:18px;
+}
 
+/* ── Dark mode vars (softer) ── */
+body.dark {
+  --bg:#0d1526;--surface:#131f3a;--border:#1f2f4e;
+  --text:#cdd8f0;--muted:#6a80a8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  transition: background .35s, color .35s;
+  color: var(--text);
+}
+
+/* ── Theme toggle (top-right) ── */
+.theme-toggle-wrap {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+}
+.theme-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px 6px 10px;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all .2s;
+  white-space: nowrap;
+}
+.theme-pill:hover { color: var(--blue); border-color: var(--blue); }
+.theme-pill svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+.login-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 40px rgba(42,108,246,.12);
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 420px;
+  transition: background .35s, border-color .35s;
+}
+
+.login-hero {
+  text-align: center;
+  margin-bottom: 28px;
+  background: linear-gradient(145deg, var(--navy-mid), var(--navy));
+  border-radius: 14px;
+  padding: 24px 20px;
+}
+.login-hero h2 {
+  font-family: 'Fraunces', serif;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.login-hero p  { color: rgba(255,255,255,.55); font-size: .82rem; }
+.login-hero .icon { font-size: 2.5rem; }
+
+.form-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  display: block;
+  margin-bottom: 6px;
+}
+.form-control {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .92rem;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .35s;
+  margin-bottom: 14px;
+}
+.form-control:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(42,108,246,.12);
+  background: var(--surface);
+}
+.form-control::placeholder { color: var(--muted); }
+
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(42,108,246,.3);
+  transition: all .2s;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
+
+/* ── Divider with OR ── */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 16px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 600;
+}
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Google button wrapper — always visible ── */
+.google-btn-wrap {
+  display: flex;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1.5px solid #dadce0;
+  transition: box-shadow .2s;
+}
+.google-btn-wrap:hover { box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+
+/* Force Google iframe/button to be visible regardless of parent theme */
+.google-btn-wrap iframe,
+.google-btn-wrap > div { filter: none !important; }
+
+.or-text {
+  text-align: center;
+  color: var(--muted);
+  font-size: .82rem;
+  margin: 14px 0 10px;
+}
+
+.pw-wrap { position: relative; }
+.pw-wrap .form-control { padding-right: 2.8rem; }
+.toggle-eye {
+  position: absolute;
+  right: .75rem;
+  top: 50%;
+  transform: translateY(-50%) translateY(-7px);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+}
+.toggle-eye:hover { color: var(--blue); }
+.toggle-eye svg { width: 20px; height: 20px; pointer-events: none; }
+
+.alert-danger {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .84rem;
+  font-weight: 600;
+  color: #991b1b;
+  margin-bottom: 14px;
+}
+body.dark .alert-danger {
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.3);
+  color: #fca5a5;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: .84rem;
+  color: var(--muted);
+}
+.register-link a { color: var(--blue); font-weight: 600; text-decoration: none; }
+</style>
 </head>
 <body>
-    
+
+<!-- Theme toggle -->
+<div class="theme-toggle-wrap">
+  <div class="theme-pill" onclick="toggleTheme()">
+    <svg class="theme-icon" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+    </svg>
+    <span class="theme-label">Dark</span>
+  </div>
+</div>
+
 <div class="login-card">
   <div class="login-hero">
     <div class="icon">🏥</div>
     <h2>Welcome Back</h2>
     <p>Sign in to your health assistant</p>
   </div>
-  <div id="loginError" class="alert-danger d-none"></div>
+
+  <div id="loginError" class="alert-danger" style="display:none;"></div>
+
   <label class="form-label">Email Address</label>
   <input type="email" class="form-control" id="email" placeholder="you@example.com" required>
+
   <label class="form-label">Password</label>
   <div class="pw-wrap">
     <input type="password" class="form-control" id="password" placeholder="Your password" required>
     <button type="button" class="toggle-eye" onclick="togglePw('password','eyeLogin')" aria-label="Show or hide password">
-      <svg id="eyeLogin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+      <svg id="eyeLogin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+           stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                 -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
       </svg>
     </button>
   </div>
+
   <button type="button" onclick="submitLogin()" class="btn-primary">Sign In →</button>
-  <p class="or-text">OR continue with</p>
-  <div class="g_id_signin" style="display:flex;justify-content:center;"></div>
-  <p style="text-align:center;margin-top:16px;font-size:.84rem;color:var(--muted);">
-    Don't have an account? <a href="register.html" style="color:var(--blue);font-weight:600;">Register</a>
+
+  <div class="or-divider">OR</div>
+
+  <!-- Google button always sits on white background so it's always visible -->
+  <div class="google-btn-wrap">
+    <div id="g_id_onload"
+         data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="signin_with"
+         data-shape="pill"
+         data-width="320">
+    </div>
+  </div>
+
+  <p class="register-link">
+    Don't have an account? <a href="register.html">Register</a>
   </p>
 </div>
 
-  
-
-
 <script>
-    /* ── 1. Show / hide password ──────────────────────────────── */
-    function togglePw(fieldId, iconId) {
-        const field  = document.getElementById(fieldId);
-        const icon   = document.getElementById(iconId);
-        const hiding = field.type === "password";
-        field.type   = hiding ? "text" : "password";
+  function togglePw(fieldId, iconId) {
+    const field  = document.getElementById(fieldId);
+    const icon   = document.getElementById(iconId);
+    const hiding = field.type === "password";
+    field.type   = hiding ? "text" : "password";
+    icon.innerHTML = hiding
+      ? `<path stroke-linecap="round" stroke-linejoin="round"
+             d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+                a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5
+                c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02
+                M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+      : `<path stroke-linecap="round" stroke-linejoin="round"
+             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+         <path stroke-linecap="round" stroke-linejoin="round"
+             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+  }
 
-        icon.innerHTML = hiding
-            // eye-off  (password is now visible → show slash)
-            ? `<path stroke-linecap="round" stroke-linejoin="round"
-                     d="M13.875 18.825A10.05 10.05 0 0112 19
-                        c-4.477 0-8.268-2.943-9.542-7
-                        a9.97 9.97 0 012.637-4.217
-                        M6.53 6.53A9.969 9.969 0 0112 5
-                        c4.477 0 8.268 2.943 9.542 7
-                        a9.965 9.965 0 01-4.107 5.02
-                        M15 12a3 3 0 00-3-3m0 0
-                        a3 3 0 00-2.122.879M3 3l18 18"/>`
-            // eye  (password is now hidden → show open eye)
-            : `<path stroke-linecap="round" stroke-linejoin="round"
-                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-               <path stroke-linecap="round" stroke-linejoin="round"
-                     d="M2.458 12C3.732 7.943 7.523 5 12 5
-                        c4.477 0 8.268 2.943 9.542 7
-                        -1.274 4.057-5.065 7-9.542 7
-                        -4.477 0-8.268-2.943-9.542-7z"/>`;
+  async function sha256(plain) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  async function submitLogin() {
+    const email    = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const errBox   = document.getElementById("loginError");
+    errBox.style.display = "none";
+
+    if (!email || !password) {
+      errBox.textContent = "Please enter your email and password.";
+      errBox.style.display = "block";
+      return;
     }
+    const hashedPassword = await sha256(password);
+    handleLogin(email, hashedPassword);
+  }
 
-    /* ── 2. SHA-256 hash via Web Crypto API ───────────────────────
-       The plain-text password is hashed HERE inside the browser.
-       Only the hex digest is ever passed to auth.js or the network.
-       The original value is never stored, logged, or transmitted.
-    ────────────────────────────────────────────────────────────── */
-    async function sha256(plain) {
-        const buf = await crypto.subtle.digest(
-            "SHA-256",
-            new TextEncoder().encode(plain)
-        );
-        return Array.from(new Uint8Array(buf))
-                    .map(b => b.toString(16).padStart(2, "0"))
-                    .join("");
-    }
-
-    /* ── 3. Login button handler ──────────────────────────────── */
-    async function submitLogin() {
-        const email    = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value;   // read once
-        const errBox   = document.getElementById("loginError");
-
-        errBox.classList.add("d-none");
-
-        if (!email || !password) {
-            errBox.textContent = "Please enter your email and password.";
-            errBox.classList.remove("d-none");
-            return;
-        }
-
-        // Hash the password — handleLogin() in auth.js NEVER sees plain text
-        const hashedPassword = await sha256(password);
-
-        // Pass email + hash to auth.js (which sends hash to backend)
-        handleLogin(email, hashedPassword);
-    }
-</script>
-
-<!-- auth.js is loaded AFTER the inline script so handleLogin() is available -->
-<script src="js/auth.js"></script>
-<script>
-function handleCredentialResponse(response) {
-    // Decode the Google JWT payload (middle part between the two dots)
+  function handleCredentialResponse(response) {
     const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    handleGoogleAuth(payload.name, payload.email, payload.sub);
+  }
 
-    const name     = payload.name;
-    const email    = payload.email;
-    const googleId = payload.sub;  // Google's unique ID for this user
-
-    // Save to your DB (or log in if already exists)
-    handleGoogleAuth(name, email, googleId);
-}
+  // Allow Enter key to submit
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter") submitLogin();
+  });
 </script>
-
+<script src="js/auth.js"></script>
 </body>
 </html>

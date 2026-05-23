@@ -4,35 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — DHAS</title>
+  <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,600;0,700;1,300;1,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --navy:     #0b1437;
-      --navy-mid: #112057;
-      --blue:     #2a6cf6;
-      --blue-lt:  #4f8ef9;
-      --teal:     #00c9b1;
-      --amber:    #f4a035;
-      --rose:     #f25c7d;
-      --green:    #22d07a;
-      --purple:   #8250ff;
-      --bg:       #f4f6fc;
-      --surface:  #ffffff;
-      --border:   #e4e9f4;
-      --text:     #0d1b3e;
-      --muted:    #6b7fa3;
-      --radius:   18px;
-      --radius-sm:10px;
-      --shadow:   0 2px 20px rgba(42,108,246,.09);
+      --navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--blue-lt:#4f8ef9;
+      --teal:#00c9b1;--amber:#f4a035;--rose:#f25c7d;--green:#22d07a;--purple:#8250ff;
+      --bg:#f4f6fc;--surface:#ffffff;--border:#e4e9f4;--text:#0d1b3e;--muted:#6b7fa3;
+      --radius:18px;--radius-sm:10px;
+      --shadow:0 2px 20px rgba(42,108,246,.09);
       --shadow-md:0 6px 32px rgba(42,108,246,.14);
     }
+    /* Dark mode — softer intensity, defined in theme.js injection + here as fallback */
     body.dark {
-      --navy:#060d22; --navy-mid:#0e1a3a;
-      --bg:#080f28; --surface:#111c3c; --border:#1e2e58;
-      --text:#e8efff; --muted:#7d93c3;
-      --shadow:0 2px 20px rgba(0,0,0,.4);
-      --shadow-md:0 6px 32px rgba(0,0,0,.5);
+      --navy:#0a1228;--navy-mid:#0d1a38;
+      --bg:#0d1526;--surface:#131f3a;--border:#1f2f4e;
+      --text:#cdd8f0;--muted:#6a80a8;
+      --shadow:0 2px 20px rgba(0,0,0,.35);
+      --shadow-md:0 6px 32px rgba(0,0,0,.45);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px}
@@ -40,35 +30,14 @@
     a{text-decoration:none;color:inherit}
     svg{display:block}
 
-    /* ── SIDEBAR ── */
-    .sidebar{
-      position:fixed;top:0;left:0;width:236px;height:100vh;
-      background:var(--navy);padding:0 12px 24px;
-      display:flex;flex-direction:column;gap:2px;
-      transform:translateX(-100%);
-      transition:transform .32s cubic-bezier(.4,0,.2,1);
-      z-index:300;overflow-y:auto;
-    }
+    /* SIDEBAR */
+    .sidebar{position:fixed;top:0;left:0;width:236px;height:100vh;background:var(--navy);padding:0 12px 24px;display:flex;flex-direction:column;gap:2px;transform:translateX(-100%);transition:transform .32s cubic-bezier(.4,0,.2,1);z-index:300;overflow-y:auto}
     .sidebar.open{transform:translateX(0)}
-    .sidebar-logo{
-      display:flex;align-items:center;gap:10px;
-      padding:22px 8px 20px;
-      border-bottom:1px solid rgba(255,255,255,.07);
-      margin-bottom:8px;flex-shrink:0;
-    }
-    .sidebar-logo-icon{
-      width:34px;height:34px;border-radius:10px;flex-shrink:0;
-      background:linear-gradient(135deg,var(--blue),var(--teal));
-      display:flex;align-items:center;justify-content:center;
-    }
+    .sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 8px 20px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px;flex-shrink:0}
+    .sidebar-logo-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center}
     .sidebar-logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
     .sidebar-logo-text{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;letter-spacing:.3px}
-    .side-link{
-      display:flex;align-items:center;gap:11px;
-      padding:10px 12px;border-radius:11px;
-      font-size:.875rem;font-weight:500;
-      color:rgba(255,255,255,.5);transition:all .2s;
-    }
+    .side-link{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;font-size:.875rem;font-weight:500;color:rgba(255,255,255,.5);transition:all .2s}
     .side-link:hover{background:rgba(255,255,255,.07);color:#fff}
     .side-link.active{background:rgba(42,108,246,.3);color:#fff}
     .side-link svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0}
@@ -81,110 +50,45 @@
       .main-layout{margin-left:236px}
     }
 
-    /* ── TOPBAR ── */
-    .topbar{
-      position:sticky;top:0;z-index:200;
-      background:rgba(255,255,255,.88);backdrop-filter:blur(14px);
-      border-bottom:1px solid var(--border);
-      height:62px;display:flex;align-items:center;
-      padding:0 16px;gap:12px;transition:background .35s;
-    }
-    body.dark .topbar{background:rgba(8,15,40,.88)}
-
-    .ham{
-      width:36px;height:36px;border-radius:9px;
-      background:var(--bg);border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;color:var(--muted);transition:all .18s;flex-shrink:0;
-    }
+    /* TOPBAR */
+    .topbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);height:62px;display:flex;align-items:center;padding:0 16px;gap:12px;transition:background .35s}
+    body.dark .topbar{background:rgba(13,21,38,.9)}
+    .ham{width:36px;height:36px;border-radius:9px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .18s;flex-shrink:0}
     .ham:hover{color:var(--blue);border-color:var(--blue)}
     .ham svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
-
-    .topbar-brand{
-      font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--blue);
-      display:flex;align-items:center;gap:6px;
-    }
+    .topbar-brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--blue);display:flex;align-items:center;gap:6px}
     .topbar-brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal))}
     .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-
-    .theme-pill{
-      display:flex;align-items:center;gap:6px;
-      background:var(--bg);border:1px solid var(--border);
-      border-radius:20px;padding:5px 12px 5px 9px;
-      cursor:pointer;font-size:.78rem;font-weight:600;
-      color:var(--muted);transition:all .2s;white-space:nowrap;
-    }
+    .theme-pill{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 9px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted);transition:all .2s;white-space:nowrap}
     .theme-pill:hover{color:var(--blue);border-color:var(--blue)}
     .theme-pill svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
-
-    .notif-btn{
-      width:38px;height:38px;border-radius:10px;
-      background:var(--bg);border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;position:relative;transition:all .18s;color:var(--muted);
-    }
+    .notif-btn{width:38px;height:38px;border-radius:10px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .18s;color:var(--muted)}
     .notif-btn:hover{color:var(--blue);border-color:var(--blue)}
     .notif-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
-    .badge{
-      position:absolute;top:-3px;right:-3px;
-      width:16px;height:16px;border-radius:50%;
-      background:var(--rose);color:#fff;font-size:.6rem;font-weight:700;
-      display:flex;align-items:center;justify-content:center;
-      border:2px solid var(--surface);
-    }
-
-    .avatar-btn{
-      width:38px;height:38px;border-radius:50%;
-      background:linear-gradient(135deg,var(--blue),var(--teal));
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:700;font-size:.9rem;
-      cursor:pointer;position:relative;
-      border:2px solid var(--border);transition:transform .18s;overflow:hidden;
-    }
+    .badge{position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:var(--rose);color:#fff;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
+    .avatar-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;position:relative;border:2px solid var(--border);transition:transform .18s;overflow:hidden}
     .avatar-btn:hover{transform:scale(1.06)}
     .avatar-btn img{width:100%;height:100%;object-fit:cover}
-    .online-dot{
-      position:absolute;bottom:1px;right:1px;
-      width:10px;height:10px;border-radius:50%;
-      background:var(--green);border:2px solid var(--surface);
-    }
-
+    .online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid var(--surface)}
     .profile-wrap{position:relative}
-    .pdrop{
-      position:absolute;top:calc(100% + 10px);right:0;
-      width:240px;border-radius:16px;
-      background:var(--surface);border:1px solid var(--border);
-      box-shadow:var(--shadow-md);overflow:hidden;
-      opacity:0;visibility:hidden;transform:translateY(-8px);
-      transition:all .22s cubic-bezier(.4,0,.2,1);z-index:400;
-    }
+    .pdrop{position:absolute;top:calc(100% + 10px);right:0;width:240px;border-radius:16px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-md);overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .22s cubic-bezier(.4,0,.2,1);z-index:400}
     .pdrop.open{opacity:1;visibility:visible;transform:translateY(0)}
     .pdrop-header{padding:16px;background:linear-gradient(135deg,var(--navy-mid),var(--navy))}
     .pdrop-name{font-weight:600;font-size:.9rem;color:#fff}
     .pdrop-email{font-size:.73rem;color:rgba(255,255,255,.5);margin-top:2px}
     .pdrop-divider{height:1px;background:var(--border)}
-    .pdrop-item{
-      display:flex;align-items:center;gap:10px;
-      padding:11px 16px;font-size:.84rem;font-weight:500;
-      color:var(--text);cursor:pointer;transition:background .15s;
-    }
+    .pdrop-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:.84rem;font-weight:500;color:var(--text);cursor:pointer;transition:background .15s}
     .pdrop-item:hover{background:var(--bg)}
     .pdrop-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;color:var(--muted);flex-shrink:0}
     .pdrop-item.danger{color:var(--rose)}
     .pdrop-item.danger svg{color:var(--rose)}
 
-    /* ── LAYOUT ── */
+    /* LAYOUT */
     .main-layout{transition:margin .32s cubic-bezier(.4,0,.2,1)}
     .page{padding:24px 20px 60px;max-width:700px;margin:0 auto}
 
-    /* ── HERO ── */
-    .hero-card{
-      border-radius:22px;
-      background:linear-gradient(135deg,var(--navy-mid) 0%,var(--navy) 55%,#0a1f5e 100%);
-      padding:28px 24px;margin-bottom:20px;
-      position:relative;overflow:hidden;
-      box-shadow:0 8px 40px rgba(11,20,55,.25);
-    }
+    /* HERO */
+    .hero-card{border-radius:22px;background:linear-gradient(135deg,var(--navy-mid) 0%,var(--navy) 55%,#0a1f5e 100%);padding:28px 24px;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:0 8px 40px rgba(11,20,55,.25)}
     .hero-card::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(42,108,246,.25) 0%,transparent 70%);pointer-events:none}
     .hero-card::after{content:'';position:absolute;bottom:-60px;left:30%;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(0,201,177,.12) 0%,transparent 70%);pointer-events:none}
     .hero-greeting{font-size:.75rem;font-weight:500;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
@@ -195,12 +99,12 @@
     .hstat-val{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;color:#fff;line-height:1}
     .hstat-lbl{font-size:.66rem;color:rgba(255,255,255,.45);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
 
-    /* ── SECTION HEAD ── */
+    /* SECTION HEAD */
     .sec-head{display:flex;align-items:center;justify-content:space-between;margin:20px 0 12px}
     .sec-title{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:600;color:var(--text)}
     .sec-link{font-size:.78rem;color:var(--blue);font-weight:600}
 
-    /* ── SNAPSHOT ── */
+    /* SNAPSHOT */
     .snapshot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
     .snap-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px}
     .snap-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -210,43 +114,29 @@
     .snap-trend.up{background:#dcfce7;color:#16a34a}
     .snap-trend.dn{background:#fee2e2;color:#dc2626}
     .snap-trend.ok{background:#eff6ff;color:var(--blue)}
-    body.dark .snap-trend.up{background:rgba(22,163,74,.2)}
-    body.dark .snap-trend.dn{background:rgba(220,38,38,.2)}
-    body.dark .snap-trend.ok{background:rgba(42,108,246,.2)}
+    body.dark .snap-trend.up{background:rgba(22,163,74,.18)}
+    body.dark .snap-trend.dn{background:rgba(220,38,38,.18)}
+    body.dark .snap-trend.ok{background:rgba(42,108,246,.18)}
     .snap-val{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;color:var(--text)}
     .snap-lbl{font-size:.72rem;color:var(--muted)}
-
-    /* incomplete state for snapshot */
     .snap-val.empty{font-size:.82rem;font-weight:500;color:var(--muted);font-style:italic}
-    .snap-incomplete{
-      grid-column:span 2;
-      background:var(--surface);border:1px dashed var(--border);
-      border-radius:var(--radius);padding:18px 20px;
-      display:flex;align-items:center;gap:14px;
-      box-shadow:var(--shadow);
-    }
+    .snap-incomplete{grid-column:span 2;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
     .snap-incomplete svg{width:22px;height:22px;stroke:var(--amber);fill:none;stroke-width:1.8;flex-shrink:0}
     .snap-incomplete-text{flex:1;font-size:.82rem;color:var(--muted)}
     .snap-incomplete-text strong{color:var(--text);font-weight:600}
     .snap-incomplete-link{font-size:.78rem;color:var(--blue);font-weight:600;white-space:nowrap;cursor:pointer}
 
-    /* ── QUICK ACTIONS ── */
+    /* QUICK ACTIONS */
     .actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-    .action-tile{
-      background:var(--surface);border:1px solid var(--border);
-      border-radius:var(--radius);padding:18px 10px;
-      display:flex;flex-direction:column;align-items:center;gap:8px;
-      cursor:pointer;transition:all .2s;box-shadow:var(--shadow);
-      position:relative;overflow:hidden;
-    }
+    .action-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);position:relative;overflow:hidden}
     .action-tile::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
     .action-tile:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
     .action-tile:hover::before{opacity:1}
-    .action-tile.c-blue::before  {background:rgba(42,108,246,.05)}
-    .action-tile.c-teal::before  {background:rgba(0,201,177,.05)}
-    .action-tile.c-amber::before {background:rgba(244,160,53,.05)}
-    .action-tile.c-rose::before  {background:rgba(242,92,125,.05)}
-    .action-tile.c-green::before {background:rgba(34,208,122,.05)}
+    .action-tile.c-blue::before{background:rgba(42,108,246,.05)}
+    .action-tile.c-teal::before{background:rgba(0,201,177,.05)}
+    .action-tile.c-amber::before{background:rgba(244,160,53,.05)}
+    .action-tile.c-rose::before{background:rgba(242,92,125,.05)}
+    .action-tile.c-green::before{background:rgba(34,208,122,.05)}
     .action-tile.c-purple::before{background:rgba(130,80,255,.05)}
     .at-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
     .at-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
@@ -260,7 +150,7 @@
     body.dark .at-icon{opacity:.9}
     .at-lbl{font-size:.75rem;font-weight:600;color:var(--text);text-align:center}
 
-    /* ── REMINDERS ── */
+    /* REMINDERS */
     .reminder-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;-ms-overflow-style:none;scrollbar-width:none}
     .reminder-strip::-webkit-scrollbar{display:none}
     .rem-card{min-width:150px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);scroll-snap-align:start;border-left:3px solid var(--blue)}
@@ -275,9 +165,9 @@
     .disclaimer{text-align:center;font-size:.7rem;color:var(--muted);margin-top:24px;padding-top:16px;border-top:1px solid var(--border);line-height:1.7}
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-    .hero-card    {animation:fadeUp .45s ease both}
+    .hero-card{animation:fadeUp .45s ease both}
     .snapshot-grid{animation:fadeUp .5s .06s ease both}
-    .actions-grid {animation:fadeUp .5s .12s ease both}
+    .actions-grid{animation:fadeUp .5s .12s ease both}
 
     @media(max-width:500px){
       .hero-name{font-size:1.35rem}
@@ -296,42 +186,15 @@
     </div>
     <span class="sidebar-logo-text">DHAS</span>
   </div>
-  <a href="dashboard.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-    Dashboard
-  </a>
-  <a href="symptom.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    Symptoms
-  </a>
-  <a href="reports.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    Reports
-  </a>
-  <a href="diet.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-    Diet
-  </a>
-  <a href="remedies.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-    Remedies
-  </a>
-  <a href="reminder.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    Reminders
-  </a>
-  <a href="steps.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-    Steps
-  </a>
-  <a href="language.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-    Language
-  </a>
-  <a href="profile.html" class="side-link">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-    Profile
-  </a>
+  <a href="dashboard.html" class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+  <a href="symptom.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Symptoms</a>
+  <a href="reports.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Reports</a>
+  <a href="diet.html"      class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Diet</a>
+  <a href="remedies.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>Remedies</a>
+  <a href="reminder.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Reminders</a>
+  <a href="steps.html"     class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>Steps</a>
+  <a href="language.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>Language</a>
+  <a href="profile.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Profile</a>
 </nav>
 
 <div class="main-layout" id="mainLayout">
@@ -347,9 +210,13 @@
     </div>
 
     <div class="topbar-right">
+      <!-- Theme toggle — uses global toggleTheme() from theme.js -->
       <div class="theme-pill" onclick="toggleTheme()" title="Toggle theme">
-        <svg id="themeIcon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-        <span id="themeLabel">Dark</span>
+        <svg class="theme-icon" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <span class="theme-label">Dark</span>
       </div>
 
       <div class="notif-btn" title="Notifications">
@@ -369,21 +236,17 @@
           </div>
           <div class="pdrop-divider"></div>
           <a href="profile.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-            My Profile
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>My Profile
           </a>
           <a href="profile_details.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            Edit Profile
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>Edit Profile
           </a>
           <a href="language.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-            Language
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>Language
           </a>
           <div class="pdrop-divider"></div>
           <div class="pdrop-item danger" onclick="handleLogout()">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            Logout
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>Logout
           </div>
         </div>
       </div>
@@ -409,39 +272,19 @@
       <div class="sec-title">Health Snapshot</div>
       <a href="profile.html" class="sec-link">View profile →</a>
     </div>
-    <div class="snapshot-grid" id="snapshotGrid">
-      <!-- filled by JS -->
-    </div>
+    <div class="snapshot-grid" id="snapshotGrid"></div>
 
     <!-- QUICK ACTIONS -->
     <div class="sec-head" style="margin-top:8px;">
       <div class="sec-title">Quick Actions</div>
     </div>
     <div class="actions-grid">
-      <a href="symptom.html" class="action-tile c-blue">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-        <div class="at-lbl">Symptoms</div>
-      </a>
-      <a href="reports.html" class="action-tile c-teal">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-        <div class="at-lbl">Reports</div>
-      </a>
-      <a href="diet.html" class="action-tile c-amber">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
-        <div class="at-lbl">Diet</div>
-      </a>
-      <a href="remedies.html" class="action-tile c-green">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div>
-        <div class="at-lbl">Remedies</div>
-      </a>
-      <a href="reminder.html" class="action-tile c-rose">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-        <div class="at-lbl">Reminders</div>
-      </a>
-      <a href="steps.html" class="action-tile c-purple">
-        <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
-        <div class="at-lbl">Steps</div>
-      </a>
+      <a href="symptom.html"  class="action-tile c-blue">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl">Symptoms</div></a>
+      <a href="reports.html"  class="action-tile c-teal">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl">Reports</div></a>
+      <a href="diet.html"     class="action-tile c-amber"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div><div class="at-lbl">Diet</div></a>
+      <a href="remedies.html" class="action-tile c-green">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><div class="at-lbl">Remedies</div></a>
+      <a href="reminder.html" class="action-tile c-rose">   <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="at-lbl">Reminders</div></a>
+      <a href="steps.html"    class="action-tile c-purple"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><div class="at-lbl">Steps</div></a>
     </div>
 
     <!-- REMINDERS STRIP -->
@@ -463,19 +306,15 @@
 
 <script>
 const storedUser = localStorage.getItem("dhas_user");
-
-if (!storedUser) {
-  window.location.href = "login.html";
-}
-
+if (!storedUser) window.location.href = "login.html";
 const user = JSON.parse(storedUser);
-
 const BASE = "http://localhost:3006";
+
 /* Greet */
 const hour = new Date().getHours();
 document.getElementById("timeOfDay").textContent = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 document.getElementById("heroName").textContent  = user.name || "there";
-document.getElementById("heroDate").textContent  = new Date().toLocaleDateString("en-IN", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+document.getElementById("heroDate").textContent  = new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
 /* Avatar */
 const avatarBtn = document.getElementById("avatarBtn");
@@ -486,21 +325,6 @@ if (user.profile_image) {
 }
 document.getElementById("dropName").textContent  = user.name  || "User";
 document.getElementById("dropEmail").textContent = user.email || "—";
-
-/* Theme */
-const SUN  = `<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-10h-1M4.34 12h-1m15.07-6.07l-.71.71M6.34 17.66l-.71.71m12.02 0l-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 100 14A7 7 0 0012 5z"/>`;
-const MOON = `<path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>`;
-function applyTheme(dark) {
-  document.body.classList.toggle("dark", dark);
-  document.getElementById("themeIcon").innerHTML = dark ? SUN : MOON;
-  document.getElementById("themeLabel").textContent = dark ? "Light" : "Dark";
-}
-applyTheme(localStorage.getItem("dhas_theme") === "dark");
-function toggleTheme() {
-  const d = document.body.classList.contains("dark");
-  applyTheme(!d);
-  localStorage.setItem("dhas_theme", !d ? "dark" : "light");
-}
 
 /* Sidebar */
 function toggleSidebar() {
@@ -532,109 +356,42 @@ document.querySelectorAll(".side-link").forEach(l =>
   l.classList.toggle("active", l.getAttribute("href") === currentPage)
 );
 
-/* ── HEALTH SNAPSHOT renderer ── */
+/* ── HEALTH SNAPSHOT ── */
 function renderSnapshot(p) {
   const grid = document.getElementById("snapshotGrid");
-
-  // Check if any health data exists
   const hasBlood  = !!p.blood_group;
   const hasWeight = !!p.weight;
   const hasHeight = !!p.height;
   const hasBMI    = hasHeight && hasWeight;
   const anyData   = hasBlood || hasWeight || hasHeight;
-
   let html = "";
 
-  /* BMI card */
   if (hasBMI) {
     const h   = parseFloat(p.height) / 100;
     const bmi = (parseFloat(p.weight) / (h * h)).toFixed(1);
     const bmiNum = parseFloat(bmi);
     const status = bmiNum < 18.5 ? "Under" : bmiNum < 25 ? "Normal" : bmiNum < 30 ? "Over" : "Obese";
     const trendCls = status === "Normal" ? "up" : status === "Under" ? "ok" : "dn";
-    html += `
-      <div class="snap-card">
-        <div class="snap-top">
-          <div class="snap-icon" style="background:#fff0f4;color:#f25c7d;">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-          </div>
-          <div class="snap-trend ${trendCls}">${status}</div>
-        </div>
-        <div class="snap-val">${bmi}</div>
-        <div class="snap-lbl">BMI</div>
-      </div>`;
+    html += `<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff0f4;color:#f25c7d;"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></div><div class="snap-trend ${trendCls}">${status}</div></div><div class="snap-val">${bmi}</div><div class="snap-lbl">BMI</div></div>`;
   } else {
-    html += `
-      <div class="snap-card">
-        <div class="snap-top">
-          <div class="snap-icon" style="background:#fff0f4;color:#f25c7d;">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-          </div>
-          <div class="snap-trend ok">—</div>
-        </div>
-        <div class="snap-val empty">Not set</div>
-        <div class="snap-lbl">BMI</div>
-      </div>`;
+    html += `<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff0f4;color:#f25c7d;"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></div><div class="snap-trend ok">—</div></div><div class="snap-val empty">Not set</div><div class="snap-lbl">BMI</div></div>`;
   }
 
-  /* Blood group card */
-  html += `
-    <div class="snap-card">
-      <div class="snap-top">
-        <div class="snap-icon" style="background:#eff6ff;color:var(--blue);">
-          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-        </div>
-        <div class="snap-trend ok">${hasBlood ? p.blood_group : "—"}</div>
-      </div>
-      <div class="snap-val ${hasBlood ? "" : "empty"}">${hasBlood ? p.blood_group : "Not set"}</div>
-      <div class="snap-lbl">Blood Group</div>
-    </div>`;
+  html += `<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#eff6ff;color:var(--blue);"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><div class="snap-trend ok">${hasBlood ? p.blood_group : "—"}</div></div><div class="snap-val ${hasBlood?"":"empty"}">${hasBlood ? p.blood_group : "Not set"}</div><div class="snap-lbl">Blood Group</div></div>`;
 
-  /* Weight card */
-  html += `
-    <div class="snap-card">
-      <div class="snap-top">
-        <div class="snap-icon" style="background:#e6faf8;color:var(--teal);">
-          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
-        </div>
-        <div class="snap-trend ok">${hasWeight ? "kg" : "—"}</div>
-      </div>
-      <div class="snap-val ${hasWeight ? "" : "empty"}">${hasWeight ? p.weight : "Not set"}</div>
-      <div class="snap-lbl">Weight</div>
-    </div>`;
+  html += `<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#e6faf8;color:var(--teal);"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg></div><div class="snap-trend ok">${hasWeight ? "kg" : "—"}</div></div><div class="snap-val ${hasWeight?"":"empty"}">${hasWeight ? p.weight : "Not set"}</div><div class="snap-lbl">Weight</div></div>`;
 
-  /* Height card */
-  html += `
-    <div class="snap-card">
-      <div class="snap-top">
-        <div class="snap-icon" style="background:#fff8ec;color:var(--amber);">
-          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-        </div>
-        <div class="snap-trend ok">${hasHeight ? "cm" : "—"}</div>
-      </div>
-      <div class="snap-val ${hasHeight ? "" : "empty"}">${hasHeight ? p.height : "Not set"}</div>
-      <div class="snap-lbl">Height</div>
-    </div>`;
+  html += `<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff8ec;color:var(--amber);"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg></div><div class="snap-trend ok">${hasHeight ? "cm" : "—"}</div></div><div class="snap-val ${hasHeight?"":"empty"}">${hasHeight ? p.height : "Not set"}</div><div class="snap-lbl">Height</div></div>`;
 
-  /* Nudge banner when profile is incomplete */
   if (!anyData) {
-    html += `
-      <div class="snap-incomplete">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div class="snap-incomplete-text"><strong>Health data missing.</strong> Complete your profile to see your snapshot here.</div>
-        <a href="profile_details.html" class="snap-incomplete-link">Complete →</a>
-      </div>`;
+    html += `<div class="snap-incomplete"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><div class="snap-incomplete-text"><strong>Health data missing.</strong> Complete your profile to see your snapshot here.</div><a href="profile_details.html" class="snap-incomplete-link">Complete →</a></div>`;
   }
-
   grid.innerHTML = html;
 }
 
 /* ── LOAD DASHBOARD ── */
 async function loadDashboard() {
-  if (!user.id) {
-    renderSnapshot({});
-    return;
-  }
+  if (!user.id) { renderSnapshot({}); return; }
   try {
     const [pd, rd, rpd] = await Promise.all([
       fetch(`${BASE}/profile/${user.id}`).then(r => r.json()),
@@ -643,24 +400,37 @@ async function loadDashboard() {
     ]);
     const p = (pd.success && pd.profile) ? pd.profile : {};
 
-    /* Hero stats */
     document.getElementById("statSymptoms").textContent  = p.symptom_count ?? "0";
     document.getElementById("statReminders").textContent = rd.success  ? rd.data.length  : "0";
     document.getElementById("statReports").textContent   = rpd.success ? rpd.data.length : "0";
 
-    /* Health Snapshot — driven entirely by profile API data */
     renderSnapshot(p);
 
-    /* Reminders strip */
+    /* ── REMINDERS STRIP ──────────────────────────────────────────
+       The API (reminderController) returns:
+         medicine  = r[medicine_name_col]   ← actual medicine name
+         sched     = schedule type
+         scheduleLabel = human-readable schedule
+         dosesLabel    = e.g. "Once daily"
+       So we read r.medicine (NOT r.medicine_name) here.
+    ─────────────────────────────────────────────────────────────── */
     const strip = document.getElementById("reminderStrip");
     if (rd.success && rd.data.length) {
-      const v = ["","warn","ok"];
-      strip.innerHTML = rd.data.slice(0,5).map((r,i) => `
-        <div class="rem-card ${v[i%3]}">
-          <div class="rem-name">${r.medicine_name || "Medication"}</div>
-          <div class="rem-time">${r.schedule_label || r.schedule_type || "—"}</div>
-          <div class="rem-pill">${r.schedule_type || "Daily"}</div>
-        </div>`).join("");
+      const accent = ["", "warn", "ok"];
+      strip.innerHTML = rd.data.slice(0, 5).map((r, i) => {
+        // medicine name: API normalises to key "medicine"
+        const name     = r.medicine || r.medicine_name || "Medication";
+        const timeInfo = (r.times && r.times.length > 0)
+          ? r.times[0].display || `${r.times[0].h}:${r.times[0].m} ${r.times[0].ampm}`
+          : (r.schedule_label || r.scheduleLabel || "—");
+        const freq = r.dosesLabel || r.doses_label || r.scheduleLabel || "Daily";
+        return `
+          <div class="rem-card ${accent[i % 3]}">
+            <div class="rem-name">💊 ${name}</div>
+            <div class="rem-time">⏰ ${timeInfo}</div>
+            <div class="rem-pill">${freq}</div>
+          </div>`;
+      }).join("");
     } else {
       strip.innerHTML = `<div class="rem-card" style="min-width:220px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">No reminders set. <a href="reminder.html" style="color:var(--blue);font-weight:600;">Add one →</a></div>`;
     }
