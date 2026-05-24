@@ -77,20 +77,49 @@
     .sec-title i{font-size:18px;color:var(--blue,#2a6cf6)}
     html.dark .sec-title{color:#e8efff}
 
-    .reminder-item{background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;transition:border-color .2s}
+    /* ── Reminder card ── */
+    .reminder-item{
+      background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);
+      border-radius:12px;padding:14px 16px;margin-bottom:4px;
+      display:flex;align-items:flex-start;justify-content:space-between;
+      gap:12px;transition:border-color .2s;
+    }
     .reminder-item:hover{border-color:var(--blue,#2a6cf6)}
     html.dark .reminder-item{background:#111c3c;border-color:#1e2e58}
     .reminder-name{font-weight:600;font-size:.95rem;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:6px}
     .reminder-name i{font-size:16px;color:var(--blue,#2a6cf6)}
     html.dark .reminder-name{color:#e8efff}
-    .reminder-delete{background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;cursor:pointer;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:8px;transition:background .2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+
+    /* ── Edit button ── */
+    .edit-btn{
+      background:linear-gradient(135deg,#eff6ff,#dbeafe);
+      border:1px solid #93c5fd;color:#1d4ed8;
+      cursor:pointer;font-size:.8rem;font-weight:700;
+      padding:5px 12px;border-radius:8px;
+      transition:background .2s,border-color .2s;
+      font-family:'DM Sans',sans-serif;
+      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:5px;
+    }
+    .edit-btn:hover{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#2a6cf6}
+    html.dark .edit-btn{background:rgba(42,108,246,.15);border-color:rgba(42,108,246,.4);color:#7aafff}
+    html.dark .edit-btn:hover{background:rgba(42,108,246,.25)}
+
+    .reminder-delete{
+      background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;
+      cursor:pointer;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:8px;
+      transition:background .2s,border-color .2s;font-family:'DM Sans',sans-serif;
+      white-space:nowrap;display:inline-flex;align-items:center;gap:5px;
+    }
     .reminder-delete:hover{background:#fee2e2;border-color:#f25c7d}
+
+    /* Edit panel dark mode */
+    html.dark .edit-panel > div{background:#111c3c !important;border-color:#2a6cf6 !important;color:#e8efff !important}
 
     .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted,#6b7fa3)}
     .empty-state i{font-size:48px;color:var(--text-muted,#6b7fa3);opacity:0.5;display:block;margin-bottom:12px}
     .empty-state p{font-size:.9rem}
 
-    /* chip/tag styles used in displayReminders */
     .sched-chip{display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:2px 9px;font-size:.73rem;font-weight:700}
     .sched-chip i{font-size:12px}
   </style>
