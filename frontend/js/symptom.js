@@ -5,16 +5,26 @@
 
 const BASE_URL = "http://localhost:3006";
 
-// ── localStorage keys (single source of truth) ──
 const LS_SYMPTOMS  = "dhas_symptoms";
 const LS_CONDITION = "dhas_symptom_condition";
 
-// ── Get logged-in user ──────────────────────────────────────────
 function getUser() {
     try { return JSON.parse(localStorage.getItem("dhas_user")); } catch { return null; }
 }
 
-// ── Condition map — icons instead of emojis ─────────────────────
+// ── In-page toast ──────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(text, type = "success", duration = 4500) {
+    const t = document.getElementById("dhasToast");
+    if (!t) return;
+    const icon = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+    t.className = type;
+    t.innerHTML = `<i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
+    t.style.display = "flex";
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
+}
+
 const CONDITION_MAP = {
     covid_like:  {
         label: "COVID-19 Like Illness",
@@ -115,7 +125,6 @@ function diagnose(symptoms) {
     return "general";
 }
 
-// ── Toggle checkbox ─────────────────────────────────────────────
 function toggleCheck(el, id) {
     const cb = document.getElementById(id);
     cb.checked = !cb.checked;
@@ -133,35 +142,30 @@ function updateCount() {
     }
 }
 
-// ── Submit ──────────────────────────────────────────────────────
 async function submitSymptoms() {
     const checked = [...document.querySelectorAll("#symptomList input[type=checkbox]:checked")]
         .map(cb => cb.value);
 
     if (checked.length === 0) {
-        alert("Please select at least one symptom.");
+        showToast("Please select at least one symptom.", "error");
         return;
     }
 
     const conditionKey = diagnose(checked);
     const condition    = CONDITION_MAP[conditionKey];
 
-    // ── Save to localStorage ──────────────────────────────────────
     localStorage.setItem(LS_SYMPTOMS,  JSON.stringify(checked));
     localStorage.setItem(LS_CONDITION, conditionKey);
 
-    // ── Save to DB (non-blocking) ─────────────────────────────────
     const user = getUser();
     if (user) {
         saveSymptomsToDB(user.id, checked, condition.label, condition.severityLabel)
             .catch(err => console.warn("DB save failed (non-critical):", err));
     }
 
-    // ── Show result UI immediately ────────────────────────────────
     showResult(condition, conditionKey, checked);
 }
 
-// ── POST symptoms to backend ────────────────────────────────────
 async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     const res = await fetch(`${BASE_URL}/symptoms/save`, {
         method:  "POST",
@@ -173,16 +177,15 @@ async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     return data;
 }
 
-// ── Show Result ─────────────────────────────────────────────────
 function showResult(condition, key, symptoms) {
     document.getElementById("symptomList").style.display   = "none";
     document.getElementById("selectedCount").style.display = "none";
     document.querySelectorAll(".btn-dhas").forEach(b => b.style.display = "none");
 
     const title = document.querySelector(".page-title");
-    const alert = document.querySelector(".dhas-alert");
+    const alertEl = document.querySelector(".dhas-alert");
     if (title) title.style.display = "none";
-    if (alert) alert.style.display = "none";
+    if (alertEl) alertEl.style.display = "none";
 
     const sevColor = { mild: "#10b981", moderate: "#f59e0b", severe: "#ef4444" };
     const color    = sevColor[condition.severity] || "#10b981";
@@ -191,7 +194,6 @@ function showResult(condition, key, symptoms) {
     const card = document.createElement("div");
     card.id = "resultPanel";
 
-    // Symptom label map for display
     const SYMPTOM_LABELS = {
         fever: "Fever", cold: "Cold / Runny Nose", headache: "Headache",
         cough: "Cough", fatigue: "Fatigue", body_pain: "Body Pain",
@@ -216,7 +218,6 @@ function showResult(condition, key, symptoms) {
                 pointer-events: none;
             }
             @keyframes rFadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-
             .res-icon-wrap {
                 width: 72px; height: 72px; border-radius: 22px;
                 display: flex; align-items: center; justify-content: center;
@@ -224,10 +225,7 @@ function showResult(condition, key, symptoms) {
                 position: relative;
                 border: 2px solid rgba(255,255,255,0.15);
             }
-            .res-icon-wrap i {
-                font-size: 34px;
-            }
-
+            .res-icon-wrap i { font-size: 34px; }
             .res-title  { color:#fff; font-size:1.55rem; font-weight:800; margin-bottom:6px; position:relative; font-family:'Fraunces',serif; }
             .res-desc   { color:rgba(255,255,255,0.65); font-size:0.85rem; position:relative; line-height:1.5; margin-bottom:14px; }
             .res-sev    { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:50px; font-size:0.78rem; font-weight:800; letter-spacing:0.5px; position:relative; }
@@ -237,7 +235,6 @@ function showResult(condition, key, symptoms) {
             .res-sym-tags  { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
             .res-sym-tag   { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:50px; padding:3px 10px; color:rgba(255,255,255,0.8); font-size:0.78rem; font-weight:600; display:inline-flex; align-items:center; gap:5px; }
             .res-sym-tag i { font-size: 11px; }
-
             .res-actions { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; animation: rFadeIn 0.5s ease; }
             .res-action-btn { display:flex; align-items:center; gap:16px; padding:18px 20px; border-radius:16px; border:2px solid var(--border,#e2e8f0); background:var(--surface,#fff); cursor:pointer; transition:all 0.22s; text-decoration:none; font-family:'DM Sans',sans-serif; }
             html.dark .res-action-btn, body.dark .res-action-btn { background:#111c3c; border-color:#1e2e58; }
@@ -246,7 +243,6 @@ function showResult(condition, key, symptoms) {
             .res-action-btn.remedy:hover { border-color:#10b981; background:#f0fdf4; }
             html.dark .res-action-btn.diet:hover   { background:rgba(37,99,235,0.12); }
             html.dark .res-action-btn.remedy:hover { background:rgba(16,185,129,0.12); }
-
             .rab-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
             .rab-icon i { font-size: 24px; }
             .rab-icon.diet   { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e40af; }
@@ -257,7 +253,6 @@ function showResult(condition, key, symptoms) {
             .rab-arrow { margin-left:auto; color:#94a3b8; font-size:1.1rem; transition:transform 0.2s; display:flex; align-items:center; }
             .rab-arrow i { font-size: 20px; }
             .res-action-btn:hover .rab-arrow { transform:translateX(4px); }
-
             .res-back { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:13px; border:2px solid var(--border,#e2e8f0); background:var(--surface,#fff); color:var(--text,#1e293b); font-weight:700; font-size:0.87rem; cursor:pointer; width:100%; justify-content:center; transition:all 0.2s; font-family:'DM Sans',sans-serif; }
             html.dark .res-back { background:#111c3c; border-color:#1e2e58; color:#e8efff; }
             .res-back:hover { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
@@ -314,16 +309,15 @@ function showResult(condition, key, symptoms) {
     wrap.appendChild(card);
 }
 
-// ── Reset ───────────────────────────────────────────────────────
 function resetSymptoms() {
     document.getElementById("resultPanel").remove();
     document.getElementById("symptomList").style.display   = "block";
     document.getElementById("selectedCount").style.display = "block";
 
     const title = document.querySelector(".page-title");
-    const alert = document.querySelector(".dhas-alert");
+    const alertEl = document.querySelector(".dhas-alert");
     if (title) title.style.display = "";
-    if (alert) alert.style.display = "";
+    if (alertEl) alertEl.style.display = "";
 
     document.querySelectorAll(".btn-dhas").forEach(b => b.style.display = "");
     document.querySelectorAll("#symptomList input[type=checkbox]").forEach(cb => {

@@ -10,11 +10,24 @@ function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));
 }
 
+// ── In-page toast ──────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(text, type = "success", duration = 4500) {
+    const t = document.getElementById("dhasToast");
+    if (!t) return;
+    const icon = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+    t.className = type;
+    t.innerHTML = `<i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
+    t.style.display = "flex";
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
+}
+
 window.onload = function () {
     const user = getUser();
     if (!user) {
-        alert("Please login first.");
-        window.location.href = "login.html";
+        showToast("Please login first.", "error");
+        setTimeout(() => window.location.href = "login.html", 1500);
         return;
     }
 
@@ -80,7 +93,7 @@ async function showReportViewer(id) {
             contentHTML = `<p style="color:#555;text-align:center;">Cannot preview this file type. Please download it.</p>`;
         }
 
-        const { iconEl, iconLabel } = fileIconEl(data.filetype);
+        const { iconEl } = fileIconEl(data.filetype);
 
         viewerSection.innerHTML = `
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
@@ -134,21 +147,21 @@ window.addEventListener("hashchange", () => {
 // ── Upload Report ──────────────────────────────────────────────
 function uploadReport() {
     const user = getUser();
-    if (!user) { alert("Please login first."); return; }
+    if (!user) { showToast("Please login first.", "error"); return; }
 
     const fileInput = document.getElementById("reportFile");
     const file = fileInput.files[0];
 
-    if (!file) { alert("Please select a file to upload."); return; }
+    if (!file) { showToast("Please select a file to upload.", "error"); return; }
 
     const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.type)) {
-        alert("Only PDF, JPG, and PNG files are supported.");
+        showToast("Only PDF, JPG, and PNG files are supported.", "error");
         return;
     }
 
     if (file.size > 4 * 1024 * 1024) {
-        alert("File is too large. Please upload files smaller than 4 MB.");
+        showToast("File is too large. Please upload files smaller than 4 MB.", "error");
         return;
     }
 
@@ -176,22 +189,23 @@ function uploadReport() {
 
             if (data.success) {
                 fileInput.value = "";
+                showToast(`"${file.name}" uploaded successfully.`, "success");
                 displayReports();
             } else {
-                const detail = data.dbMessage ? `\n\nDB: ${data.dbError} — ${data.dbMessage}` : "";
-                alert((data.message || "Upload failed. Please try again.") + detail);
+                const detail = data.dbMessage ? ` (${data.dbError})` : "";
+                showToast((data.message || "Upload failed. Please try again.") + detail, "error");
             }
 
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Cannot connect to server. Make sure backend is running.");
+            showToast("Cannot connect to server. Make sure backend is running.", "error");
         } finally {
             if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.textContent = "Upload Report"; }
         }
     };
 
     reader.onerror = function () {
-        alert("Failed to read file. Please try again.");
+        showToast("Failed to read file. Please try again.", "error");
         if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.textContent = "Upload Report"; }
     };
 
@@ -254,23 +268,31 @@ async function displayReports() {
     }
 }
 
-// ── Delete Report ──────────────────────────────────────────────
+// ── Delete Report (two-tap confirm via toast) ──────────────────
+const _pendingDelete = {};
 async function deleteReport(id) {
-    if (!confirm("Delete this report?")) return;
+    if (!_pendingDelete[id]) {
+        _pendingDelete[id] = true;
+        showToast("Tap Delete again to permanently remove this report.", "error", 4000);
+        setTimeout(() => { delete _pendingDelete[id]; }, 4000);
+        return;
+    }
 
+    delete _pendingDelete[id];
     try {
         const res  = await fetch(`${BASE_URL}/reports/${id}`, { method: "DELETE" });
         const data = await res.json();
 
         if (data.success) {
+            showToast("Report deleted successfully.", "success");
             displayReports();
         } else {
-            alert("Failed to delete report.");
+            showToast("Failed to delete report.", "error");
         }
 
     } catch (err) {
         console.error("Delete report error:", err);
-        alert("Cannot connect to server.");
+        showToast("Cannot connect to server.", "error");
     }
 }
 
@@ -281,12 +303,9 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-/**
- * Returns { iconEl, iconLabel } — Tabler icon class names based on MIME type
- */
 function fileIconEl(type) {
-    if (!type)                          return { iconEl: "ti-file",       iconLabel: "File" };
+    if (!type)                          return { iconEl: "ti-file",         iconLabel: "File" };
     if (type === "application/pdf")     return { iconEl: "ti-file-type-pdf", iconLabel: "PDF" };
-    if (type.startsWith("image/"))      return { iconEl: "ti-photo",      iconLabel: "Image" };
+    if (type.startsWith("image/"))      return { iconEl: "ti-photo",         iconLabel: "Image" };
     return { iconEl: "ti-file", iconLabel: "File" };
 }

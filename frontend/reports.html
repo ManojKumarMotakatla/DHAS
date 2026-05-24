@@ -72,19 +72,42 @@
     .empty-state i.big{font-size:48px;opacity:0.5;display:block;margin-bottom:12px}
     .empty-state p{font-size:.9rem}
 
-    /* viewer back button */
     .viewer-back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:10px;border:1.5px solid var(--border,#e4e9f4);background:var(--card-bg,#fff);color:var(--text,#0d1b3e);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none}
     .viewer-back-btn:hover{border-color:var(--blue,#2a6cf6);color:var(--blue,#2a6cf6)}
     .viewer-back-btn i{font-size:16px}
 
-    /* download link styled as button */
     .download-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;font-weight:600;font-size:0.85rem;text-decoration:none;transition:all .2s}
     .download-btn:hover{opacity:.9;transform:translateY(-1px)}
     .download-btn i{font-size:16px}
 
-    /* view button */
     .view-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;font-weight:600;font-size:0.8rem;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
     .view-btn i{font-size:13px}
+
+    /* ── In-page toast ── */
+    #dhasToast {
+      position: fixed;
+      bottom: 24px;
+      left: 20px;
+      z-index: 99999;
+      max-width: 340px;
+      min-width: 240px;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      font-weight: 600;
+      line-height: 1.5;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    html.dark #dhasToast.success, body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    html.dark #dhasToast.error,   body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; font-size: 14px; padding: 0 0 0 8px; }
+    .toast-dismiss:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -137,6 +160,9 @@
     <div id="viewerSection" style="display:none;"></div>
 
   </div>
+
+  <!-- In-page toast -->
+  <div id="dhasToast" role="status" aria-live="polite"></div>
 
   <script src="js/report.js"></script>
 </body>
