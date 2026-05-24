@@ -1,5 +1,5 @@
 // ============================================
-// DHAS - reminder.js  (v5 — in-page messages)
+// DHAS - reminder.js  (v6 — icons, bottom-left toast)
 // ============================================
 
 const API = "http://localhost:3006/reminders";
@@ -30,17 +30,103 @@ function getUserId() {
 let remindersCache = [];
 function getReminders() { return remindersCache; }
 
-// ── In-page message ───────────────────────────────────────────
+// ── Bottom-left toast ─────────────────────────────────────────
+(function injectToastStyles() {
+    if (document.getElementById("dhasToastStyle")) return;
+    const style = document.createElement("style");
+    style.id = "dhasToastStyle";
+    style.textContent = `
+        #dhasPageToast {
+            position: fixed;
+            bottom: 24px;
+            left: 20px;
+            z-index: 99998;
+            max-width: 340px;
+            min-width: 240px;
+            padding: 13px 18px;
+            border-radius: 14px;
+            font-size: 0.87rem;
+            font-weight: 600;
+            line-height: 1.5;
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+            animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
+            font-family: 'DM Sans', sans-serif;
+        }
+        #dhasPageToast.success {
+            background: #d1fae5;
+            border: 1.5px solid #86efac;
+            color: #166534;
+        }
+        #dhasPageToast.error {
+            background: #fee2e2;
+            border: 1.5px solid #fca5a5;
+            color: #991b1b;
+        }
+        body.dark #dhasPageToast.success,
+        html.dark #dhasPageToast.success {
+            background: #052e16;
+            border-color: #166534;
+            color: #86efac;
+        }
+        body.dark #dhasPageToast.error,
+        html.dark #dhasPageToast.error {
+            background: #450a0a;
+            border-color: #991b1b;
+            color: #fca5a5;
+        }
+        @keyframes dhasToastIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #dhasPageToast .toast-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        #dhasPageToast .toast-dismiss {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            font-size: 14px;
+            padding: 0 0 0 8px;
+            flex-shrink: 0;
+        }
+        #dhasPageToast .toast-dismiss:hover { opacity: 1; }
+    `;
+    document.head.appendChild(style);
+
+    const toast = document.createElement("div");
+    toast.id = "dhasPageToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.appendChild(toast);
+})();
+
 let _msgTimer = null;
-function showPageMsg(text, type = "success", duration = 4000) {
-    const el = document.getElementById("reminderPageMsg");
-    if (!el) return;
-    el.textContent = text;
-    el.className = "reminder-page-msg " + type;
-    el.style.display = "block";
-    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+function showPageMsg(text, type = "success", duration = 4500) {
+    let toast = document.getElementById("dhasPageToast");
+    if (!toast) {
+        // fallback if body not ready yet
+        setTimeout(() => showPageMsg(text, type, duration), 100);
+        return;
+    }
+    const iconClass = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+    toast.className = type;
+    toast.innerHTML = `
+        <i class="ti ${iconClass} toast-icon" aria-hidden="true"></i>
+        <span>${text}</span>
+        <button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss">
+            <i class="ti ti-x" aria-hidden="true"></i>
+        </button>`;
+    toast.style.display = "flex";
     if (_msgTimer) clearTimeout(_msgTimer);
-    _msgTimer = setTimeout(() => { el.style.display = "none"; }, duration);
+    _msgTimer = setTimeout(() => { if (toast) toast.style.display = "none"; }, duration);
 }
 
 // ── Audio Engine ──────────────────────────────────────────────
@@ -89,7 +175,7 @@ let snoozeTimers = {};
 function snoozeReminder(reminderId, soundKey, toastEl) {
     toastEl.remove();
     if (snoozeTimers[reminderId]) clearTimeout(snoozeTimers[reminderId]);
-    showPageMsg("⏰ Snoozed for 10 minutes.", "success");
+    showPageMsg("Snoozed for 10 minutes.", "success");
     snoozeTimers[reminderId] = setTimeout(() => {
         const r = remindersCache.find(x => x.id === reminderId);
         const t = r?.times?.[0] || { label:"Reminder", display:"" };
@@ -180,19 +266,26 @@ function showAlarmToast(reminder, timeSlot) {
                     z-index:99999;max-width:340px;width:90%;
                     animation:toastIn 0.4s ease;font-family:'DM Sans',sans-serif;">
           <style>@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
-          <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">⏰ Medicine Time!</div>
-          <div style="font-size:1rem;font-weight:700;">💊 ${reminder.medicine}</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:1.1rem;font-weight:700;margin-bottom:4px;">
+            <i class="ti ti-bell-ringing" style="font-size:18px" aria-hidden="true"></i>
+            Medicine Time!
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:1rem;font-weight:700;">
+            <i class="ti ti-pill" style="font-size:16px" aria-hidden="true"></i>
+            ${reminder.medicine}
+          </div>
           <div style="font-size:0.85rem;opacity:0.9;margin-top:4px;">${timeSlot.label}: ${timeSlot.display}</div>
           <div style="display:flex;gap:8px;margin-top:14px;">
             <button id="snoozeBtn_${rid}"
                     style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;
-                           padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;font-size:0.82rem;">
-              ⏸ Snooze 10 min
+                           padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;font-size:0.82rem;
+                           display:flex;align-items:center;justify-content:center;gap:6px;">
+              <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i> Snooze 10 min
             </button>
             <button onclick="document.getElementById('dhasAlarmToast').remove()"
                     style="background:#fff;border:none;color:#1a56db;padding:7px 14px;border-radius:8px;
-                           cursor:pointer;font-weight:700;flex:1;">
-              ✓ Dismiss
+                           cursor:pointer;font-weight:700;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i> Dismiss
             </button>
           </div>
         </div>`;
@@ -264,7 +357,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#dcfce7", color:"#166534", borderColor:"#86efac" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <span style="font-size:20px;margin-top:2px">🔔</span>
+              <i class="ti ti-bell-check" style="font-size:20px;margin-top:2px;flex-shrink:0;" aria-hidden="true"></i>
               <div>
                 <div style="font-weight:700;font-size:0.92rem;">Notifications Enabled</div>
                 <div style="margin-top:4px;font-weight:500;">DHAS can now send medicine reminders and alarm alerts even when the app is minimized.</div>
@@ -274,7 +367,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#fff7ed", color:"#9a3412", borderColor:"#fdba74" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:12px;">
-              <span style="font-size:22px;margin-top:2px">🔕</span>
+              <i class="ti ti-bell-off" style="font-size:22px;margin-top:2px;flex-shrink:0;" aria-hidden="true"></i>
               <div style="flex:1;">
                 <div style="font-size:0.95rem;font-weight:700;margin-bottom:6px;">Enable Browser Notifications</div>
                 <div style="font-weight:500;line-height:1.6;">
@@ -291,8 +384,8 @@ function updateNotifBanner(granted) {
                 <button onclick="enableDHASNotifications()"
                         style="margin-top:10px;background:linear-gradient(135deg,#ea580c,#f97316);
                                color:white;border:none;border-radius:8px;padding:8px 16px;
-                               font-size:0.85rem;font-weight:700;cursor:pointer;">
-                  🔔 Enable Notifications
+                               font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                  <i class="ti ti-bell" aria-hidden="true"></i> Enable Notifications
                 </button>
               </div>
             </div>`;
@@ -412,14 +505,14 @@ function updateReminderPreview() {
 
     preview.style.display = "block";
     document.getElementById("previewContent").innerHTML = [
-        previewRow("Medicine",   medicine,  "💊"),
-        previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "📅"),
-        selDays ? previewRow("Days", selDays, "📆") : "",
-        previewRow("Time",       times, "⏰"),
-        previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "🔁"),
-        previewRow("Start Date", startDate, "🗓️"),
-        previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "⌛"),
-        previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "🔔"),
+        previewRow("Medicine",   medicine,  "ti-pill"),
+        previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "ti-calendar"),
+        selDays ? previewRow("Days", selDays, "ti-calendar-week") : "",
+        previewRow("Time",       times, "ti-clock"),
+        previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "ti-repeat"),
+        previewRow("Start Date", startDate, "ti-calendar-event"),
+        previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "ti-hourglass"),
+        previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "ti-bell"),
         `<div style="margin-top:10px;background:#eff6ff;border-left:4px solid #2563eb;
                      padding:14px;border-radius:12px;line-height:1.7;color:#1e3a8a;font-size:0.88rem;">
            <strong>How this reminder will work</strong>
@@ -433,9 +526,11 @@ function updateReminderPreview() {
     ].join("");
 }
 
-function previewRow(label, value, icon) {
+function previewRow(label, value, iconClass) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:12px;border-radius:12px;gap:8px;">
-              <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">${icon} ${label}</span>
+              <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">
+                <i class="ti ${iconClass}" style="font-size:14px" aria-hidden="true"></i> ${label}
+              </span>
               <strong style="font-size:0.85rem;text-align:right;">${value}</strong>
             </div>`;
 }
@@ -525,8 +620,7 @@ window.addReminder = async function () {
         }
 
         await loadRemindersFromServer();
-        // ✅ Show success message in page center
-        showPageMsg(`✓ Reminder for "${medicine}" saved successfully at ${effectiveTimes[0]?.display}.`, "success", 5000);
+        showPageMsg(`Reminder for "${medicine}" saved at ${effectiveTimes[0]?.display}.`, "success", 5000);
 
         // Reset form
         document.getElementById("medicine").value     = "";
@@ -544,7 +638,6 @@ window.addReminder = async function () {
 
 // ── Delete reminder ───────────────────────────────────────────
 window.deleteReminder = async function (id) {
-    // In-page two-tap confirm (no popup)
     const card = document.getElementById(`reminderCard_${id}`);
     if (!card) return;
 
@@ -556,7 +649,7 @@ window.deleteReminder = async function (id) {
             if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
             remindersCache = remindersCache.filter(r => r.id !== id);
             displayReminders();
-            showPageMsg("✓ Reminder deleted.", "success");
+            showPageMsg("Reminder deleted.", "success");
         } catch (err) {
             showPageMsg("Network error — could not delete.", "error");
         }
@@ -568,17 +661,15 @@ window.deleteReminder = async function (id) {
     setTimeout(() => card?.removeAttribute("data-pending-delete"), 4000);
 };
 
-// ── EDIT REMINDER (inline, same as saved_reminders) ───────────
+// ── EDIT REMINDER (inline) ────────────────────────────────────
 window.openEditReminder = function(id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return;
 
-    // Toggle if already open
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) return;
     if (container.innerHTML.trim() !== "") { closeEditReminder(id); return; }
 
-    // Close other open panels
     document.querySelectorAll(".edit-panel").forEach(el => el.innerHTML = "");
 
     const sched      = r.sched || "daily";
@@ -625,12 +716,11 @@ window.openEditReminder = function(id) {
         }).join("");
     }
 
-    const currentDays   = r.days || [];
     const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(sched);
     const showMonthDay  = sched === "monthly";
 
     const dayPickerHtml = ALL_DAYS.map((day, i) => {
-        const active = currentDays.includes(i) ? "active" : "";
+        const active = days.includes(i) ? "active" : "";
         return `<div class="day-tile edit-day-tile ${active}" id="editDayTile_${id}_${i}" onclick="toggleEditDay(${id},${i},'${sched}')">${day}</div>`;
     }).join("");
 
@@ -644,9 +734,14 @@ window.openEditReminder = function(id) {
                     padding:20px;margin-top:10px;animation:editSlide .25s ease;">
           <style>@keyframes editSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}</style>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <div style="font-size:0.92rem;font-weight:700;color:#2a6cf6;">✏️ Edit — ${r.medicine}</div>
+            <div style="font-size:0.92rem;font-weight:700;color:#2a6cf6;display:flex;align-items:center;gap:7px;">
+              <i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i>
+              Edit — ${r.medicine}
+            </div>
             <button onclick="closeEditReminder(${id})"
-                    style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;color:var(--muted,#6b7fa3);">✕</button>
+                    style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;color:var(--muted,#6b7fa3);display:flex;align-items:center;justify-content:center;">
+              <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
+            </button>
           </div>
 
           <label class="dhas-label">Schedule</label>
@@ -677,8 +772,9 @@ window.openEditReminder = function(id) {
             <button type="button"
                     onclick="playSound(document.getElementById('edit_sound_${id}').value)"
                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;
-                           border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;">
-              ▶ Preview
+                           border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;
+                           display:flex;align-items:center;gap:6px;">
+              <i class="ti ti-player-play" style="font-size:13px" aria-hidden="true"></i> Preview
             </button>
           </div>
 
@@ -691,7 +787,8 @@ window.openEditReminder = function(id) {
             <button onclick="saveEditReminder(${id})"
                     style="flex:2;padding:11px;border:none;border-radius:10px;
                            background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;
-                           font-weight:700;font-size:0.9rem;cursor:pointer;">
+                           font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+              <i class="ti ti-device-floppy" style="font-size:15px" aria-hidden="true"></i>
               Save Changes
             </button>
           </div>
@@ -806,7 +903,7 @@ window.saveEditReminder = async function(id) {
         if (!addData.success) { showPageMsg(addData.message || "Failed to save changes.", "error"); return; }
 
         await loadRemindersFromServer();
-        showPageMsg(`✓ Reminder for "${r.medicine}" updated successfully.`, "success");
+        showPageMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
 
     } catch (err) {
         showPageMsg("Network error — could not save changes.", "error");
@@ -815,8 +912,6 @@ window.saveEditReminder = async function(id) {
 
 // ── Display reminders ─────────────────────────────────────────
 function displayReminders() {
-    // reminder.html doesn't show a saved list by default — redirect to saved_reminders.html
-    // But we keep this for compatibility if a list element exists on the page
     const list = document.getElementById("reminderList");
     if (!list) return;
 
@@ -824,7 +919,7 @@ function displayReminders() {
     if (!reminders.length) {
         list.innerHTML = `
             <div class="empty-state">
-              <span style="font-size:48px;display:block;margin-bottom:12px;opacity:0.5;">💊</span>
+              <i class="ti ti-pill" style="font-size:48px;display:block;margin-bottom:12px;opacity:0.5;" aria-hidden="true"></i>
               <p>No reminders set yet.<br>Add your first medicine reminder above.</p>
             </div>`;
         return;
@@ -841,25 +936,43 @@ function displayReminders() {
         const durationLabel = r.duration==="forever" ? "Continuous" : `${r.duration} Day(s)`;
         const chips = (r.times||[]).map(t =>
             `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;
-                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;">
-               ⏰ ${t.label}: ${t.display || "—"}
+                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;
+                          white-space:nowrap;display:inline-flex;align-items:center;gap:5px;">
+               <i class="ti ti-clock" style="font-size:12px" aria-hidden="true"></i>
+               ${t.label}: ${t.display || "—"}
              </span>`).join("");
-        const bc    = BC[r.sched] || { bg:"#dbeafe", color:"#1d4ed8" };
+        const bc = BC[r.sched] || { bg:"#dbeafe", color:"#1d4ed8" };
 
         return `
             <div class="reminder-item" id="reminderCard_${r.id}">
               <div style="flex:1;min-width:0;">
-                <div class="reminder-name">💊 ${r.medicine}</div>
+                <div class="reminder-name">
+                  <i class="ti ti-pill" aria-hidden="true"></i>
+                  ${r.medicine}
+                </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                  <span class="sched-chip" style="background:${bc.bg};color:${bc.color};">📅 ${r.scheduleLabel||""}</span>
-                  <span class="sched-chip" style="background:#dbeafe;color:#1d4ed8;">💊 ${r.dosesLabel||""}</span>
-                  <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">⌛ ${durationLabel}</span>
+                  <span class="sched-chip" style="background:${bc.bg};color:${bc.color};">
+                    <i class="ti ti-calendar" style="font-size:12px" aria-hidden="true"></i>
+                    ${r.scheduleLabel||""}
+                  </span>
+                  <span class="sched-chip" style="background:#dbeafe;color:#1d4ed8;">
+                    <i class="ti ti-repeat" style="font-size:12px" aria-hidden="true"></i>
+                    ${r.dosesLabel||""}
+                  </span>
+                  <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">
+                    <i class="ti ti-hourglass" style="font-size:12px" aria-hidden="true"></i>
+                    ${durationLabel}
+                  </span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${chips}</div>
               </div>
               <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;align-items:flex-end;">
-                <button class="edit-btn" onclick="openEditReminder(${r.id})">✏️ Edit</button>
-                <button class="reminder-delete" onclick="deleteReminder(${r.id})">🗑 Delete</button>
+                <button class="edit-btn" onclick="openEditReminder(${r.id})">
+                  <i class="ti ti-edit" style="font-size:13px" aria-hidden="true"></i> Edit
+                </button>
+                <button class="reminder-delete" onclick="deleteReminder(${r.id})">
+                  <i class="ti ti-trash" style="font-size:13px" aria-hidden="true"></i> Delete
+                </button>
               </div>
             </div>
             <div id="editContainer_${r.id}" class="edit-panel"></div>`;

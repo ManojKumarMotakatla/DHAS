@@ -35,6 +35,42 @@
     a { text-decoration: none; color: inherit; }
     svg { display: block; }
 
+    /* BOTTOM-LEFT TOAST */
+    #dhasPageToast {
+      position: fixed;
+      bottom: 24px;
+      left: 20px;
+      z-index: 99998;
+      max-width: 340px;
+      min-width: 240px;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      font-weight: 600;
+      line-height: 1.5;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+      animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasPageToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasPageToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    body.dark #dhasPageToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    body.dark #dhasPageToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    @keyframes dhasToastIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #dhasPageToast .toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    #dhasPageToast .toast-dismiss {
+      margin-left: auto; background: none; border: none;
+      cursor: pointer; color: inherit; opacity: 0.6;
+      font-size: 14px; padding: 0 0 0 8px; flex-shrink: 0;
+    }
+    #dhasPageToast .toast-dismiss:hover { opacity: 1; }
+
     /* TOPBAR */
     .topbar {
       position: sticky; top: 0; z-index: 100;
@@ -72,35 +108,6 @@
 
     /* PAGE */
     .page { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
-
-    /* IN-PAGE MESSAGE */
-    .reminder-page-msg {
-      display: none;
-      padding: 14px 18px;
-      border-radius: 12px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      margin-bottom: 16px;
-      border: 1.5px solid transparent;
-      animation: msgSlide 0.3s ease;
-      line-height: 1.5;
-    }
-    @keyframes msgSlide {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .reminder-page-msg.success {
-      background: #d1fae5; border-color: #86efac; color: #166534;
-    }
-    .reminder-page-msg.error {
-      background: #fee2e2; border-color: #fca5a5; color: #991b1b;
-    }
-    body.dark .reminder-page-msg.success {
-      background: rgba(34,208,122,.12); border-color: rgba(34,208,122,.3); color: #6ee7b7;
-    }
-    body.dark .reminder-page-msg.error {
-      background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5;
-    }
 
     /* HEADER CARD */
     .header-card {
@@ -363,6 +370,9 @@
 </head>
 <body>
 
+<!-- Bottom-left toast -->
+<div id="dhasPageToast" role="status" aria-live="polite"></div>
+
 <header class="topbar">
   <a href="dashboard.html" class="back-btn">
     <i class="ti ti-chevron-left" aria-hidden="true"></i>
@@ -376,9 +386,6 @@
 </header>
 
 <main class="page">
-
-  <!-- In-page message -->
-  <div id="reminderPageMsg" class="reminder-page-msg" role="alert"></div>
 
   <!-- HEADER CARD -->
   <div class="header-card">
@@ -419,7 +426,7 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   saved_reminders.html — inline edit, in-page messages, no popups
+   saved_reminders.html — inline edit, bottom-left toast, no popups
 ═══════════════════════════════════════════════════════════════ */
 const BASE = "http://localhost:3006";
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
@@ -429,17 +436,22 @@ if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("
 let allReminders  = [];
 let currentFilter = "all";
 
-// ── In-page message ───────────────────────────────────────────
+// ── Bottom-left toast ─────────────────────────────────────────
 let _msgTimer = null;
 function showMsg(text, type = "success", duration = 5000) {
-  const el = document.getElementById("reminderPageMsg");
-  if (!el) return;
-  el.textContent = text;
-  el.className   = "reminder-page-msg " + type;
-  el.style.display = "block";
-  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const toast = document.getElementById("dhasPageToast");
+  if (!toast) return;
+  const iconClass = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+  toast.className = type;
+  toast.innerHTML = `
+    <i class="ti ${iconClass} toast-icon" aria-hidden="true"></i>
+    <span>${text}</span>
+    <button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss">
+      <i class="ti ti-x" aria-hidden="true"></i>
+    </button>`;
+  toast.style.display = "flex";
   if (_msgTimer) clearTimeout(_msgTimer);
-  _msgTimer = setTimeout(() => { el.style.display = "none"; }, duration);
+  _msgTimer = setTimeout(() => { toast.style.display = "none"; }, duration);
 }
 
 // ── Audio ─────────────────────────────────────────────────────
@@ -518,14 +530,12 @@ function buildTimeSlots(existingTimes, doseCount) {
   }).join("");
 }
 
-// currently open edit ID
 let _openEditId = null;
 
 function openInlineEdit(id) {
   const r = allReminders.find(x => x.id === id);
   if (!r) return;
 
-  // Toggle
   if (_openEditId === id) { closeInlineEdit(); return; }
   closeInlineEdit();
   _openEditId = id;
@@ -584,7 +594,7 @@ function openInlineEdit(id) {
     </div>
 
     <label class="dhas-label">Schedule</label>
-    <select id="et_sched" class="dhas-input" onchange="etOnSchedChange('${sched}')">${schedOpts}</select>
+    <select id="et_sched" class="dhas-input" onchange="etOnSchedChange()">${schedOpts}</select>
 
     <div id="et_daySection" style="display:${showDayPicker?"block":"none"};margin-bottom:10px;">
       <label class="dhas-label">Select Day(s)</label>
@@ -622,7 +632,6 @@ function openInlineEdit(id) {
       </button>
     </div>`;
 
-  // Insert after the reminder card
   const card = document.getElementById(`remCard_${id}`);
   if (card && card.nextSibling) {
     card.parentNode.insertBefore(panel, card.nextSibling);
@@ -772,7 +781,7 @@ async function deleteReminder(id) {
     if (_openEditId === id) closeInlineEdit();
     filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
     updateStats(allReminders);
-    showMsg(`Reminder deleted successfully.`, "success");
+    showMsg("Reminder deleted successfully.", "success");
   } catch(e) {
     showMsg("Network error — could not delete.", "error");
   }
@@ -879,19 +888,40 @@ function renderList(reminders) {
   list.innerHTML = reminders.map((r, i) => buildCard(r, i)).join("");
 }
 
+function shouldFireToday(r) {
+  const now          = new Date();
+  const dow          = now.getDay();
+  const dom          = now.getDate();
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+
+  if (r.startDate) {
+    const start = new Date(r.startDate + "T00:00:00");
+    if (todayMidnight < start) return false;
+  }
+  if (r.duration && r.duration !== "forever") {
+    const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
+    base.setHours(0,0,0,0);
+    if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
+  }
+  switch (r.sched) {
+    case "daily":      return true;
+    case "alternate": {
+      if (!r.altBase) return true;
+      const base  = new Date(r.altBase);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const bDay  = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+      return Math.round((today - bDay) / 86400000) % 2 === 0;
+    }
+    case "weekly": case "twice_week": case "three_week": case "custom":
+      return (r.days || []).includes(dow);
+    case "monthly": return dom === (r.monthDay || 1);
+    default: return false;
+  }
+}
+
 function updateStats(reminders) {
-  const now      = new Date();
-  const todayDow = now.getDay();
-  const todayDom = now.getDate();
   const activeCount = reminders.filter(r => r.duration === "forever" || !r.duration).length;
-  const todayCount  = reminders.filter(r => {
-    const s = r.sched || "daily";
-    if (s === "daily")      return true;
-    if (s === "alternate")  return true;
-    if (["weekly","twice_week","three_week","custom"].includes(s)) return (r.days||[]).includes(todayDow);
-    if (s === "monthly")    return todayDom === (r.monthDay||1);
-    return false;
-  }).length;
+  const todayCount  = reminders.filter(r => shouldFireToday(r)).length;
   document.getElementById("statTotal").textContent  = reminders.length;
   document.getElementById("statActive").textContent = activeCount;
   document.getElementById("statToday").textContent  = todayCount;
