@@ -1,12 +1,11 @@
 // ============================================
-// DHAS - report.js
+// DHAS - report.js (icons edition)
 // Upload, view, and delete medical reports
 // Files stored as base64 in MySQL database
 // ============================================
 
 const BASE_URL = "http://localhost:3006";
 
-// ── Get logged-in user from localStorage ──────────────────────
 function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));
 }
@@ -19,14 +18,12 @@ window.onload = function () {
         return;
     }
 
-    // If returning from viewer, restore scroll
     const savedScroll = sessionStorage.getItem("dhas_report_scroll");
     if (savedScroll) {
         setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
         sessionStorage.removeItem("dhas_report_scroll");
     }
 
-    // Check if we're in viewer mode (hash-based routing)
     if (window.location.hash.startsWith("#view:")) {
         const id = window.location.hash.replace("#view:", "");
         showReportViewer(id);
@@ -35,14 +32,12 @@ window.onload = function () {
     }
 };
 
-// ── Show the main report list view ──────────────────────────────
 function showReportList() {
     document.getElementById("listSection").style.display = "block";
     document.getElementById("viewerSection").style.display = "none";
     displayReports();
 }
 
-// ── Show the embedded report viewer ─────────────────────────────
 async function showReportViewer(id) {
     document.getElementById("listSection").style.display = "none";
     const viewerSection = document.getElementById("viewerSection");
@@ -57,7 +52,9 @@ async function showReportViewer(id) {
             viewerSection.innerHTML = `
                 <div style="text-align:center;padding:40px;">
                     <p style="color:red;">File data not found.</p>
-                    <button class="btn-dhas secondary" onclick="goBackToList()">← Back to Reports</button>
+                    <button class="viewer-back-btn" onclick="goBackToList()">
+                      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                    </button>
                 </div>`;
             return;
         }
@@ -83,19 +80,22 @@ async function showReportViewer(id) {
             contentHTML = `<p style="color:#555;text-align:center;">Cannot preview this file type. Please download it.</p>`;
         }
 
+        const { iconEl, iconLabel } = fileIconEl(data.filetype);
+
         viewerSection.innerHTML = `
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                <button class="btn-dhas secondary"
-                        style="width:auto;padding:8px 18px;"
-                        onclick="goBackToList()">← Back to Reports</button>
-                <div style="flex:1;font-size:0.95rem;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    ${fileIcon(data.filetype)} ${data.filename}
+                <button class="viewer-back-btn" onclick="goBackToList()">
+                  <i class="ti ti-arrow-left" style="font-size:16px" aria-hidden="true"></i> Back
+                </button>
+                <div style="flex:1;font-size:0.95rem;font-weight:700;color:var(--text,#0f172a);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:7px;">
+                  <i class="ti ${iconEl}" style="font-size:18px;color:var(--blue,#2a6cf6);flex-shrink:0" aria-hidden="true"></i>
+                  ${data.filename}
                 </div>
                 <a href="${data.dataurl}"
                    download="${data.filename}"
-                   class="btn-dhas primary"
-                   style="width:auto;padding:8px 18px;font-size:0.85rem;text-decoration:none;">
-                    ⬇ Download
+                   class="download-btn">
+                    <i class="ti ti-download" style="font-size:16px" aria-hidden="true"></i>
+                    Download
                 </a>
             </div>
             ${contentHTML}`;
@@ -104,26 +104,24 @@ async function showReportViewer(id) {
         viewerSection.innerHTML = `
             <div style="text-align:center;padding:40px;">
                 <p style="color:red;">Cannot connect to server.</p>
-                <button class="btn-dhas secondary" onclick="goBackToList()">← Back to Reports</button>
+                <button class="viewer-back-btn" onclick="goBackToList()">
+                  <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                </button>
             </div>`;
     }
 }
 
-// ── Navigate to viewer (same tab, hash routing) ─────────────────
 function viewReport(id) {
-    // Save scroll position so we restore it when going back
     sessionStorage.setItem("dhas_report_scroll", window.scrollY);
     window.location.hash = `view:${id}`;
     showReportViewer(id);
 }
 
-// ── Navigate back to list ────────────────────────────────────────
 function goBackToList() {
     window.location.hash = "";
     showReportList();
 }
 
-// Handle browser back/forward buttons
 window.addEventListener("hashchange", () => {
     if (window.location.hash.startsWith("#view:")) {
         const id = window.location.hash.replace("#view:", "");
@@ -143,14 +141,12 @@ function uploadReport() {
 
     if (!file) { alert("Please select a file to upload."); return; }
 
-    // Validate type
     const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.type)) {
         alert("Only PDF, JPG, and PNG files are supported.");
         return;
     }
 
-    // Size guard – 4 MB max
     if (file.size > 4 * 1024 * 1024) {
         alert("File is too large. Please upload files smaller than 4 MB.");
         return;
@@ -159,7 +155,6 @@ function uploadReport() {
     const uploadBtn = document.getElementById("uploadBtn");
     if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.textContent = "Uploading…"; }
 
-    // Read file as base64 Data URL
     const reader = new FileReader();
     reader.onload = async function (e) {
         const dataUrl = e.target.result;
@@ -218,28 +213,40 @@ async function displayReports() {
         if (!data.success || data.data.length === 0) {
             list.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">📋</div>
+                    <i class="ti ti-notes big" aria-hidden="true"></i>
                     <p>No reports uploaded yet.<br>Upload your first medical report above.</p>
                 </div>`;
             return;
         }
 
-        list.innerHTML = data.data.map(r => `
+        list.innerHTML = data.data.map(r => {
+            const { iconEl } = fileIconEl(r.filetype);
+            const dateStr = new Date(r.uploaded_at).toLocaleDateString("en-IN");
+            return `
             <div class="report-item">
                 <div style="flex:1;min-width:0;">
-                    <div class="report-name">${fileIcon(r.filetype)} ${r.filename}</div>
-                    <div class="report-date">📅 ${new Date(r.uploaded_at).toLocaleDateString("en-IN")} &nbsp;|&nbsp; ${r.filesize}</div>
+                    <div class="report-name">
+                      <i class="ti ${iconEl}" aria-hidden="true"></i>
+                      ${r.filename}
+                    </div>
+                    <div class="report-date">
+                      <i class="ti ti-calendar" aria-hidden="true"></i>
+                      ${dateStr} &nbsp;|&nbsp; ${r.filesize}
+                    </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-                    <button class="btn-dhas primary"
-                            style="width:auto;padding:6px 14px;font-size:0.8rem;"
+                    <button class="view-btn"
                             onclick="viewReport(${r.id})" title="View">
+                        <i class="ti ti-eye" aria-hidden="true"></i>
                         View
                     </button>
-                    <button class="reminder-delete" onclick="deleteReport(${r.id})" title="Delete">Delete</button>
+                    <button class="reminder-delete" onclick="deleteReport(${r.id})" title="Delete">
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                      Delete
+                    </button>
                 </div>
             </div>
-        `).join("");
+        `}).join("");
 
     } catch (err) {
         console.error("Fetch reports error:", err);
@@ -274,9 +281,12 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function fileIcon(type) {
-    if (!type) return "📁";
-    if (type === "application/pdf") return "📄";
-    if (type.startsWith("image/"))  return "🖼️";
-    return "📁";
+/**
+ * Returns { iconEl, iconLabel } — Tabler icon class names based on MIME type
+ */
+function fileIconEl(type) {
+    if (!type)                          return { iconEl: "ti-file",       iconLabel: "File" };
+    if (type === "application/pdf")     return { iconEl: "ti-file-type-pdf", iconLabel: "PDF" };
+    if (type.startsWith("image/"))      return { iconEl: "ti-photo",      iconLabel: "Image" };
+    return { iconEl: "ti-file", iconLabel: "File" };
 }

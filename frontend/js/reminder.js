@@ -1,23 +1,10 @@
 // ============================================
-// DHAS - reminder.js  (v3 — DB-backed)
-//
-// KEY CHANGE from v2:
-//   • localStorage removed entirely
-//   • All reads/writes go through /api/reminders
-//   • In-memory `remindersCache` keeps the
-//     alarm ticker fast (no async in hot loop)
+// DHAS - reminder.js  (v3 — DB-backed, icons)
 // ============================================
 
-// ── API base & logged-in user ───────────────────────────────────
 const API = "http://localhost:3006/reminders";
 
-/**
- * getUserId()
- * Tries every common key/pattern your login flow might use.
- * Called fresh each time so it always reflects current session.
- */
 function getUserId() {
-    // Common flat key names
     const flatKeys = [
         "user_id", "userId", "uid",
         "dhas_user_id", "dhas_userId",
@@ -25,18 +12,13 @@ function getUserId() {
     ];
 
     for (const store of [localStorage, sessionStorage]) {
-        // 1. Try flat string keys first  e.g.  localStorage.setItem("user_id", "5")
         for (const key of flatKeys) {
             const val = store.getItem(key);
             if (val && val !== "null" && val !== "undefined") {
-                // Make sure it's not a JSON object string
                 if (!val.startsWith("{") && !val.startsWith("[")) return val;
             }
         }
 
-        // 2. Try keys that store a JSON user object
-        //    e.g.  localStorage.setItem("user", JSON.stringify({id:5, name:"..."}))
-        //    e.g.  localStorage.setItem("dhas_user", JSON.stringify({user_id:5}))
         const jsonKeys = ["user", "dhas_user", "currentUser", "loggedInUser", "profile"];
         for (const key of jsonKeys) {
             const raw = store.getItem(key);
@@ -51,10 +33,8 @@ function getUserId() {
     return null;
 }
 
-// ── In-memory cache (loaded from server on page open) ──────────
 let remindersCache = [];
 
-// The alarm ticker calls this synchronously every 30 s
 function getReminders() {
     return remindersCache;
 }
@@ -70,11 +50,11 @@ function getAudioCtx() {
 }
 
 const SOUNDS = {
-    bell:   { label:"🔔 Bell",   play(ctx){ playTone(ctx,[{freq:880,dur:0.3,delay:0,gain:0.6},{freq:660,dur:0.3,delay:0.35,gain:0.5},{freq:880,dur:0.5,delay:0.7,gain:0.7}],"sine"); } },
-    chime:  { label:"🎵 Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playTone(ctx,[{freq:f,dur:0.25,delay:i*0.18,gain:0.45}],"sine")); } },
-    beep:   { label:"📳 Beep",   play(ctx){ [0,0.35,0.7].forEach(d=>playTone(ctx,[{freq:1000,dur:0.2,delay:d,gain:0.5}],"square")); } },
-    gentle: { label:"🌊 Gentle", play(ctx){ playTone(ctx,[{freq:440,dur:0.8,delay:0,gain:0.3},{freq:550,dur:0.8,delay:0.5,gain:0.25},{freq:440,dur:0.8,delay:1.0,gain:0.2}],"sine"); } },
-    alarm:  { label:"🚨 Alarm",  play(ctx){ for(let i=0;i<6;i++) playTone(ctx,[{freq:i%2===0?880:660,dur:0.18,delay:i*0.2,gain:0.6}],"sawtooth"); } }
+    bell:   { label:"Bell",   play(ctx){ playTone(ctx,[{freq:880,dur:0.3,delay:0,gain:0.6},{freq:660,dur:0.3,delay:0.35,gain:0.5},{freq:880,dur:0.5,delay:0.7,gain:0.7}],"sine"); } },
+    chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playTone(ctx,[{freq:f,dur:0.25,delay:i*0.18,gain:0.45}],"sine")); } },
+    beep:   { label:"Beep",   play(ctx){ [0,0.35,0.7].forEach(d=>playTone(ctx,[{freq:1000,dur:0.2,delay:d,gain:0.5}],"square")); } },
+    gentle: { label:"Gentle", play(ctx){ playTone(ctx,[{freq:440,dur:0.8,delay:0,gain:0.3},{freq:550,dur:0.8,delay:0.5,gain:0.25},{freq:440,dur:0.8,delay:1.0,gain:0.2}],"sine"); } },
+    alarm:  { label:"Alarm",  play(ctx){ for(let i=0;i<6;i++) playTone(ctx,[{freq:i%2===0?880:660,dur:0.18,delay:i*0.2,gain:0.6}],"sawtooth"); } }
 };
 
 function playTone(ctx, notes, type) {
@@ -111,7 +91,6 @@ async function registerSW() {
     } catch (err) { console.warn("SW failed:", err); }
 }
 
-// ── Notification permission ─────────────────────────────────────
 async function requestNotifPermission() {
     if (!("Notification" in window)) return false;
     if (Notification.permission === "granted") return true;
@@ -161,7 +140,7 @@ function triggerAlarm(reminder, timeSlot) {
     showAlarmToast(reminder, timeSlot);
     if (Notification.permission === "granted") {
         navigator.serviceWorker.ready.then(reg =>
-            reg.showNotification(`💊 ${reminder.medicine}`, {
+            reg.showNotification(`${reminder.medicine}`, {
                 body: `${timeSlot.label}: ${timeSlot.display}\n${reminder.scheduleLabel}`,
                 icon: "/favicon.ico", badge: "/favicon.ico",
                 vibrate: [300, 100, 300], requireInteraction: true,
@@ -183,14 +162,24 @@ function showAlarmToast(reminder, timeSlot) {
                     z-index:99999;max-width:340px;width:90%;
                     animation:toastIn 0.4s ease;font-family:'Sora',sans-serif;">
           <style>@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
-          <div style="font-size:1.5rem;margin-bottom:4px;">⏰ Medicine Time!</div>
-          <div style="font-size:1.1rem;font-weight:700;">💊 ${reminder.medicine}</div>
+          <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-alarm" style="font-size:20px" aria-hidden="true"></i>
+            Medicine Time!
+          </div>
+          <div style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:7px;">
+            <i class="ti ti-pill" style="font-size:16px" aria-hidden="true"></i>
+            ${reminder.medicine}
+          </div>
           <div style="font-size:0.85rem;opacity:0.9;margin-top:4px;">${timeSlot.label}: ${timeSlot.display}</div>
           <div style="display:flex;gap:8px;margin-top:14px;">
             <button onclick="document.getElementById('dhasAlarmToast').remove();playSound('${reminder.sound||'bell'}')"
-                    style="background:rgba(255,255,255,0.25);border:none;color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;">🔊 Replay</button>
+                    style="background:rgba(255,255,255,0.25);border:none;color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <i class="ti ti-volume" style="font-size:14px" aria-hidden="true"></i> Replay
+            </button>
             <button onclick="document.getElementById('dhasAlarmToast').remove()"
-                    style="background:#fff;border:none;color:#1a56db;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;">✓ Dismiss</button>
+                    style="background:#fff;border:none;color:#1a56db;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i> Dismiss
+            </button>
           </div>
         </div>`;
     document.body.appendChild(toast);
@@ -201,14 +190,12 @@ function showAlarmToast(reminder, timeSlot) {
 function shouldFireToday(r, dow, dom) {
     const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
 
-    // Don't fire before the reminder's start date
     if (r.startDate) {
         const start = new Date(r.startDate + "T00:00:00");
         if (todayMidnight < start) return false;
     }
 
     if (r.duration && r.duration !== "forever") {
-        // Count days from startDate (not createdAt) so duration is accurate
         const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
         base.setHours(0,0,0,0);
         if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
@@ -262,7 +249,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#dcfce7", color:"#166534", borderColor:"#86efac" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="font-size:1.3rem;">🔔</div>
+              <i class="ti ti-bell-ringing" style="font-size:20px;margin-top:2px" aria-hidden="true"></i>
               <div>
                 <div style="font-weight:700;font-size:0.92rem;">Notifications Enabled</div>
                 <div style="margin-top:4px;font-weight:500;">DHAS can now send medicine reminders and alarm alerts even when the app is minimized.</div>
@@ -272,7 +259,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#fff7ed", color:"#9a3412", borderColor:"#fdba74" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:12px;">
-              <div style="font-size:1.4rem;">⚠️</div>
+              <i class="ti ti-bell-off" style="font-size:22px;margin-top:2px" aria-hidden="true"></i>
               <div style="flex:1;">
                 <div style="font-size:0.95rem;font-weight:700;margin-bottom:6px;">Enable Browser Notifications</div>
                 <div style="font-weight:500;line-height:1.6;">
@@ -280,7 +267,7 @@ function updateNotifBanner(granted) {
                   Works on: <strong>Chrome</strong>, <strong>Brave</strong>, <strong>Edge</strong>.<br><br>
                   <strong>How to enable:</strong>
                   <ol style="margin-top:6px;padding-left:18px;">
-                    <li>Click the 🔒 icon near the address bar</li>
+                    <li>Click the lock icon near the address bar</li>
                     <li>Open <strong>Site Settings</strong></li>
                     <li>Allow <strong>Notifications</strong></li>
                     <li>Refresh DHAS</li>
@@ -289,8 +276,8 @@ function updateNotifBanner(granted) {
                 <button onclick="enableDHASNotifications()"
                         style="margin-top:10px;background:linear-gradient(135deg,#ea580c,#f97316);
                                color:white;border:none;border-radius:8px;padding:8px 16px;
-                               font-size:0.85rem;font-weight:700;cursor:pointer;">
-                  🔔 Enable Notifications
+                               font-size:0.85rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                  <i class="ti ti-bell" style="font-size:14px" aria-hidden="true"></i> Enable Notifications
                 </button>
               </div>
             </div>`;
@@ -385,7 +372,7 @@ function buildScheduleLabel(sched, days, monthDay) {
         case "monthly":    return `${monthDay}${ordinal(monthDay)} of every month`;
         case "weekly":     return days.length ? "Every " + ALL_DAYS_FULL[days[0]] : "Once a week";
         case "twice_week": return days.length===2 ? ALL_DAYS_FULL[days[0]]+" & "+ALL_DAYS_FULL[days[1]] : "Twice a week";
-        case "three_week": return days.length===3 ? days.map(d=>ALL_DAYS[d]).join(", ") : "3× a week";
+        case "three_week": return days.length===3 ? days.map(d=>ALL_DAYS[d]).join(", ") : "3x a week";
         case "custom":     return days.length ? days.map(d=>ALL_DAYS_FULL[d]).join(", ") : "Custom days";
         default:           return sched;
     }
@@ -410,29 +397,33 @@ function updateReminderPreview() {
 
     preview.style.display = "block";
     document.getElementById("previewContent").innerHTML = [
-        previewRow("💊 Medicine",   medicine),
-        previewRow("📅 Schedule",   schedEl.options[schedEl.selectedIndex].text),
-        selDays ? previewRow("🗓 Days", selDays) : "",
-        previewRow("⏰ Time",       times),
-        previewRow("🔁 Frequency",  doseEl.options[doseEl.selectedIndex].text),
-        previewRow("📆 Start Date", startDate),
-        previewRow("⌛ Duration",   durationEl.options[durationEl.selectedIndex].text),
-        previewRow("🔔 Alarm",      soundEl.options[soundEl.selectedIndex].text),
+        previewRow("Medicine",   medicine,  "ti-pill"),
+        previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "ti-calendar"),
+        selDays ? previewRow("Days", selDays, "ti-calendar-week") : "",
+        previewRow("Time",       times, "ti-clock"),
+        previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "ti-repeat"),
+        previewRow("Start Date", startDate, "ti-calendar-event"),
+        previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "ti-hourglass"),
+        previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "ti-bell"),
         `<div style="margin-top:10px;background:#eff6ff;border-left:4px solid #2563eb;
                      padding:14px;border-radius:12px;line-height:1.7;color:#1e3a8a;font-size:0.88rem;">
-           <strong>🤖 How this reminder will work</strong>
+           <strong>How this reminder will work</strong>
            <div style="margin-top:8px;">
              DHAS will remind you to take <strong>${medicine}</strong> at <strong>${times}</strong>.
              ${selDays ? `Triggers on: ${selDays}.` : `Schedule: ${schedEl.options[schedEl.selectedIndex].text}.`}
-             Starts <strong>${startDate}</strong> · Duration: <strong>${durationEl.options[durationEl.selectedIndex].text}</strong>.<br><br>
-             ✅ Browser notification &nbsp; ✅ Alarm sound &nbsp; ✅ In-app popup
+             Starts <strong>${startDate}</strong> &middot; Duration: <strong>${durationEl.options[durationEl.selectedIndex].text}</strong>.<br><br>
+             Browser notification &nbsp;&middot;&nbsp; Alarm sound &nbsp;&middot;&nbsp; In-app popup
            </div>
          </div>`
     ].join("");
 }
-function previewRow(label, value) {
-    return `<div style="display:flex;justify-content:space-between;background:#f8fafc;padding:12px;border-radius:12px;">
-              <span>${label}</span><strong>${value}</strong>
+
+function previewRow(label, value, icon) {
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:12px;border-radius:12px;gap:8px;">
+              <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">
+                <i class="ti ${icon}" style="font-size:15px" aria-hidden="true"></i>${label}
+              </span>
+              <strong style="font-size:0.85rem;text-align:right;">${value}</strong>
             </div>`;
 }
 
@@ -440,7 +431,7 @@ function previewRow(label, value) {
 async function loadRemindersFromServer() {
     const uid = getUserId();
     if (!uid) {
-        console.warn("DHAS: no user_id found. Run: console.log({...localStorage},{...sessionStorage}) to find your key.");
+        console.warn("DHAS: no user_id found.");
         displayReminders();
         return;
     }
@@ -456,7 +447,7 @@ async function loadRemindersFromServer() {
     displayReminders();
 }
 
-// ── Save reminder → POST to /api/reminders/add ─────────────────
+// ── Save reminder ───────────────────────────────────────────────
 window.addReminder = async function () {
     const medicineInput = document.getElementById("medicine");
     const medicine      = medicineInput.value.trim();
@@ -464,8 +455,7 @@ window.addReminder = async function () {
     if (!medicine) { medicineInput.focus(); alert("Please enter a medicine name."); return; }
     const uid = getUserId();
     if (!uid) {
-        console.error("No user_id found. localStorage:", {...localStorage}, "sessionStorage:", {...sessionStorage});
-        alert("Session error: could not read your user ID.\nOpen the browser console for a storage dump, then share the key name so getUserId() can be updated.");
+        alert("Session error: could not read your user ID.");
         return;
     }
 
@@ -478,13 +468,11 @@ window.addReminder = async function () {
     const monthDay   = parseInt(document.getElementById("monthDay").value) || 1;
     const times      = collectTimes();
 
-    // Validation
     if (sched === "weekly"     && days.length !== 1) { alert("Please select 1 day.");           return; }
     if (sched === "twice_week" && days.length !== 2) { alert("Please select exactly 2 days."); return; }
     if (sched === "three_week" && days.length !== 3) { alert("Please select exactly 3 days."); return; }
     if (sched === "custom"     && days.length === 0) { alert("Please select at least 1 day."); return; }
 
-    // If starting today, drop any times already in the past
     const todayStr = new Date().toISOString().split("T")[0];
     const effectiveTimes = (startDate === todayStr)
         ? times.filter(t => {
@@ -499,7 +487,6 @@ window.addReminder = async function () {
         return;
     }
 
-    // Payload uses the same camelCase keys the controller expects
     const payload = {
         user_id:       uid,
         medicine,
@@ -526,11 +513,9 @@ window.addReminder = async function () {
 
         if (!data.success) { alert(data.message || "Failed to save reminder."); return; }
 
-        // Re-fetch from server so the real DB id is in the cache
         await loadRemindersFromServer();
         showSaveConfirm(medicine, times[0]?.display);
 
-        // Reset form
         document.getElementById("medicine").value     = "";
         document.getElementById("scheduleType").value = "daily";
         document.getElementById("doseCount").value    = "1";
@@ -546,19 +531,21 @@ window.addReminder = async function () {
 function showSaveConfirm(medicine, firstTime) {
     const el = document.getElementById("saveConfirm");
     if (!el) return;
-    el.textContent   = `✅ Reminder saved for ${medicine}${firstTime ? " at " + firstTime : ""}`;
+    el.innerHTML = `<span style="display:flex;align-items:center;gap:6px;">
+      <i class="ti ti-circle-check" style="font-size:16px" aria-hidden="true"></i>
+      Reminder saved for ${medicine}${firstTime ? " at " + firstTime : ""}
+    </span>`;
     el.style.display = "block";
     setTimeout(() => el.style.display = "none", 3000);
 }
 
-// ── Delete reminder → DELETE /api/reminders/delete/:id ─────────
+// ── Delete reminder ─────────────────────────────────────────────
 window.deleteReminder = async function (id) {
     if (!confirm("Delete this reminder?")) return;
     try {
         const res  = await fetch(`${API}/delete/${id}`, { method: "DELETE" });
         const data = await res.json();
         if (!data.success) { alert("Could not delete reminder."); return; }
-        // Remove from local cache immediately — no need for a full re-fetch
         remindersCache = remindersCache.filter(r => r.id !== id);
         displayReminders();
     } catch (err) {
@@ -575,50 +562,71 @@ function displayReminders() {
     if (!reminders.length) {
         list.innerHTML = `
             <div class="empty-state">
-              <div class="empty-icon">💊</div>
+              <i class="ti ti-pill" aria-hidden="true"></i>
               <p>No reminders set yet.<br>Add your first medicine reminder above.</p>
             </div>`;
         return;
     }
 
     const BC = {
-        daily:{bg:"#dcfce7",color:"#166534"}, alternate:{bg:"#fef9c3",color:"#854d0e"},
-        weekly:{bg:"#ede9fe",color:"#5b21b6"}, twice_week:{bg:"#ffedd5",color:"#9a3412"},
-        three_week:{bg:"#fff0e0",color:"#92400e"}, monthly:{bg:"#fce7f3",color:"#9d174d"},
-        custom:{bg:"#f0fdf4",color:"#065f46"}
+        daily:      {bg:"#dcfce7",color:"#166534"},
+        alternate:  {bg:"#fef9c3",color:"#854d0e"},
+        weekly:     {bg:"#ede9fe",color:"#5b21b6"},
+        twice_week: {bg:"#ffedd5",color:"#9a3412"},
+        three_week: {bg:"#fff0e0",color:"#92400e"},
+        monthly:    {bg:"#fce7f3",color:"#9d174d"},
+        custom:     {bg:"#f0fdf4",color:"#065f46"}
     };
-    const soundEmoji = { bell:"🔔", chime:"🎵", beep:"📳", gentle:"🌊", alarm:"🚨" };
+
+    const soundIcon = {
+        bell:"ti-bell", chime:"ti-music", beep:"ti-device-mobile-vibration",
+        gentle:"ti-wave-sine", alarm:"ti-alarm"
+    };
 
     list.innerHTML = reminders.map(r => {
-        const durationLabel = r.duration === "forever" ? "♾ Continuous" : `⏳ ${r.duration} Day(s)`;
+        const durationLabel = r.duration === "forever" ? "Continuous" : `${r.duration} Day(s)`;
         const chips = (r.times || []).map(t =>
             `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;
-                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;">
-               🕐 ${t.label}: ${t.display || legacyFormat(t.time)}
+                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;">
+               <i class="ti ti-clock" style="font-size:12px" aria-hidden="true"></i>
+               ${t.label}: ${t.display || legacyFormat(t.time)}
              </span>`).join("");
         const bc = BC[r.sched] || { bg:"#dbeafe", color:"#1d4ed8" };
+        const sIcon = soundIcon[r.sound] || "ti-bell";
+        const soundLabel = SOUNDS[r.sound]?.label || "Bell";
+
         return `
             <div class="reminder-item">
               <div style="flex:1;min-width:0;">
-                <div class="reminder-name">💊 ${r.medicine}</div>
+                <div class="reminder-name">
+                  <i class="ti ti-pill" aria-hidden="true"></i>
+                  ${r.medicine}
+                </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                  <span style="background:${bc.bg};color:${bc.color};border-radius:4px;padding:2px 9px;font-size:0.73rem;font-weight:700;">
-                    📅 ${r.scheduleLabel || ""}
+                  <span class="sched-chip" style="background:${bc.bg};color:${bc.color};">
+                    <i class="ti ti-calendar" style="font-size:11px" aria-hidden="true"></i>
+                    ${r.scheduleLabel || ""}
                   </span>
-                  <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 9px;font-size:0.73rem;font-weight:700;">
-                    💊 ${r.dosesLabel || ""}
+                  <span class="sched-chip" style="background:#dbeafe;color:#1d4ed8;">
+                    <i class="ti ti-pill" style="font-size:11px" aria-hidden="true"></i>
+                    ${r.dosesLabel || ""}
                   </span>
-                  <span style="background:#ecfccb;color:#3f6212;border-radius:4px;padding:2px 9px;font-size:0.73rem;font-weight:700;">
+                  <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">
+                    <i class="ti ti-hourglass" style="font-size:11px" aria-hidden="true"></i>
                     ${durationLabel}
                   </span>
-                  <span style="background:#f5f3ff;color:#5b21b6;border-radius:4px;padding:2px 9px;font-size:0.73rem;font-weight:700;cursor:pointer;"
+                  <span class="sched-chip" style="background:#f5f3ff;color:#5b21b6;cursor:pointer;"
                         onclick="playSound('${r.sound||'bell'}')">
-                    ${soundEmoji[r.sound]||"🔔"} ${SOUNDS[r.sound]?.label||"🔔 Bell"}
+                    <i class="ti ${sIcon}" style="font-size:11px" aria-hidden="true"></i>
+                    ${soundLabel}
                   </span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${chips}</div>
               </div>
-              <button class="reminder-delete" onclick="deleteReminder(${r.id})" title="Delete">Delete</button>
+              <button class="reminder-delete" onclick="deleteReminder(${r.id})" title="Delete">
+                <i class="ti ti-trash" style="font-size:13px" aria-hidden="true"></i>
+                Delete
+              </button>
             </div>`;
     }).join("");
 }
@@ -638,15 +646,14 @@ window.onload = async function () {
     buildMonthDayOptions();
     renderScheduleUI();
 
-    // Disable past dates in the start-date picker
     const today = new Date().toISOString().split("T")[0];
     const startDateEl = document.getElementById("startDate");
     if (startDateEl) {
         startDateEl.min   = today;
-        startDateEl.value = today;   // default to today
+        startDateEl.value = today;
     }
 
-    await loadRemindersFromServer();   // ← populates cache from DB
+    await loadRemindersFromServer();
     startAlarmTicker();
 };
 

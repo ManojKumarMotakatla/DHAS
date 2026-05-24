@@ -8,13 +8,13 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--teal:#00c9b1}
     body{font-family:'DM Sans',sans-serif}
 
     .page-wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
 
-    /* ── Hero Header ── */
     .page-header{
       background:linear-gradient(135deg,#1a1070 0%,#2a6cf6 50%,#8b5cf6 100%);
       border-radius:20px;padding:28px 20px 24px;margin-bottom:20px;
@@ -30,47 +30,39 @@
       display:flex;align-items:center;justify-content:center;
       margin:0 auto 14px;position:relative;
     }
-    .header-icon-wrap svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.8}
+    .header-icon-wrap i{font-size:28px;color:#fff}
     .page-title{font-family:'Fraunces',serif;color:#fff;font-size:1.75rem;font-weight:700;margin-bottom:6px;position:relative}
     .page-subtitle{color:rgba(255,255,255,0.72);font-size:0.85rem;font-weight:500;position:relative}
 
-    /* ── Notification banner ── */
     #notifBanner{border-radius:10px;border:1.5px solid #86efac;padding:10px 14px;font-size:.83rem;font-weight:600;margin-bottom:16px;line-height:1.5}
 
-    /* ── Card ── */
     .dhas-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;box-shadow:0 2px 20px rgba(42,108,246,.09);border:1px solid var(--border,#e4e9f4);margin-bottom:16px;transition:background .35s,border-color .35s}
     html.dark .dhas-card{background:#111c3c;border-color:#1e2e58}
     .dhas-card h5{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--blue,#2a6cf6);display:flex;align-items:center;gap:8px}
-    .dhas-card h5 svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+    .dhas-card h5 i{font-size:18px;color:currentColor}
 
-    /* ── Save confirm ── */
     #saveConfirm{display:none;background:#dcfce7;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.85rem;font-weight:600;margin-bottom:12px}
 
-    /* ── Inputs ── */
     .dhas-label{font-size:.72rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
     .dhas-input{width:100%;padding:11px 14px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text,#0d1b3e);background:var(--bg,#f4f6fc);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px;appearance:none}
     .dhas-input:focus{border-color:var(--blue,#2a6cf6);box-shadow:0 0 0 3px rgba(42,108,246,.12)}
     html.dark .dhas-input{background:#080f28;color:#e8efff;border-color:#1e2e58}
     select.dhas-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%236b7fa3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer}
 
-    /* ── Section label ── */
     .section-label{font-size:.73rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
     .hint-text{font-size:.78rem;color:#64748b;margin-bottom:10px}
 
-    /* ── Day picker ── */
     .day-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
     .day-tile{width:42px;height:42px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;cursor:pointer;color:#475569;background:#f8fafc;transition:all .18s;user-select:none}
     .day-tile:hover{border-color:var(--blue,#2a6cf6);color:var(--blue,#2a6cf6)}
     .day-tile.active{background:var(--blue,#2a6cf6);border-color:var(--blue,#2a6cf6);color:#fff}
 
-    /* ── Sound row ── */
     .sound-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
     .sound-row select{flex:1;min-width:160px}
     .sound-preview-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:.85rem;font-weight:700;white-space:nowrap;transition:opacity .2s;display:flex;align-items:center;gap:6px}
-    .sound-preview-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
+    .sound-preview-btn i{font-size:14px}
     .sound-preview-btn:hover{opacity:.85}
 
-    /* ── Buttons ── */
     .btn-dhas{width:100%;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .2s;display:inline-block;text-align:center}
     .btn-dhas.primary{background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;box-shadow:0 4px 16px rgba(42,108,246,.3)}
     .btn-dhas.primary:hover{transform:translateY(-1px)}
@@ -78,60 +70,59 @@
     html.dark .btn-dhas.secondary{background:#111c3c;color:#e8efff;border-color:#1e2e58}
     .mt-12{margin-top:12px}
 
-    /* ── Reminder preview ── */
     #reminderPreview{display:none;background:#fff;border:1px solid #dbe4f0;border-radius:18px;padding:18px;margin-bottom:20px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
     html.dark #reminderPreview{background:#111c3c;border-color:#1e2e58}
 
-    /* ── Saved reminders ── */
     .sec-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
-    .sec-title svg{width:18px;height:18px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    .sec-title i{font-size:18px;color:var(--blue,#2a6cf6)}
     html.dark .sec-title{color:#e8efff}
 
     .reminder-item{background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;transition:border-color .2s}
     .reminder-item:hover{border-color:var(--blue,#2a6cf6)}
     html.dark .reminder-item{background:#111c3c;border-color:#1e2e58}
     .reminder-name{font-weight:600;font-size:.95rem;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:6px}
-    .reminder-name svg{width:16px;height:16px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    .reminder-name i{font-size:16px;color:var(--blue,#2a6cf6)}
     html.dark .reminder-name{color:#e8efff}
     .reminder-delete{background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;cursor:pointer;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:8px;transition:background .2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
     .reminder-delete:hover{background:#fee2e2;border-color:#f25c7d}
 
     .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted,#6b7fa3)}
-    .empty-state svg{width:48px;height:48px;stroke:var(--text-muted,#6b7fa3);fill:none;stroke-width:1.2;margin-bottom:12px;opacity:0.5}
+    .empty-state i{font-size:48px;color:var(--text-muted,#6b7fa3);opacity:0.5;display:block;margin-bottom:12px}
     .empty-state p{font-size:.9rem}
+
+    /* chip/tag styles used in displayReminders */
+    .sched-chip{display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:2px 9px;font-size:.73rem;font-weight:700}
+    .sched-chip i{font-size:12px}
   </style>
 </head>
 <body>
 
   <nav class="dhas-navbar">
     <div class="brand" style="font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;color:#fff;display:flex;align-items:center;gap:8px">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <i class="ti ti-heart" style="font-size:22px;color:#fff" aria-hidden="true"></i>
       DHAS
     </div>
     <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:6px 16px;border-radius:20px;display:flex;align-items:center;gap:6px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+      <i class="ti ti-chevron-left" style="font-size:14px" aria-hidden="true"></i>
       Dashboard
     </a>
   </nav>
 
   <div class="page-wrap">
 
-    <!-- ── Hero Header ── -->
     <div class="page-header">
       <div class="header-icon-wrap">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <i class="ti ti-clock" aria-hidden="true"></i>
       </div>
       <div class="page-title">Medicine Reminders</div>
       <div class="page-subtitle">Never miss a dose — set smart medication alerts</div>
     </div>
 
-    <!-- ── NOTIFICATION BANNER ── -->
     <div id="notifBanner">Checking notification permission…</div>
 
-    <!-- ── ADD REMINDER ── -->
     <div class="dhas-card">
       <h5>
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <i class="ti ti-plus" aria-hidden="true"></i>
         Add Reminder
       </h5>
 
@@ -197,16 +188,15 @@
           <option value="alarm">Alarm</option>
         </select>
         <button type="button" class="sound-preview-btn" onclick="previewSound()">
-          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <i class="ti ti-player-play" aria-hidden="true"></i>
           Preview
         </button>
       </div>
 
-      <!-- Reminder Preview -->
       <div id="reminderPreview">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-size:1rem;font-weight:700;color:var(--text,#0f172a);display:flex;align-items:center;gap:8px">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <i class="ti ti-circle-check" style="font-size:16px;color:#2a6cf6" aria-hidden="true"></i>
             Reminder Summary
           </div>
           <div style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700">READY TO SAVE</div>
@@ -217,16 +207,13 @@
       <button type="button" class="btn-dhas primary" onclick="addReminder()">Save Reminder</button>
     </div>
 
-    <!-- ── SAVED REMINDERS ── -->
     <div>
       <div class="sec-title">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <i class="ti ti-notes" aria-hidden="true"></i>
         Saved Reminders
       </div>
       <div id="reminderList"></div>
     </div>
-
-   
 
   </div>
 
