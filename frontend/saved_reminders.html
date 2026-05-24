@@ -6,50 +6,36 @@
   <title>Saved Reminders — DHAS</title>
   <script src="theme.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root {
-      --navy:      #0b1437;
-      --navy-mid:  #112057;
-      --blue:      #2a6cf6;
-      --blue-lt:   #4f8ef9;
-      --teal:      #00c9b1;
-      --amber:     #f4a035;
-      --rose:      #f25c7d;
-      --green:     #22d07a;
-      --purple:    #8250ff;
-      --bg:        #f4f6fc;
-      --surface:   #ffffff;
-      --border:    #e4e9f4;
-      --text:      #0d1b3e;
-      --muted:     #6b7fa3;
-      --radius:    18px;
-      --radius-sm: 10px;
-      --shadow:    0 2px 20px rgba(42,108,246,.09);
+      --navy: #0b1437; --navy-mid: #112057;
+      --blue: #2a6cf6; --blue-lt: #4f8ef9;
+      --teal: #00c9b1; --amber: #f4a035;
+      --rose: #f25c7d; --green: #22d07a; --purple: #8250ff;
+      --bg: #f4f6fc; --surface: #ffffff; --border: #e4e9f4;
+      --text: #0d1b3e; --muted: #6b7fa3;
+      --radius: 18px; --radius-sm: 10px;
+      --shadow: 0 2px 20px rgba(42,108,246,.09);
       --shadow-md: 0 6px 32px rgba(42,108,246,.14);
     }
     body.dark {
-      --bg:      #080f28;
-      --surface: #111c3c;
-      --border:  #1e2e58;
-      --text:    #e8efff;
-      --muted:   #7d93c3;
-      --shadow:  0 2px 20px rgba(0,0,0,.4);
+      --bg: #080f28; --surface: #111c3c; --border: #1e2e58;
+      --text: #e8efff; --muted: #7d93c3;
+      --shadow: 0 2px 20px rgba(0,0,0,.4);
       --shadow-md: 0 6px 32px rgba(0,0,0,.5);
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      transition: background .35s, color .35s;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; transition: background .35s, color .35s;
       padding-bottom: 60px;
     }
     a { text-decoration: none; color: inherit; }
     svg { display: block; }
 
-    /* ── TOPBAR ── */
+    /* TOPBAR */
     .topbar {
       position: sticky; top: 0; z-index: 100;
       height: 60px; display: flex; align-items: center;
@@ -68,7 +54,7 @@
       transition: all .18s; cursor: pointer;
     }
     .back-btn:hover { color: var(--blue); border-color: var(--blue); }
-    .back-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5; }
+    .back-btn i { font-size: 15px; }
     .topbar-title {
       font-family: 'Fraunces', serif; font-weight: 600;
       font-size: 1rem; color: var(--text); flex: 1; text-align: center;
@@ -82,12 +68,41 @@
       box-shadow: 0 3px 12px rgba(42,108,246,.3);
     }
     .add-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(42,108,246,.4); }
-    .add-btn svg { width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5; }
+    .add-btn i { font-size: 14px; }
 
-    /* ── PAGE BODY ── */
+    /* PAGE */
     .page { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
 
-    /* ── HEADER CARD ── */
+    /* IN-PAGE MESSAGE */
+    .reminder-page-msg {
+      display: none;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border: 1.5px solid transparent;
+      animation: msgSlide 0.3s ease;
+      line-height: 1.5;
+    }
+    @keyframes msgSlide {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .reminder-page-msg.success {
+      background: #d1fae5; border-color: #86efac; color: #166534;
+    }
+    .reminder-page-msg.error {
+      background: #fee2e2; border-color: #fca5a5; color: #991b1b;
+    }
+    body.dark .reminder-page-msg.success {
+      background: rgba(34,208,122,.12); border-color: rgba(34,208,122,.3); color: #6ee7b7;
+    }
+    body.dark .reminder-page-msg.error {
+      background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5;
+    }
+
+    /* HEADER CARD */
     .header-card {
       background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy) 60%, #0a1f5e 100%);
       border-radius: 20px; padding: 22px 20px; margin-bottom: 20px;
@@ -105,7 +120,7 @@
       background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.2);
       display: flex; align-items: center; justify-content: center;
     }
-    .hc-icon svg { width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8; }
+    .hc-icon i { font-size: 22px; color: #fff; }
     .hc-title {
       font-family: 'Fraunces', serif; font-size: 1.35rem;
       font-weight: 700; color: #fff; margin-bottom: 2px;
@@ -125,10 +140,8 @@
       margin-top: 3px; text-transform: uppercase; letter-spacing: .5px;
     }
 
-    /* ── FILTER TABS ── */
-    .filter-tabs {
-      display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
-    }
+    /* FILTER TABS */
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
     .tab-btn {
       padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
       border: 1.5px solid var(--border); background: var(--surface);
@@ -137,7 +150,7 @@
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
     .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
 
-    /* ── REMINDER CARD ── */
+    /* REMINDER CARD */
     .rem-item {
       background: var(--surface); border: 1.5px solid var(--border);
       border-radius: var(--radius); padding: 0;
@@ -150,21 +163,13 @@
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
-    /* colored left accent bar */
-    .rem-item-inner {
-      display: flex; gap: 0; align-items: stretch;
-    }
-    .rem-accent {
-      width: 4px; flex-shrink: 0; border-radius: 0;
-      background: var(--blue);
-    }
-    .rem-accent.warn  { background: var(--amber); }
-    .rem-accent.ok    { background: var(--green); }
-    .rem-accent.purple{ background: var(--purple); }
+    .rem-item-inner { display: flex; align-items: stretch; }
+    .rem-accent { width: 4px; flex-shrink: 0; background: var(--blue); }
+    .rem-accent.warn   { background: var(--amber); }
+    .rem-accent.ok     { background: var(--green); }
+    .rem-accent.purple { background: var(--purple); }
 
     .rem-body { flex: 1; padding: 14px 14px 14px 16px; }
-
     .rem-top {
       display: flex; align-items: flex-start;
       justify-content: space-between; gap: 10px; margin-bottom: 10px;
@@ -175,10 +180,8 @@
       background: rgba(42,108,246,.1);
       display: flex; align-items: center; justify-content: center;
     }
-    .rem-pill-icon svg { width:15px;height:15px;stroke:var(--blue);fill:none;stroke-width:2; }
-    .rem-name {
-      font-weight: 700; font-size: .95rem; color: var(--text);
-    }
+    .rem-pill-icon i { font-size: 16px; color: var(--blue); }
+    .rem-name { font-weight: 700; font-size: .95rem; color: var(--text); }
     .rem-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .rem-action-btn {
       display: flex; align-items: center; gap: 4px;
@@ -186,26 +189,27 @@
       cursor: pointer; border: 1.5px solid; transition: all .18s;
       font-family: 'DM Sans', sans-serif;
     }
-    .rem-action-btn svg { width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5; }
+    .rem-action-btn i { font-size: 13px; }
     .btn-edit {
-      background: rgba(42,108,246,.08); border-color: rgba(42,108,246,.25);
-      color: var(--blue);
+      background: rgba(42,108,246,.08); border-color: rgba(42,108,246,.25); color: var(--blue);
     }
     .btn-edit:hover { background: rgba(42,108,246,.16); border-color: var(--blue); }
     .btn-delete {
-      background: rgba(242,92,125,.07); border-color: rgba(242,92,125,.25);
-      color: var(--rose);
+      background: rgba(242,92,125,.07); border-color: rgba(242,92,125,.25); color: var(--rose);
     }
     .btn-delete:hover { background: rgba(242,92,125,.15); border-color: var(--rose); }
+    .btn-delete.confirm-state {
+      background: var(--rose); color: #fff; border-color: var(--rose);
+    }
 
-    /* chips row */
+    /* chips */
     .rem-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
     .chip {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 9px; border-radius: 20px;
       font-size: .7rem; font-weight: 700;
     }
-    .chip svg { width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2; }
+    .chip i { font-size: 11px; }
     .chip-blue   { background: #eff6ff; color: var(--blue); }
     .chip-amber  { background: #fff8ec; color: var(--amber); }
     .chip-green  { background: #edfdf4; color: var(--green); }
@@ -215,7 +219,7 @@
     body.dark .chip-green  { background: rgba(34,208,122,.15);  color: #4ade80; }
     body.dark .chip-purple { background: rgba(130,80,255,.15);  color: #c4b5fd; }
 
-    /* time slots */
+    /* time badges */
     .rem-times { display: flex; flex-wrap: wrap; gap: 5px; }
     .time-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -223,9 +227,102 @@
       border-radius: 7px; padding: 4px 10px;
       font-size: .75rem; font-weight: 600; color: var(--text);
     }
-    .time-badge svg { width:11px;height:11px;stroke:var(--muted);fill:none;stroke-width:2; }
+    .time-badge i { font-size: 12px; color: var(--muted); }
 
-    /* ── EMPTY STATE ── */
+    /* INLINE EDIT PANEL */
+    .edit-panel {
+      background: var(--surface);
+      border: 2px solid var(--blue);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 0 0 10px 0;
+      animation: editSlide .25s ease;
+    }
+    body.dark .edit-panel { background: #111c3c; }
+    @keyframes editSlide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .edit-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .edit-panel-title {
+      font-size: .92rem; font-weight: 700;
+      color: var(--blue); display: flex; align-items: center; gap: 7px;
+    }
+    .edit-panel-title i { font-size: 16px; }
+    .edit-close-btn {
+      background: var(--bg); border: 1px solid var(--border);
+      width: 30px; height: 30px; border-radius: 8px;
+      cursor: pointer; font-size: 1rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .edit-close-btn:hover { border-color: var(--rose); color: var(--rose); }
+    .edit-close-btn i { font-size: 14px; }
+
+    .dhas-label {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      display: block; margin-bottom: 6px;
+    }
+    .dhas-input {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: .92rem;
+      color: var(--text); background: var(--bg);
+      outline: none; transition: border-color .2s, box-shadow .2s;
+      margin-bottom: 14px; appearance: none;
+    }
+    .dhas-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(42,108,246,.12); }
+    body.dark .dhas-input { background: #080f28; color: #e8efff; border-color: #1e2e58; }
+    select.dhas-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%236b7fa3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 38px; cursor: pointer;
+    }
+
+    .day-tile {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700; cursor: pointer;
+      color: var(--muted); background: var(--bg);
+      transition: all .18s; user-select: none;
+    }
+    .day-tile:hover { border-color: var(--blue); color: var(--blue); }
+    .day-tile.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    .edit-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-cancel {
+      flex: 1; padding: 11px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--text);
+      font-weight: 600; font-size: .9rem; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-cancel:hover { border-color: var(--rose); color: var(--rose); }
+    .btn-save-edit {
+      flex: 2; padding: 11px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+      color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 14px rgba(42,108,246,.3);
+    }
+    .btn-save-edit:hover { opacity: .9; }
+    .btn-save-edit i { font-size: 15px; }
+    .sound-preview-inline {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; border: none; border-radius: 8px;
+      padding: 9px 14px; cursor: pointer;
+      font-size: .82rem; font-weight: 700;
+      white-space: nowrap; display: flex; align-items: center; gap: 5px;
+    }
+    .sound-preview-inline i { font-size: 13px; }
+
+    /* EMPTY STATE */
     .empty-wrap {
       text-align: center; padding: 50px 20px;
       background: var(--surface); border: 1.5px dashed var(--border);
@@ -236,7 +333,7 @@
       background: #eff6ff; display: flex; align-items: center; justify-content: center;
     }
     body.dark .empty-icon-wrap { background: rgba(42,108,246,.12); }
-    .empty-icon-wrap svg { width:28px;height:28px;stroke:var(--blue);fill:none;stroke-width:1.6; }
+    .empty-icon-wrap i { font-size: 28px; color: var(--blue); }
     .empty-title {
       font-family: 'Fraunces', serif; font-size: 1.1rem;
       font-weight: 700; color: var(--text); margin-bottom: 6px;
@@ -252,71 +349,42 @@
       font-family: 'DM Sans', sans-serif;
     }
     .empty-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
-    .empty-cta svg { width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2; }
+    .empty-cta i { font-size: 16px; }
 
-    /* ── LOADING ── */
-    .loading-wrap {
-      text-align: center; padding: 48px 20px; color: var(--muted);
-    }
+    /* LOADING */
+    .loading-wrap { text-align: center; padding: 48px 20px; color: var(--muted); }
     .spinner {
       width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 14px;
-      border: 3px solid var(--border);
-      border-top-color: var(--blue);
+      border: 3px solid var(--border); border-top-color: var(--blue);
       animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── ADD NEW BUTTON (sticky bottom) ── */
-    .sticky-add {
-      position: fixed; bottom: 20px; right: 20px; z-index: 50;
-      display: flex; align-items: center; gap: 8px;
-      padding: 13px 20px; border-radius: 99px;
-      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
-      color: #fff; font-weight: 700; font-size: .88rem;
-      box-shadow: 0 4px 20px rgba(42,108,246,.4);
-      border: none; cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      transition: all .2s;
-    }
-    .sticky-add:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(42,108,246,.5); }
-    .sticky-add svg { width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5; }
-
-    /* ── TOAST ── */
-    .toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: #166534; color: #fff; border-radius: 10px;
-      padding: 10px 18px; font-size: .84rem; font-weight: 600;
-      box-shadow: 0 4px 20px rgba(0,0,0,.2); z-index: 9999;
-      animation: toastIn .3s ease;
-    }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
   </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <header class="topbar">
   <a href="dashboard.html" class="back-btn">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    <i class="ti ti-chevron-left" aria-hidden="true"></i>
     Dashboard
   </a>
   <div class="topbar-title">Saved Reminders</div>
   <a href="reminder.html" class="add-btn">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    <i class="ti ti-plus" aria-hidden="true"></i>
     Add New
   </a>
 </header>
 
 <main class="page">
 
+  <!-- In-page message -->
+  <div id="reminderPageMsg" class="reminder-page-msg" role="alert"></div>
+
   <!-- HEADER CARD -->
   <div class="header-card">
     <div class="hc-top">
       <div class="hc-icon">
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <i class="ti ti-clock" aria-hidden="true"></i>
       </div>
       <div>
         <div class="hc-title">My Reminders</div>
@@ -349,63 +417,403 @@
 
 </main>
 
-
-
 <script>
+/* ══════════════════════════════════════════════════════════════
+   saved_reminders.html — inline edit, in-page messages, no popups
+═══════════════════════════════════════════════════════════════ */
 const BASE = "http://localhost:3006";
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
 if (!user || !user.id) window.location.href = "login.html";
-
 if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");
 
 let allReminders  = [];
 let currentFilter = "all";
 
-/* ── Schedule helpers ── */
+// ── In-page message ───────────────────────────────────────────
+let _msgTimer = null;
+function showMsg(text, type = "success", duration = 5000) {
+  const el = document.getElementById("reminderPageMsg");
+  if (!el) return;
+  el.textContent = text;
+  el.className   = "reminder-page-msg " + type;
+  el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (_msgTimer) clearTimeout(_msgTimer);
+  _msgTimer = setTimeout(() => { el.style.display = "none"; }, duration);
+}
+
+// ── Audio ─────────────────────────────────────────────────────
+let _audioCtx = null;
+function getACtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+const SOUNDS = {
+  bell:   { label:"Bell",   play(ctx){ playT(ctx,[{freq:880,dur:.3,delay:0,gain:.6},{freq:660,dur:.3,delay:.35,gain:.5},{freq:880,dur:.5,delay:.7,gain:.7}],"sine"); } },
+  chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playT(ctx,[{freq:f,dur:.25,delay:i*.18,gain:.45}],"sine")); } },
+  beep:   { label:"Beep",   play(ctx){ [0,.35,.7].forEach(d=>playT(ctx,[{freq:1000,dur:.2,delay:d,gain:.5}],"square")); } },
+  gentle: { label:"Gentle", play(ctx){ playT(ctx,[{freq:440,dur:.8,delay:0,gain:.3},{freq:550,dur:.8,delay:.5,gain:.25},{freq:440,dur:.8,delay:1,gain:.2}],"sine"); } },
+  alarm:  { label:"Alarm",  play(ctx){ for(let i=0;i<6;i++) playT(ctx,[{freq:i%2===0?880:660,dur:.18,delay:i*.2,gain:.6}],"sawtooth"); } }
+};
+function playT(ctx, notes, type) {
+  notes.forEach(({freq,dur,delay,gain}) => {
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,ctx.currentTime+delay);
+    g.gain.setValueAtTime(0,ctx.currentTime+delay);
+    g.gain.linearRampToValueAtTime(gain,ctx.currentTime+delay+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime+delay); o.stop(ctx.currentTime+delay+dur+.05);
+  });
+}
+function playSound(key) {
+  try { (SOUNDS[key]||SOUNDS.bell).play(getACtx()); } catch(e) {}
+}
+
+// ── Inline edit helpers ───────────────────────────────────────
+const DOSE_DEFAULTS = {
+  "1":[{label:"Daily",h:"8",m:"00",ampm:"AM"}],
+  "2":[{label:"Morning",h:"8",m:"00",ampm:"AM"},{label:"Evening",h:"8",m:"00",ampm:"PM"}],
+  "3":[{label:"Morning",h:"8",m:"00",ampm:"AM"},{label:"Afternoon",h:"2",m:"00",ampm:"PM"},{label:"Night",h:"9",m:"00",ampm:"PM"}]
+};
+const MAX_DAYS      = { weekly:1, twice_week:2, three_week:3, custom:null };
+const ALL_DAYS      = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const ALL_DAYS_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function ordinal(n){ return n===1?"st":n===2?"nd":n===3?"rd":"th"; }
+function doseLabel(n){ return {"1":"Once daily","2":"Twice daily","3":"Three times daily"}[n]||""; }
+function hourOpts(sel) {
+  return Array.from({length:12},(_,i)=>{const s=String(i+1);return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
+}
+function minOpts(sel) {
+  return Array.from({length:12},(_,i)=>{const s=String(i*5).padStart(2,"0");return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
+}
+function buildSchedLabel(sched, days, monthDay) {
+  switch(sched) {
+    case "daily":      return "Every day";
+    case "alternate":  return "Alternate days";
+    case "monthly":    return `${monthDay}${ordinal(monthDay)} of every month`;
+    case "weekly":     return days.length ? "Every "+ALL_DAYS_FULL[days[0]] : "Once a week";
+    case "twice_week": return days.length===2 ? ALL_DAYS_FULL[days[0]]+" & "+ALL_DAYS_FULL[days[1]] : "Twice a week";
+    case "three_week": return days.length===3 ? days.map(d=>ALL_DAYS[d]).join(", ") : "3x a week";
+    case "custom":     return days.length ? days.map(d=>ALL_DAYS_FULL[d]).join(", ") : "Custom days";
+    default:           return sched;
+  }
+}
+function buildTimeSlots(existingTimes, doseCount) {
+  const slots = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+  return slots.map((slot, i) => {
+    const ex = existingTimes[i] || slot;
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <label style="min-width:88px;font-size:.83rem;font-weight:600;color:var(--muted);flex-shrink:0;">${slot.label}</label>
+        <select id="et_h_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOpts(ex.h||slot.h)}</select>
+        <span style="font-weight:700;color:var(--muted);">:</span>
+        <select id="et_m_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minOpts(ex.m||slot.m)}</select>
+        <select id="et_ap_${i}" class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;font-weight:700;color:var(--blue);margin-bottom:0;">
+          <option value="AM" ${(ex.ampm||slot.ampm)==="AM"?"selected":""}>AM</option>
+          <option value="PM" ${(ex.ampm||slot.ampm)==="PM"?"selected":""}>PM</option>
+        </select>
+      </div>`;
+  }).join("");
+}
+
+// currently open edit ID
+let _openEditId = null;
+
+function openInlineEdit(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+
+  // Toggle
+  if (_openEditId === id) { closeInlineEdit(); return; }
+  closeInlineEdit();
+  _openEditId = id;
+
+  const sched      = r.sched || "daily";
+  const doseCount  = String(r.doseCount || r.dose_count || 1);
+  const duration   = r.duration || "forever";
+  const sound      = r.sound || "bell";
+  const days       = r.days || [];
+  const monthDay   = r.monthDay || r.month_day || 1;
+  const times      = r.times || [];
+
+  const schedOpts = [
+    ["daily","Every Day"],["alternate","Alternate Days"],
+    ["weekly","Once a Week"],["twice_week","Twice a Week"],
+    ["three_week","3 Times a Week"],["monthly","Once a Month"],["custom","Custom Days"]
+  ].map(([val,lbl])=>`<option value="${val}" ${val===sched?"selected":""}>${lbl}</option>`).join("");
+
+  const durOpts = [
+    ["forever","Ongoing (until removed)"],["1","1 Day only"],
+    ["2","2 Days"],["3","3 Days"],["5","5 Days"],
+    ["7","1 Week"],["14","2 Weeks"],["30","1 Month"]
+  ].map(([val,lbl])=>`<option value="${val}" ${val===duration?"selected":""}>${lbl}</option>`).join("");
+
+  const soundOpts = Object.entries(SOUNDS)
+    .map(([val,obj])=>`<option value="${val}" ${val===sound?"selected":""}>${obj.label}</option>`).join("");
+
+  const doseOpts = [["1","Once a day"],["2","Twice a day"],["3","Three times a day"]]
+    .map(([val,lbl])=>`<option value="${val}" ${val===doseCount?"selected":""}>${lbl}</option>`).join("");
+
+  const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(sched);
+  const showMonthDay  = sched === "monthly";
+
+  const dayPickerHtml = ALL_DAYS.map((day, i) => {
+    const active = days.includes(i) ? "active" : "";
+    return `<div class="day-tile ${active}" id="edt_day_${i}" onclick="etToggleDay(${i},'${sched}')">${day}</div>`;
+  }).join("");
+
+  let monthDayOpts = "";
+  for (let d = 1; d <= 28; d++) {
+    monthDayOpts += `<option value="${d}" ${d===monthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "edit-panel";
+  panel.id = `editPanel_${id}`;
+  panel.innerHTML = `
+    <div class="edit-panel-header">
+      <div class="edit-panel-title">
+        <i class="ti ti-edit" aria-hidden="true"></i>
+        Edit — ${r.medicine}
+      </div>
+      <button class="edit-close-btn" onclick="closeInlineEdit()" title="Close">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <label class="dhas-label">Schedule</label>
+    <select id="et_sched" class="dhas-input" onchange="etOnSchedChange('${sched}')">${schedOpts}</select>
+
+    <div id="et_daySection" style="display:${showDayPicker?"block":"none"};margin-bottom:10px;">
+      <label class="dhas-label">Select Day(s)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;" id="et_dayPicker">${dayPickerHtml}</div>
+    </div>
+
+    <div id="et_monthSection" style="display:${showMonthDay?"block":"none"};">
+      <label class="dhas-label">Day of the Month</label>
+      <select id="et_monthDay" class="dhas-input">${monthDayOpts}</select>
+    </div>
+
+    <label class="dhas-label">Times per Day</label>
+    <select id="et_doseCount" class="dhas-input" onchange="etOnDoseChange(${id})">${doseOpts}</select>
+
+    <label class="dhas-label">Set Time(s)</label>
+    <div id="et_timeSlots">${buildTimeSlots(times, doseCount)}</div>
+
+    <label class="dhas-label">Duration</label>
+    <select id="et_duration" class="dhas-input" style="margin-bottom:14px;">${durOpts}</select>
+
+    <label class="dhas-label">Alarm Sound</label>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
+      <select id="et_sound" class="dhas-input" style="margin-bottom:0;flex:1;">${soundOpts}</select>
+      <button type="button" class="sound-preview-inline"
+              onclick="playSound(document.getElementById('et_sound').value)">
+        <i class="ti ti-player-play" aria-hidden="true"></i> Preview
+      </button>
+    </div>
+
+    <div class="edit-actions">
+      <button class="btn-cancel" onclick="closeInlineEdit()">Cancel</button>
+      <button class="btn-save-edit" onclick="saveInlineEdit(${id})">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i>
+        Save Changes
+      </button>
+    </div>`;
+
+  // Insert after the reminder card
+  const card = document.getElementById(`remCard_${id}`);
+  if (card && card.nextSibling) {
+    card.parentNode.insertBefore(panel, card.nextSibling);
+  } else if (card) {
+    card.parentNode.appendChild(panel);
+  }
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeInlineEdit() {
+  if (_openEditId !== null) {
+    const p = document.getElementById(`editPanel_${_openEditId}`);
+    if (p) p.remove();
+    _openEditId = null;
+  }
+}
+
+function etOnSchedChange() {
+  const sched = document.getElementById("et_sched").value;
+  const dp = document.getElementById("et_daySection");
+  const mp = document.getElementById("et_monthSection");
+  if (dp) dp.style.display = ["weekly","twice_week","three_week","custom"].includes(sched) ? "block" : "none";
+  if (mp) mp.style.display = sched === "monthly" ? "block" : "none";
+  document.querySelectorAll("#et_dayPicker .day-tile").forEach((tile, i) => {
+    tile.setAttribute("onclick", `etToggleDay(${i},'${sched}')`);
+  });
+}
+
+function etToggleDay(index, mode) {
+  const tile   = document.getElementById(`edt_day_${index}`);
+  const active = document.querySelectorAll("#et_dayPicker .day-tile.active");
+  const maxSel = MAX_DAYS[mode];
+  if (tile.classList.contains("active")) {
+    tile.classList.remove("active");
+  } else {
+    if (maxSel !== null && active.length >= maxSel) active[0].classList.remove("active");
+    tile.classList.add("active");
+  }
+}
+
+function etOnDoseChange(id) {
+  const r          = allReminders.find(x => x.id === id);
+  const doseCount  = document.getElementById("et_doseCount").value;
+  const currentT   = r?.times || [];
+  const slotsEl    = document.getElementById("et_timeSlots");
+  if (slotsEl) slotsEl.innerHTML = buildTimeSlots(currentT, doseCount);
+}
+
+async function saveInlineEdit(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+
+  const sched     = document.getElementById("et_sched").value;
+  const duration  = document.getElementById("et_duration").value;
+  const sound     = document.getElementById("et_sound").value;
+  const doseCount = document.getElementById("et_doseCount").value;
+  const monthDay  = parseInt(document.getElementById("et_monthDay")?.value || r.monthDay || 1);
+
+  const days = Array.from(
+    document.querySelectorAll("#et_dayPicker .day-tile.active")
+  ).map(t => parseInt(t.id.replace("edt_day_", "")));
+
+  if (sched==="weekly"     && days.length!==1) { showMsg("Please select 1 day for weekly schedule.", "error"); return; }
+  if (sched==="twice_week" && days.length!==2) { showMsg("Please select exactly 2 days.", "error"); return; }
+  if (sched==="three_week" && days.length!==3) { showMsg("Please select exactly 3 days.", "error"); return; }
+  if (sched==="custom"     && days.length===0) { showMsg("Please select at least 1 day.", "error"); return; }
+
+  const slots = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+  const newTimes = slots.map((slot, i) => ({
+    label:   slot.label,
+    display: `${document.getElementById(`et_h_${i}`).value}:${document.getElementById(`et_m_${i}`).value} ${document.getElementById(`et_ap_${i}`).value}`,
+    h:    document.getElementById(`et_h_${i}`).value,
+    m:    document.getElementById(`et_m_${i}`).value,
+    ampm: document.getElementById(`et_ap_${i}`).value
+  }));
+
+  const saveBtn = document.querySelector(`#editPanel_${id} .btn-save-edit`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Saving…'; }
+
+  try {
+    const delData = await (await fetch(`${BASE}/reminders/delete/${id}`, { method:"DELETE" })).json();
+    if (!delData.success) { showMsg("Could not update reminder. Please try again.", "error"); return; }
+
+    const payload = {
+      user_id:       user.id,
+      medicine:      r.medicine,
+      sched,
+      scheduleLabel: buildSchedLabel(sched, days, monthDay),
+      doseCount:     parseInt(doseCount),
+      dosesLabel:    doseLabel(doseCount),
+      times:         newTimes,
+      days,
+      monthDay,
+      duration,
+      sound,
+      startDate:     r.startDate || new Date().toISOString().split("T")[0],
+      altBase:       sched==="alternate" ? new Date().toISOString() : null
+    };
+
+    const addData = await (await fetch(`${BASE}/reminders/add`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    })).json();
+
+    if (!addData.success) { showMsg(addData.message || "Failed to save changes.", "error"); return; }
+
+    closeInlineEdit();
+    await loadReminders();
+    showMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
+
+  } catch(err) {
+    showMsg("Network error — could not save changes.", "error");
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────────
+const _pendingDelete = {};
+async function deleteReminder(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+
+  if (!_pendingDelete[id]) {
+    _pendingDelete[id] = true;
+    const btn = document.querySelector(`#remCard_${id} .btn-delete`);
+    if (btn) {
+      btn.classList.add("confirm-state");
+      btn.innerHTML = '<i class="ti ti-alert-triangle" style="font-size:13px"></i> Confirm';
+    }
+    showMsg(`Tap "Confirm" again to permanently delete "${r.medicine}".`, "error", 4000);
+    setTimeout(() => {
+      delete _pendingDelete[id];
+      const b = document.querySelector(`#remCard_${id} .btn-delete`);
+      if (b) {
+        b.classList.remove("confirm-state");
+        b.innerHTML = '<i class="ti ti-trash" style="font-size:13px"></i> Delete';
+      }
+    }, 4000);
+    return;
+  }
+
+  delete _pendingDelete[id];
+  try {
+    const data = await (await fetch(`${BASE}/reminders/delete/${id}`, { method:"DELETE" })).json();
+    if (!data.success) { showMsg("Could not delete reminder. Please try again.", "error"); return; }
+    allReminders = allReminders.filter(r => r.id !== id);
+    if (_openEditId === id) closeInlineEdit();
+    filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
+    updateStats(allReminders);
+    showMsg(`Reminder deleted successfully.`, "success");
+  } catch(e) {
+    showMsg("Network error — could not delete.", "error");
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────
 const SCHED_LABELS = {
-  daily:      "Every Day",
-  alternate:  "Alternate Days",
-  weekly:     "Once a Week",
-  twice_week: "Twice a Week",
-  three_week: "3x a Week",
-  monthly:    "Monthly",
-  custom:     "Custom"
+  daily:"Every Day", alternate:"Alternate Days", weekly:"Once a Week",
+  twice_week:"Twice a Week", three_week:"3x a Week", monthly:"Monthly", custom:"Custom"
 };
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function accentClass(i) {
-  const classes = ["", "warn", "ok", "purple", "", "warn", "ok"];
-  return classes[i % classes.length];
+  return ["","warn","ok","purple","","warn","ok"][i % 7];
 }
-
 function chipColor(sched) {
-  if (sched === "daily")      return "chip-green";
-  if (sched === "alternate")  return "chip-amber";
-  if (sched === "monthly")    return "chip-purple";
+  if (sched === "daily")     return "chip-green";
+  if (sched === "alternate") return "chip-amber";
+  if (sched === "monthly")   return "chip-purple";
   return "chip-blue";
 }
 
-function buildRemCard(r, i) {
+function buildCard(r, i) {
   const name    = r.medicine || "Medication";
   const sched   = r.sched || "daily";
   const schedLbl= r.scheduleLabel || SCHED_LABELS[sched] || sched;
   const doseLbl = r.dosesLabel || r.doses_label || "";
   const dur     = r.duration === "forever" ? "Ongoing" : `${r.duration} day(s)`;
-  const times   = (r.times || []);
+  const times   = r.times || [];
   const accent  = accentClass(i);
   const chipCol = chipColor(sched);
 
-  // Day chips for weekly/custom
   const dayChips = (r.days || []).length
-    ? r.days.map(d => `<span class="chip chip-blue">${DAYS_SHORT[d]}</span>`).join("")
+    ? r.days.map(d => `<span class="chip chip-blue"><i class="ti ti-calendar-week" aria-hidden="true"></i>${DAYS_SHORT[d]}</span>`).join("")
     : "";
 
-  // Time badges
   const timeBadges = times.map(t => {
     const display = t.display || `${t.h}:${t.m} ${t.ampm}`;
     return `<span class="time-badge">
-      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span>${t.label}: ${display}</span>
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      ${t.label}: ${display}
     </span>`;
   }).join("");
 
@@ -417,34 +825,27 @@ function buildRemCard(r, i) {
           <div class="rem-top">
             <div class="rem-name-row">
               <div class="rem-pill-icon">
-                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                <i class="ti ti-pill" aria-hidden="true"></i>
               </div>
               <span class="rem-name">${name}</span>
             </div>
             <div class="rem-actions">
-              <button class="rem-action-btn btn-edit" onclick="editReminder(${r.id})" title="Edit in full reminder page">
-                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                Edit
+              <button class="rem-action-btn btn-edit" onclick="openInlineEdit(${r.id})" title="Edit reminder">
+                <i class="ti ti-edit" aria-hidden="true"></i> Edit
               </button>
               <button class="rem-action-btn btn-delete" onclick="deleteReminder(${r.id})" title="Delete">
-                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                Delete
+                <i class="ti ti-trash" aria-hidden="true"></i> Delete
               </button>
             </div>
           </div>
 
           <div class="rem-chips">
             <span class="chip ${chipCol}">
-              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              ${schedLbl}
+              <i class="ti ti-calendar" aria-hidden="true"></i>${schedLbl}
             </span>
-            ${doseLbl ? `<span class="chip chip-blue">
-              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              ${doseLbl}
-            </span>` : ""}
+            ${doseLbl ? `<span class="chip chip-blue"><i class="ti ti-repeat" aria-hidden="true"></i>${doseLbl}</span>` : ""}
             <span class="chip chip-purple">
-              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              ${dur}
+              <i class="ti ti-hourglass" aria-hidden="true"></i>${dur}
             </span>
             ${dayChips}
           </div>
@@ -462,38 +863,35 @@ function renderList(reminders) {
     list.innerHTML = `
       <div class="empty-wrap">
         <div class="empty-icon-wrap">
-          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <i class="ti ti-clock" aria-hidden="true"></i>
         </div>
         <div class="empty-title">${isFiltered ? "No reminders in this category" : "No reminders yet"}</div>
         <div class="empty-sub">${isFiltered
           ? "Try a different filter or add a new reminder."
           : "Stay on top of your medication by adding your first reminder."}</div>
         <button class="empty-cta" onclick="window.location.href='reminder.html'">
-          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          <i class="ti ti-plus" aria-hidden="true"></i>
           Add First Reminder
         </button>
       </div>`;
     return;
   }
-  list.innerHTML = reminders.map((r, i) => buildRemCard(r, i)).join("");
+  list.innerHTML = reminders.map((r, i) => buildCard(r, i)).join("");
 }
 
 function updateStats(reminders) {
-  const now     = new Date();
+  const now      = new Date();
   const todayDow = now.getDay();
   const todayDom = now.getDate();
-
   const activeCount = reminders.filter(r => r.duration === "forever" || !r.duration).length;
   const todayCount  = reminders.filter(r => {
     const s = r.sched || "daily";
     if (s === "daily")      return true;
     if (s === "alternate")  return true;
-    if (["weekly","twice_week","three_week","custom"].includes(s))
-      return (r.days || []).includes(todayDow);
-    if (s === "monthly")    return todayDom === (r.monthDay || 1);
+    if (["weekly","twice_week","three_week","custom"].includes(s)) return (r.days||[]).includes(todayDow);
+    if (s === "monthly")    return todayDom === (r.monthDay||1);
     return false;
   }).length;
-
   document.getElementById("statTotal").textContent  = reminders.length;
   document.getElementById("statActive").textContent = activeCount;
   document.getElementById("statToday").textContent  = todayCount;
@@ -501,19 +899,17 @@ function updateStats(reminders) {
 
 function filterReminders(filter, btn) {
   currentFilter = filter;
+  if (_openEditId !== null) closeInlineEdit();
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-
-  const filtered = filter === "all"
-    ? allReminders
-    : allReminders.filter(r => {
-        const s = r.sched || "daily";
-        if (filter === "daily")     return s === "daily";
-        if (filter === "alternate") return s === "alternate";
-        if (filter === "weekly")    return ["weekly","twice_week","three_week"].includes(s);
-        if (filter === "monthly")   return s === "monthly";
-        return true;
-      });
+  if (btn) btn.classList.add("active");
+  const filtered = filter === "all" ? allReminders : allReminders.filter(r => {
+    const s = r.sched || "daily";
+    if (filter === "daily")     return s === "daily";
+    if (filter === "alternate") return s === "alternate";
+    if (filter === "weekly")    return ["weekly","twice_week","three_week"].includes(s);
+    if (filter === "monthly")   return s === "monthly";
+    return true;
+  });
   renderList(filtered);
 }
 
@@ -521,53 +917,10 @@ async function loadReminders() {
   try {
     const res  = await fetch(`${BASE}/reminders/${user.id}`);
     const data = await res.json();
-    if (data.success) {
-      allReminders = data.data || [];
-    }
-  } catch (e) {
-    console.error("Load reminders failed:", e);
-  }
+    if (data.success) allReminders = data.data || [];
+  } catch(e) { console.error("Load reminders failed:", e); }
   updateStats(allReminders);
-  renderList(allReminders);
-}
-
-async function deleteReminder(id) {
-  if (!confirm("Delete this reminder?")) return;
-  try {
-    const res  = await fetch(`${BASE}/reminders/delete/${id}`, { method: "DELETE" });
-    const data = await res.json();
-    if (data.success) {
-      allReminders = allReminders.filter(r => r.id !== id);
-      const card = document.getElementById(`remCard_${id}`);
-      if (card) {
-        card.style.transition = "opacity .25s, transform .25s";
-        card.style.opacity    = "0";
-        card.style.transform  = "translateX(20px)";
-        setTimeout(() => {
-          filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
-          updateStats(allReminders);
-          showToast("Reminder deleted");
-        }, 260);
-      }
-    } else {
-      alert("Could not delete reminder.");
-    }
-  } catch (e) {
-    alert("Network error — could not delete.");
-  }
-}
-
-function editReminder(id) {
-  // Navigate to reminder page — the full reminder.html has edit functionality
-  window.location.href = `reminder.html`;
-}
-
-function showToast(msg) {
-  const t = document.createElement("div");
-  t.className   = "toast";
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2800);
+  filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
 }
 
 loadReminders();

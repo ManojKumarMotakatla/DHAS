@@ -34,14 +34,51 @@
     .page-title{font-family:'Fraunces',serif;color:#fff;font-size:1.75rem;font-weight:700;margin-bottom:6px;position:relative}
     .page-subtitle{color:rgba(255,255,255,0.72);font-size:0.85rem;font-weight:500;position:relative}
 
+    /* ── In-page message banner ── */
+    .reminder-page-msg {
+      display: none;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border: 1.5px solid transparent;
+      animation: msgSlide 0.3s ease;
+      line-height: 1.5;
+    }
+    @keyframes msgSlide {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .reminder-page-msg.success {
+      background: #d1fae5;
+      border-color: #86efac;
+      color: #166534;
+    }
+    .reminder-page-msg.error {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    html.dark .reminder-page-msg.success,
+    body.dark .reminder-page-msg.success {
+      background: rgba(34,208,122,.12);
+      border-color: rgba(34,208,122,.3);
+      color: #6ee7b7;
+    }
+    html.dark .reminder-page-msg.error,
+    body.dark .reminder-page-msg.error {
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.3);
+      color: #fca5a5;
+    }
+
     #notifBanner{border-radius:10px;border:1.5px solid #86efac;padding:10px 14px;font-size:.83rem;font-weight:600;margin-bottom:16px;line-height:1.5}
 
     .dhas-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;box-shadow:0 2px 20px rgba(42,108,246,.09);border:1px solid var(--border,#e4e9f4);margin-bottom:16px;transition:background .35s,border-color .35s}
     html.dark .dhas-card{background:#111c3c;border-color:#1e2e58}
     .dhas-card h5{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--blue,#2a6cf6);display:flex;align-items:center;gap:8px}
     .dhas-card h5 i{font-size:18px;color:currentColor}
-
-    #saveConfirm{display:none;background:#dcfce7;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.85rem;font-weight:600;margin-bottom:12px}
 
     .dhas-label{font-size:.72rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
     .dhas-input{width:100%;padding:11px 14px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text,#0d1b3e);background:var(--bg,#f4f6fc);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px;appearance:none}
@@ -77,7 +114,6 @@
     .sec-title i{font-size:18px;color:var(--blue,#2a6cf6)}
     html.dark .sec-title{color:#e8efff}
 
-    /* ── Reminder card ── */
     .reminder-item{
       background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);
       border-radius:12px;padding:14px 16px;margin-bottom:4px;
@@ -90,7 +126,6 @@
     .reminder-name i{font-size:16px;color:var(--blue,#2a6cf6)}
     html.dark .reminder-name{color:#e8efff}
 
-    /* ── Edit button ── */
     .edit-btn{
       background:linear-gradient(135deg,#eff6ff,#dbeafe);
       border:1px solid #93c5fd;color:#1d4ed8;
@@ -104,6 +139,7 @@
     .edit-btn:hover{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#2a6cf6}
     html.dark .edit-btn{background:rgba(42,108,246,.15);border-color:rgba(42,108,246,.4);color:#7aafff}
     html.dark .edit-btn:hover{background:rgba(42,108,246,.25)}
+    .edit-btn i{font-size:13px}
 
     .reminder-delete{
       background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;
@@ -112,8 +148,8 @@
       white-space:nowrap;display:inline-flex;align-items:center;gap:5px;
     }
     .reminder-delete:hover{background:#fee2e2;border-color:#f25c7d}
+    .reminder-delete i{font-size:13px}
 
-    /* Edit panel dark mode */
     html.dark .edit-panel > div{background:#111c3c !important;border-color:#2a6cf6 !important;color:#e8efff !important}
 
     .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted,#6b7fa3)}
@@ -147,6 +183,9 @@
       <div class="page-subtitle">Never miss a dose — set smart medication alerts</div>
     </div>
 
+    <!-- In-page message (replaces all alert/confirm popups) -->
+    <div id="reminderPageMsg" class="reminder-page-msg" role="alert"></div>
+
     <div id="notifBanner">Checking notification permission…</div>
 
     <div class="dhas-card">
@@ -154,8 +193,6 @@
         <i class="ti ti-plus" aria-hidden="true"></i>
         Add Reminder
       </h5>
-
-      <div id="saveConfirm"></div>
 
       <label class="dhas-label">Medicine Name</label>
       <input type="text" id="medicine" class="dhas-input" placeholder="e.g. Paracetamol, Metformin…" style="margin-bottom:18px">
@@ -236,47 +273,15 @@
       <button type="button" class="btn-dhas primary" onclick="addReminder()">Save Reminder</button>
     </div>
 
-  
-
   </div>
 
   <script src="js/reminder.js"></script>
+
   <!-- View Reminders Button -->
-<a href="saved_reminders.html" class="view-reminders-btn">
-  <i class="ti ti-list-details"></i>
-  View Reminders
-</a>
+  <a href="saved_reminders.html" style="position:fixed;bottom:20px;right:20px;z-index:999;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(42,108,246,.35);transition:all .2s ease;">
+    <i class="ti ti-list-details" style="font-size:16px" aria-hidden="true"></i>
+    View Reminders
+  </a>
 
-<style>
-.view-reminders-btn{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  z-index:999;
-  background:linear-gradient(135deg,#2a6cf6,#4f8ef9);
-  color:#fff;
-  text-decoration:none;
-  padding:12px 18px;
-  border-radius:999px;
-  font-family:'DM Sans',sans-serif;
-  font-size:0.88rem;
-  font-weight:700;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  box-shadow:0 4px 18px rgba(42,108,246,.35);
-  transition:all .2s ease;
-}
-
-.view-reminders-btn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 6px 22px rgba(42,108,246,.45);
-  color:#fff;
-}
-
-.view-reminders-btn i{
-  font-size:16px;
-}
-</style>
 </body>
 </html>

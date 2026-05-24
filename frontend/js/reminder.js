@@ -1,5 +1,5 @@
 // ============================================
-// DHAS - reminder.js  (v4 — snooze + edit)
+// DHAS - reminder.js  (v5 — in-page messages)
 // ============================================
 
 const API = "http://localhost:3006/reminders";
@@ -29,6 +29,19 @@ function getUserId() {
 
 let remindersCache = [];
 function getReminders() { return remindersCache; }
+
+// ── In-page message ───────────────────────────────────────────
+let _msgTimer = null;
+function showPageMsg(text, type = "success", duration = 4000) {
+    const el = document.getElementById("reminderPageMsg");
+    if (!el) return;
+    el.textContent = text;
+    el.className = "reminder-page-msg " + type;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (_msgTimer) clearTimeout(_msgTimer);
+    _msgTimer = setTimeout(() => { el.style.display = "none"; }, duration);
+}
 
 // ── Audio Engine ──────────────────────────────────────────────
 if ("Notification" in window) Notification.requestPermission();
@@ -74,31 +87,9 @@ window.previewSound = function () {
 let snoozeTimers = {};
 
 function snoozeReminder(reminderId, soundKey, toastEl) {
-    // Remove the current toast
     toastEl.remove();
-
-    // Cancel any existing snooze for this reminder
     if (snoozeTimers[reminderId]) clearTimeout(snoozeTimers[reminderId]);
-
-    // Show a small snooze confirmation
-    const snoozeNote = document.createElement("div");
-    snoozeNote.id = `snooze-note-${reminderId}`;
-    snoozeNote.innerHTML = `
-        <div style="position:fixed;bottom:24px;right:20px;
-                    background:#1e293b;color:#fff;
-                    border-radius:12px;padding:12px 18px;
-                    box-shadow:0 4px 20px rgba(0,0,0,0.3);
-                    z-index:99998;font-size:0.83rem;font-weight:600;
-                    display:flex;align-items:center;gap:8px;
-                    animation:snoozeSlide .3s ease;">
-          <style>@keyframes snoozeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}</style>
-          <i class="ti ti-clock-snooze" style="font-size:16px;color:#60a5fa" aria-hidden="true"></i>
-          Snoozed for 10 minutes
-        </div>`;
-    document.body.appendChild(snoozeNote);
-    setTimeout(() => snoozeNote.remove(), 3500);
-
-    // Re-fire the alarm after 10 minutes
+    showPageMsg("⏰ Snoozed for 10 minutes.", "success");
     snoozeTimers[reminderId] = setTimeout(() => {
         const r = remindersCache.find(x => x.id === reminderId);
         const t = r?.times?.[0] || { label:"Reminder", display:"" };
@@ -128,7 +119,7 @@ async function enableDHASNotifications() {
     if ((await Notification.requestPermission()) === "granted") {
         updateNotifBanner(true);
     } else {
-        alert("Notifications are still blocked. Please allow them in your browser site settings.");
+        showPageMsg("Notifications are still blocked. Please allow them in your browser site settings.", "error", 6000);
     }
 }
 
@@ -138,17 +129,14 @@ let lastFiredKey = {};
 function checkAlarms() {
     const reminders = getReminders();
     if (!reminders.length) return;
-
     const now = new Date();
     const dow = now.getDay(), dom = now.getDate();
     const hh  = now.getHours(), mm = now.getMinutes();
-
     if (navigator.serviceWorker?.controller) {
         navigator.serviceWorker.controller.postMessage({
             type:"CHECK_ALARMS", reminders, now:now.toISOString()
         });
     }
-
     reminders.forEach(r => {
         if (!shouldFireToday(r, dow, dom)) return;
         (r.times || []).forEach(t => {
@@ -184,7 +172,6 @@ function showAlarmToast(reminder, timeSlot) {
     toast.id = "dhasAlarmToast";
     const rid   = reminder.id;
     const sound = reminder.sound || "bell";
-
     toast.innerHTML = `
         <div style="position:fixed;top:20px;left:50%;transform:translateX(-50%);
                     background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;
@@ -193,37 +180,26 @@ function showAlarmToast(reminder, timeSlot) {
                     z-index:99999;max-width:340px;width:90%;
                     animation:toastIn 0.4s ease;font-family:'DM Sans',sans-serif;">
           <style>@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
-          <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
-            <i class="ti ti-alarm" style="font-size:20px" aria-hidden="true"></i>
-            Medicine Time!
-          </div>
-          <div style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:7px;">
-            <i class="ti ti-pill" style="font-size:16px" aria-hidden="true"></i>
-            ${reminder.medicine}
-          </div>
+          <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">⏰ Medicine Time!</div>
+          <div style="font-size:1rem;font-weight:700;">💊 ${reminder.medicine}</div>
           <div style="font-size:0.85rem;opacity:0.9;margin-top:4px;">${timeSlot.label}: ${timeSlot.display}</div>
           <div style="display:flex;gap:8px;margin-top:14px;">
             <button id="snoozeBtn_${rid}"
                     style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;
-                           padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;
-                           display:flex;align-items:center;justify-content:center;gap:5px;font-size:0.82rem;">
-              <i class="ti ti-clock-snooze" style="font-size:13px" aria-hidden="true"></i> Snooze 10 min
+                           padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;font-size:0.82rem;">
+              ⏸ Snooze 10 min
             </button>
             <button onclick="document.getElementById('dhasAlarmToast').remove()"
                     style="background:#fff;border:none;color:#1a56db;padding:7px 14px;border-radius:8px;
-                           cursor:pointer;font-weight:700;flex:1;
-                           display:flex;align-items:center;justify-content:center;gap:6px;">
-              <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i> Dismiss
+                           cursor:pointer;font-weight:700;flex:1;">
+              ✓ Dismiss
             </button>
           </div>
         </div>`;
     document.body.appendChild(toast);
-
-    // Wire up snooze button (needs reference to the toast element)
     document.getElementById(`snoozeBtn_${rid}`).addEventListener("click", function() {
         snoozeReminder(rid, sound, toast);
     });
-
     setTimeout(() => toast.remove(), 40000);
 }
 
@@ -288,7 +264,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#dcfce7", color:"#166534", borderColor:"#86efac" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <i class="ti ti-bell-ringing" style="font-size:20px;margin-top:2px" aria-hidden="true"></i>
+              <span style="font-size:20px;margin-top:2px">🔔</span>
               <div>
                 <div style="font-weight:700;font-size:0.92rem;">Notifications Enabled</div>
                 <div style="margin-top:4px;font-weight:500;">DHAS can now send medicine reminders and alarm alerts even when the app is minimized.</div>
@@ -298,7 +274,7 @@ function updateNotifBanner(granted) {
         Object.assign(banner.style, { background:"#fff7ed", color:"#9a3412", borderColor:"#fdba74" });
         banner.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:12px;">
-              <i class="ti ti-bell-off" style="font-size:22px;margin-top:2px" aria-hidden="true"></i>
+              <span style="font-size:22px;margin-top:2px">🔕</span>
               <div style="flex:1;">
                 <div style="font-size:0.95rem;font-weight:700;margin-bottom:6px;">Enable Browser Notifications</div>
                 <div style="font-weight:500;line-height:1.6;">
@@ -315,8 +291,8 @@ function updateNotifBanner(granted) {
                 <button onclick="enableDHASNotifications()"
                         style="margin-top:10px;background:linear-gradient(135deg,#ea580c,#f97316);
                                color:white;border:none;border-radius:8px;padding:8px 16px;
-                               font-size:0.85rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-                  <i class="ti ti-bell" style="font-size:14px" aria-hidden="true"></i> Enable Notifications
+                               font-size:0.85rem;font-weight:700;cursor:pointer;">
+                  🔔 Enable Notifications
                 </button>
               </div>
             </div>`;
@@ -387,10 +363,10 @@ function renderTimeSlots(doseCount) {
 }
 
 function hourOptions(sel) {
-    return Array.from({length:12},(_,i)=>{const s=String(i+1);return`<option value="${s}"${s===sel?" selected":""}>${s}</option>`;}).join("");
+    return Array.from({length:12},(_,i)=>{const s=String(i+1);return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
 }
 function minuteOptions(sel) {
-    return Array.from({length:12},(_,i)=>{const s=String(i*5).padStart(2,"0");return`<option value="${s}"${s===sel?" selected":""}>${s}</option>`;}).join("");
+    return Array.from({length:12},(_,i)=>{const s=String(i*5).padStart(2,"0");return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
 }
 
 function collectTimes() {
@@ -436,14 +412,14 @@ function updateReminderPreview() {
 
     preview.style.display = "block";
     document.getElementById("previewContent").innerHTML = [
-        previewRow("Medicine",   medicine,  "ti-pill"),
-        previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "ti-calendar"),
-        selDays ? previewRow("Days", selDays, "ti-calendar-week") : "",
-        previewRow("Time",       times, "ti-clock"),
-        previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "ti-repeat"),
-        previewRow("Start Date", startDate, "ti-calendar-event"),
-        previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "ti-hourglass"),
-        previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "ti-bell"),
+        previewRow("Medicine",   medicine,  "💊"),
+        previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "📅"),
+        selDays ? previewRow("Days", selDays, "📆") : "",
+        previewRow("Time",       times, "⏰"),
+        previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "🔁"),
+        previewRow("Start Date", startDate, "🗓️"),
+        previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "⌛"),
+        previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "🔔"),
         `<div style="margin-top:10px;background:#eff6ff;border-left:4px solid #2563eb;
                      padding:14px;border-radius:12px;line-height:1.7;color:#1e3a8a;font-size:0.88rem;">
            <strong>How this reminder will work</strong>
@@ -459,9 +435,7 @@ function updateReminderPreview() {
 
 function previewRow(label, value, icon) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:12px;border-radius:12px;gap:8px;">
-              <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">
-                <i class="ti ${icon}" style="font-size:15px" aria-hidden="true"></i>${label}
-              </span>
+              <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">${icon} ${label}</span>
               <strong style="font-size:0.85rem;text-align:right;">${value}</strong>
             </div>`;
 }
@@ -482,10 +456,17 @@ async function loadRemindersFromServer() {
 window.addReminder = async function () {
     const medicineInput = document.getElementById("medicine");
     const medicine      = medicineInput.value.trim();
-    if (!medicine) { medicineInput.focus(); alert("Please enter a medicine name."); return; }
+    if (!medicine) {
+        medicineInput.focus();
+        showPageMsg("Please enter a medicine name.", "error");
+        return;
+    }
 
     const uid = getUserId();
-    if (!uid) { alert("Session error: could not read your user ID."); return; }
+    if (!uid) {
+        showPageMsg("Session error: could not read your user ID.", "error");
+        return;
+    }
 
     const sched      = document.getElementById("scheduleType").value;
     const doseCount  = document.getElementById("doseCount").value;
@@ -496,10 +477,10 @@ window.addReminder = async function () {
     const monthDay   = parseInt(document.getElementById("monthDay").value) || 1;
     const times      = collectTimes();
 
-    if (sched === "weekly"     && days.length !== 1) { alert("Please select 1 day.");           return; }
-    if (sched === "twice_week" && days.length !== 2) { alert("Please select exactly 2 days."); return; }
-    if (sched === "three_week" && days.length !== 3) { alert("Please select exactly 3 days."); return; }
-    if (sched === "custom"     && days.length === 0) { alert("Please select at least 1 day."); return; }
+    if (sched === "weekly"     && days.length !== 1) { showPageMsg("Please select 1 day for weekly schedule.", "error"); return; }
+    if (sched === "twice_week" && days.length !== 2) { showPageMsg("Please select exactly 2 days.", "error"); return; }
+    if (sched === "three_week" && days.length !== 3) { showPageMsg("Please select exactly 3 days.", "error"); return; }
+    if (sched === "custom"     && days.length === 0) { showPageMsg("Please select at least 1 day.", "error"); return; }
 
     const todayStr = new Date().toISOString().split("T")[0];
     const effectiveTimes = (startDate === todayStr)
@@ -511,7 +492,7 @@ window.addReminder = async function () {
         : times;
 
     if (effectiveTimes.length === 0) {
-        alert("All selected times have already passed for today.\nPlease pick a future time or choose a start date from tomorrow onward.");
+        showPageMsg("All selected times have already passed for today. Please pick a future time or a start date from tomorrow onward.", "error", 6000);
         return;
     }
 
@@ -538,208 +519,190 @@ window.addReminder = async function () {
             body:JSON.stringify(payload)
         });
         const data = await res.json();
-        if (!data.success) { alert(data.message || "Failed to save reminder."); return; }
+        if (!data.success) {
+            showPageMsg(data.message || "Failed to save reminder. Please try again.", "error");
+            return;
+        }
 
         await loadRemindersFromServer();
-        showSaveConfirm(medicine, effectiveTimes[0]?.display);
+        // ✅ Show success message in page center
+        showPageMsg(`✓ Reminder for "${medicine}" saved successfully at ${effectiveTimes[0]?.display}.`, "success", 5000);
 
+        // Reset form
         document.getElementById("medicine").value     = "";
         document.getElementById("scheduleType").value = "daily";
         document.getElementById("doseCount").value    = "1";
         document.getElementById("alarmSound").value   = "bell";
+        document.getElementById("reminderPreview").style.display = "none";
         renderScheduleUI();
+
     } catch (err) {
         console.error("addReminder error:", err);
-        alert("Network error — could not save reminder.");
+        showPageMsg("Network error — could not save reminder. Is the server running?", "error");
     }
 };
-
-function showSaveConfirm(medicine, firstTime) {
-    const el = document.getElementById("saveConfirm");
-    if (!el) return;
-    el.innerHTML = `<span style="display:flex;align-items:center;gap:6px;">
-      <i class="ti ti-circle-check" style="font-size:16px" aria-hidden="true"></i>
-      Reminder saved for ${medicine}${firstTime ? " at " + firstTime : ""}
-    </span>`;
-    el.style.display = "block";
-    setTimeout(() => el.style.display = "none", 3000);
-}
 
 // ── Delete reminder ───────────────────────────────────────────
 window.deleteReminder = async function (id) {
-    if (!confirm("Delete this reminder?")) return;
-    try {
-        const res  = await fetch(`${API}/delete/${id}`, { method:"DELETE" });
-        const data = await res.json();
-        if (!data.success) { alert("Could not delete reminder."); return; }
-        remindersCache = remindersCache.filter(r => r.id !== id);
-        displayReminders();
-    } catch (err) {
-        console.error("deleteReminder error:", err);
-        alert("Network error — could not delete reminder.");
+    // In-page two-tap confirm (no popup)
+    const card = document.getElementById(`reminderCard_${id}`);
+    if (!card) return;
+
+    if (card.dataset.pendingDelete === "1") {
+        card.removeAttribute("data-pending-delete");
+        try {
+            const res  = await fetch(`${API}/delete/${id}`, { method:"DELETE" });
+            const data = await res.json();
+            if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
+            remindersCache = remindersCache.filter(r => r.id !== id);
+            displayReminders();
+            showPageMsg("✓ Reminder deleted.", "success");
+        } catch (err) {
+            showPageMsg("Network error — could not delete.", "error");
+        }
+        return;
     }
+
+    card.dataset.pendingDelete = "1";
+    showPageMsg("Tap Delete again to confirm deletion.", "error", 4000);
+    setTimeout(() => card?.removeAttribute("data-pending-delete"), 4000);
 };
 
-// ── EDIT REMINDER ─────────────────────────────────────────────
+// ── EDIT REMINDER (inline, same as saved_reminders) ───────────
 window.openEditReminder = function(id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return;
 
-    // Close any other open edit panels
-    document.querySelectorAll(".edit-panel").forEach(el => el.remove());
-
+    // Toggle if already open
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) return;
+    if (container.innerHTML.trim() !== "") { closeEditReminder(id); return; }
 
-    const currentSched    = r.sched || "daily";
-    const currentDuration = r.duration || "forever";
-    const currentSound    = r.sound || "bell";
-    const currentDoseCount= String(r.doseCount || r.dose_count || 1);
-    const currentTimes    = r.times || [];
+    // Close other open panels
+    document.querySelectorAll(".edit-panel").forEach(el => el.innerHTML = "");
 
-    // Build schedule options
+    const sched      = r.sched || "daily";
+    const doseCount  = String(r.doseCount || r.dose_count || 1);
+    const duration   = r.duration || "forever";
+    const sound      = r.sound || "bell";
+    const days       = r.days || [];
+    const monthDay   = r.monthDay || r.month_day || 1;
+    const times      = r.times || [];
+
     const schedOptions = [
         ["daily","Every Day"],["alternate","Alternate Days"],
         ["weekly","Once a Week"],["twice_week","Twice a Week"],
         ["three_week","3 Times a Week"],["monthly","Once a Month"],["custom","Custom Days"]
-    ].map(([val,lbl]) => `<option value="${val}" ${val===currentSched?"selected":""}>${lbl}</option>`).join("");
+    ].map(([val,lbl]) => `<option value="${val}" ${val===sched?"selected":""}>${lbl}</option>`).join("");
 
-    // Build duration options
     const durOptions = [
-        ["forever","Continue Until Manually Removed"],["1","1 Day only"],
+        ["forever","Ongoing (until removed)"],["1","1 Day only"],
         ["2","2 Days"],["3","3 Days"],["5","5 Days"],["7","1 Week"],
         ["14","2 Weeks"],["30","1 Month"]
-    ].map(([val,lbl]) => `<option value="${val}" ${val===currentDuration?"selected":""}>${lbl}</option>`).join("");
+    ].map(([val,lbl]) => `<option value="${val}" ${val===duration?"selected":""}>${lbl}</option>`).join("");
 
-    // Build sound options
     const soundOptions = Object.entries(SOUNDS)
-        .map(([val,obj]) => `<option value="${val}" ${val===currentSound?"selected":""}>${obj.label}</option>`).join("");
+        .map(([val,obj]) => `<option value="${val}" ${val===sound?"selected":""}>${obj.label}</option>`).join("");
 
-    // Build dose count options
     const doseOptions = [["1","Once a day"],["2","Twice a day"],["3","Three times a day"]]
-        .map(([val,lbl]) => `<option value="${val}" ${val===currentDoseCount?"selected":""}>${lbl}</option>`).join("");
+        .map(([val,lbl]) => `<option value="${val}" ${val===doseCount?"selected":""}>${lbl}</option>`).join("");
 
-    // Build time slots from current reminder times
-    function buildEditTimeSlots(times, doseCount) {
-        const slots = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+    function buildEditTimeSlots(existingTimes, count) {
+        const slots = DOSE_DEFAULTS[count] || DOSE_DEFAULTS["1"];
         return slots.map((slot, i) => {
-            const existing = times[i] || slot;
-            const h    = existing.h    || slot.h;
-            const m    = existing.m    || slot.m;
-            const ampm = existing.ampm || slot.ampm;
+            const ex = existingTimes[i] || slot;
             return `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
               <label style="min-width:88px;font-size:0.83rem;font-weight:600;color:var(--text-muted,#6b7fa3);flex-shrink:0;">${slot.label}</label>
-              <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(h)}</select>
+              <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(ex.h||slot.h)}</select>
               <span style="font-weight:700;color:#888;">:</span>
-              <select id="edit_m_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minuteOptions(m)}</select>
+              <select id="edit_m_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minuteOptions(ex.m||slot.m)}</select>
               <select id="edit_ap_${id}_${i}" class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;font-weight:700;color:var(--primary,#0d6efd);margin-bottom:0;">
-                <option value="AM" ${ampm==="AM"?"selected":""}>AM</option>
-                <option value="PM" ${ampm==="PM"?"selected":""}>PM</option>
+                <option value="AM" ${(ex.ampm||slot.ampm)==="AM"?"selected":""}>AM</option>
+                <option value="PM" ${(ex.ampm||slot.ampm)==="PM"?"selected":""}>PM</option>
               </select>
             </div>`;
         }).join("");
     }
 
-    // Day picker for edit (shown conditionally)
-    const currentDays = r.days || [];
+    const currentDays   = r.days || [];
+    const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(sched);
+    const showMonthDay  = sched === "monthly";
+
     const dayPickerHtml = ALL_DAYS.map((day, i) => {
         const active = currentDays.includes(i) ? "active" : "";
-        return `<div class="day-tile edit-day-tile ${active}" id="editDayTile_${id}_${i}" onclick="toggleEditDay(${id},${i},'${currentSched}')">${day}</div>`;
+        return `<div class="day-tile edit-day-tile ${active}" id="editDayTile_${id}_${i}" onclick="toggleEditDay(${id},${i},'${sched}')">${day}</div>`;
     }).join("");
 
-    const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(currentSched);
-    const showMonthDay  = currentSched === "monthly";
-    const currentMonthDay = r.monthDay || r.month_day || 1;
-
-    // Month day options
     let monthDayOpts = "";
     for (let d = 1; d <= 28; d++) {
-        monthDayOpts += `<option value="${d}" ${d===currentMonthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
+        monthDayOpts += `<option value="${d}" ${d===monthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
     }
 
-    const panel = document.createElement("div");
-    panel.className = "edit-panel";
-    panel.innerHTML = `
+    container.innerHTML = `
         <div style="background:var(--card-bg,#fff);border:2px solid #2a6cf6;border-radius:16px;
                     padding:20px;margin-top:10px;animation:editSlide .25s ease;">
           <style>@keyframes editSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}</style>
-
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <div style="font-size:0.92rem;font-weight:700;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:6px;">
-              <i class="ti ti-edit" style="font-size:16px;color:#2a6cf6" aria-hidden="true"></i>
-              Edit — ${r.medicine}
-            </div>
+            <div style="font-size:0.92rem;font-weight:700;color:#2a6cf6;">✏️ Edit — ${r.medicine}</div>
             <button onclick="closeEditReminder(${id})"
-                    style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-muted,#6b7fa3);padding:0 4px;line-height:1;">✕</button>
+                    style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;color:var(--muted,#6b7fa3);">✕</button>
           </div>
 
-          <!-- Schedule -->
           <label class="dhas-label">Schedule</label>
           <select id="edit_sched_${id}" class="dhas-input" onchange="onEditSchedChange(${id})">${schedOptions}</select>
 
-          <!-- Day picker (conditional) -->
           <div id="edit_dayPickerSection_${id}" style="display:${showDayPicker?"block":"none"};margin-bottom:10px;">
             <label class="dhas-label">Select Day(s)</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;" id="edit_dayPicker_${id}">${dayPickerHtml}</div>
           </div>
 
-          <!-- Month day (conditional) -->
           <div id="edit_monthDaySection_${id}" style="display:${showMonthDay?"block":"none"};">
             <label class="dhas-label">Day of the Month</label>
             <select id="edit_monthDay_${id}" class="dhas-input">${monthDayOpts}</select>
           </div>
 
-          <!-- Times per day -->
           <label class="dhas-label">Times per Day</label>
           <select id="edit_doseCount_${id}" class="dhas-input" onchange="onEditDoseChange(${id})">${doseOptions}</select>
 
-          <!-- Time slots -->
           <label class="dhas-label">Set Time(s)</label>
-          <div id="edit_timeSlots_${id}">${buildEditTimeSlots(currentTimes, currentDoseCount)}</div>
+          <div id="edit_timeSlots_${id}">${buildEditTimeSlots(times, doseCount)}</div>
 
-          <!-- Duration -->
           <label class="dhas-label">Reminder Duration</label>
           <select id="edit_duration_${id}" class="dhas-input" style="margin-bottom:14px;">${durOptions}</select>
 
-          <!-- Alarm Sound -->
           <label class="dhas-label">Alarm Sound</label>
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
             <select id="edit_sound_${id}" class="dhas-input" style="margin-bottom:0;flex:1;">${soundOptions}</select>
             <button type="button"
                     onclick="playSound(document.getElementById('edit_sound_${id}').value)"
                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;
-                           border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;
-                           font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:5px;">
-              <i class="ti ti-player-play" style="font-size:13px" aria-hidden="true"></i> Preview
+                           border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;">
+              ▶ Preview
             </button>
           </div>
 
-          <!-- Action buttons -->
           <div style="display:flex;gap:10px;">
             <button onclick="closeEditReminder(${id})"
                     style="flex:1;padding:11px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;
-                           background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);font-weight:600;
-                           font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                           background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);font-weight:600;font-size:0.9rem;cursor:pointer;">
               Cancel
             </button>
             <button onclick="saveEditReminder(${id})"
                     style="flex:2;padding:11px;border:none;border-radius:10px;
                            background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;
-                           font-weight:700;font-size:0.9rem;cursor:pointer;
-                           font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;
-                           box-shadow:0 4px 14px rgba(42,108,246,0.3);">
-              <i class="ti ti-device-floppy" style="font-size:15px" aria-hidden="true"></i> Save Changes
+                           font-weight:700;font-size:0.9rem;cursor:pointer;">
+              Save Changes
             </button>
           </div>
         </div>`;
 
-    container.appendChild(panel);
+    container.scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 
 window.closeEditReminder = function(id) {
     const container = document.getElementById(`editContainer_${id}`);
-    container?.querySelectorAll(".edit-panel").forEach(el => el.remove());
+    if (container) container.innerHTML = "";
 };
 
 window.toggleEditDay = function(id, index, mode) {
@@ -760,7 +723,6 @@ window.onEditSchedChange = function(id) {
     const mdSec  = document.getElementById(`edit_monthDaySection_${id}`);
     dpSec.style.display = ["weekly","twice_week","three_week","custom"].includes(sched) ? "block" : "none";
     mdSec.style.display = sched === "monthly" ? "block" : "none";
-    // Update day tile onclick
     document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile`).forEach((tile, i) => {
         tile.setAttribute("onclick", `toggleEditDay(${id},${i},'${sched}')`);
     });
@@ -773,18 +735,15 @@ window.onEditDoseChange = function(id) {
     const slots        = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
     document.getElementById(`edit_timeSlots_${id}`).innerHTML = slots.map((slot, i) => {
         const existing = currentTimes[i] || slot;
-        const h    = existing.h    || slot.h;
-        const m    = existing.m    || slot.m;
-        const ampm = existing.ampm || slot.ampm;
         return `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
           <label style="min-width:88px;font-size:0.83rem;font-weight:600;color:var(--text-muted,#6b7fa3);flex-shrink:0;">${slot.label}</label>
-          <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(h)}</select>
+          <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(existing.h||slot.h)}</select>
           <span style="font-weight:700;color:#888;">:</span>
-          <select id="edit_m_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minuteOptions(m)}</select>
+          <select id="edit_m_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minuteOptions(existing.m||slot.m)}</select>
           <select id="edit_ap_${id}_${i}" class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;font-weight:700;color:var(--primary,#0d6efd);margin-bottom:0;">
-            <option value="AM" ${ampm==="AM"?"selected":""}>AM</option>
-            <option value="PM" ${ampm==="PM"?"selected":""}>PM</option>
+            <option value="AM" ${(existing.ampm||slot.ampm)==="AM"?"selected":""}>AM</option>
+            <option value="PM" ${(existing.ampm||slot.ampm)==="PM"?"selected":""}>PM</option>
           </select>
         </div>`;
     }).join("");
@@ -800,20 +759,17 @@ window.saveEditReminder = async function(id) {
     const doseCount = document.getElementById(`edit_doseCount_${id}`).value;
     const monthDay  = parseInt(document.getElementById(`edit_monthDay_${id}`)?.value || r.monthDay || 1);
 
-    // Collect selected days
     const days = Array.from(
         document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile.active`)
     ).map(t => parseInt(t.id.split("_").pop()));
 
-    // Validate days
-    if (sched === "weekly"     && days.length !== 1) { alert("Please select 1 day.");           return; }
-    if (sched === "twice_week" && days.length !== 2) { alert("Please select exactly 2 days."); return; }
-    if (sched === "three_week" && days.length !== 3) { alert("Please select exactly 3 days."); return; }
-    if (sched === "custom"     && days.length === 0) { alert("Please select at least 1 day."); return; }
+    if (sched==="weekly"     && days.length!==1) { showPageMsg("Please select 1 day for weekly schedule.", "error"); return; }
+    if (sched==="twice_week" && days.length!==2) { showPageMsg("Please select exactly 2 days.", "error"); return; }
+    if (sched==="three_week" && days.length!==3) { showPageMsg("Please select exactly 3 days.", "error"); return; }
+    if (sched==="custom"     && days.length===0) { showPageMsg("Please select at least 1 day.", "error"); return; }
 
-    // Collect times
-    const slots     = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
-    const newTimes  = slots.map((slot, i) => ({
+    const slots    = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+    const newTimes = slots.map((slot, i) => ({
         label:   slot.label,
         display: `${document.getElementById(`edit_h_${id}_${i}`).value}:${document.getElementById(`edit_m_${id}_${i}`).value} ${document.getElementById(`edit_ap_${id}_${i}`).value}`,
         h:    document.getElementById(`edit_h_${id}_${i}`).value,
@@ -821,18 +777,12 @@ window.saveEditReminder = async function(id) {
         ampm: document.getElementById(`edit_ap_${id}_${i}`).value
     }));
 
-    const saveBtn = document.querySelector(`[onclick="saveEditReminder(${id})"]`);
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
-
     try {
-        // Delete old and re-add with updated values
-        const delRes  = await fetch(`${API}/delete/${id}`, { method:"DELETE" });
-        const delData = await delRes.json();
-        if (!delData.success) { alert("Could not update reminder."); return; }
+        const delData = await (await fetch(`${API}/delete/${id}`, { method:"DELETE" })).json();
+        if (!delData.success) { showPageMsg("Could not update reminder. Please try again.", "error"); return; }
 
-        const uid = getUserId();
         const payload = {
-            user_id:       uid,
+            user_id:       getUserId(),
             medicine:      r.medicine,
             sched,
             scheduleLabel: buildScheduleLabel(sched, days, monthDay),
@@ -844,131 +794,76 @@ window.saveEditReminder = async function(id) {
             duration,
             sound,
             startDate:     r.startDate || new Date().toISOString().split("T")[0],
-            altBase:       sched === "alternate" ? new Date().toISOString() : null
+            altBase:       sched==="alternate" ? new Date().toISOString() : null
         };
 
-        const addRes  = await fetch(`${API}/add`, {
+        const addData = await (await fetch(`${API}/add`, {
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify(payload)
-        });
-        const addData = await addRes.json();
-        if (!addData.success) { alert(addData.message || "Failed to save changes."); return; }
+        })).json();
+
+        if (!addData.success) { showPageMsg(addData.message || "Failed to save changes.", "error"); return; }
 
         await loadRemindersFromServer();
-
-        // Show brief success toast
-        const successNote = document.createElement("div");
-        successNote.innerHTML = `
-            <div style="position:fixed;bottom:24px;right:20px;
-                        background:#166534;color:#fff;
-                        border-radius:12px;padding:12px 18px;
-                        box-shadow:0 4px 20px rgba(0,0,0,0.25);
-                        z-index:99998;font-size:0.83rem;font-weight:600;
-                        display:flex;align-items:center;gap:8px;
-                        animation:snoozeSlide .3s ease;">
-              <i class="ti ti-circle-check" style="font-size:16px;color:#86efac" aria-hidden="true"></i>
-              Reminder updated successfully
-            </div>`;
-        document.body.appendChild(successNote);
-        setTimeout(() => successNote.remove(), 3000);
+        showPageMsg(`✓ Reminder for "${r.medicine}" updated successfully.`, "success");
 
     } catch (err) {
-        console.error("saveEditReminder error:", err);
-        alert("Network error — could not save changes.");
+        showPageMsg("Network error — could not save changes.", "error");
     }
 };
 
-// ── Display ───────────────────────────────────────────────────
+// ── Display reminders ─────────────────────────────────────────
 function displayReminders() {
-    const list      = document.getElementById("reminderList");
-    const reminders = getReminders();
+    // reminder.html doesn't show a saved list by default — redirect to saved_reminders.html
+    // But we keep this for compatibility if a list element exists on the page
+    const list = document.getElementById("reminderList");
+    if (!list) return;
 
+    const reminders = getReminders();
     if (!reminders.length) {
         list.innerHTML = `
             <div class="empty-state">
-              <i class="ti ti-pill" aria-hidden="true"></i>
+              <span style="font-size:48px;display:block;margin-bottom:12px;opacity:0.5;">💊</span>
               <p>No reminders set yet.<br>Add your first medicine reminder above.</p>
             </div>`;
         return;
     }
 
     const BC = {
-        daily:      {bg:"#dcfce7",color:"#166534"},
-        alternate:  {bg:"#fef9c3",color:"#854d0e"},
-        weekly:     {bg:"#ede9fe",color:"#5b21b6"},
-        twice_week: {bg:"#ffedd5",color:"#9a3412"},
-        three_week: {bg:"#fff0e0",color:"#92400e"},
-        monthly:    {bg:"#fce7f3",color:"#9d174d"},
-        custom:     {bg:"#f0fdf4",color:"#065f46"}
-    };
-
-    const soundIcon = {
-        bell:"ti-bell", chime:"ti-music", beep:"ti-device-mobile-vibration",
-        gentle:"ti-wave-sine", alarm:"ti-alarm"
+        daily:{bg:"#dcfce7",color:"#166534"}, alternate:{bg:"#fef9c3",color:"#854d0e"},
+        weekly:{bg:"#ede9fe",color:"#5b21b6"}, twice_week:{bg:"#ffedd5",color:"#9a3412"},
+        three_week:{bg:"#fff0e0",color:"#92400e"}, monthly:{bg:"#fce7f3",color:"#9d174d"},
+        custom:{bg:"#f0fdf4",color:"#065f46"}
     };
 
     list.innerHTML = reminders.map(r => {
-        const durationLabel = r.duration === "forever" ? "Continuous" : `${r.duration} Day(s)`;
-        const chips = (r.times || []).map(t =>
+        const durationLabel = r.duration==="forever" ? "Continuous" : `${r.duration} Day(s)`;
+        const chips = (r.times||[]).map(t =>
             `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;
-                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;">
-               <i class="ti ti-clock" style="font-size:12px" aria-hidden="true"></i>
-               ${t.label}: ${t.display || legacyFormat(t.time)}
+                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;">
+               ⏰ ${t.label}: ${t.display || "—"}
              </span>`).join("");
         const bc    = BC[r.sched] || { bg:"#dbeafe", color:"#1d4ed8" };
-        const sIcon = soundIcon[r.sound] || "ti-bell";
-        const soundLabel = SOUNDS[r.sound]?.label || "Bell";
 
         return `
             <div class="reminder-item" id="reminderCard_${r.id}">
               <div style="flex:1;min-width:0;">
-                <div class="reminder-name">
-                  <i class="ti ti-pill" aria-hidden="true"></i>
-                  ${r.medicine}
-                </div>
+                <div class="reminder-name">💊 ${r.medicine}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                  <span class="sched-chip" style="background:${bc.bg};color:${bc.color};">
-                    <i class="ti ti-calendar" style="font-size:11px" aria-hidden="true"></i>
-                    ${r.scheduleLabel || ""}
-                  </span>
-                  <span class="sched-chip" style="background:#dbeafe;color:#1d4ed8;">
-                    <i class="ti ti-pill" style="font-size:11px" aria-hidden="true"></i>
-                    ${r.dosesLabel || ""}
-                  </span>
-                  <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">
-                    <i class="ti ti-hourglass" style="font-size:11px" aria-hidden="true"></i>
-                    ${durationLabel}
-                  </span>
-                  <span class="sched-chip" style="background:#f5f3ff;color:#5b21b6;cursor:pointer;"
-                        onclick="playSound('${r.sound||'bell'}')">
-                    <i class="ti ${sIcon}" style="font-size:11px" aria-hidden="true"></i>
-                    ${soundLabel}
-                  </span>
+                  <span class="sched-chip" style="background:${bc.bg};color:${bc.color};">📅 ${r.scheduleLabel||""}</span>
+                  <span class="sched-chip" style="background:#dbeafe;color:#1d4ed8;">💊 ${r.dosesLabel||""}</span>
+                  <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">⌛ ${durationLabel}</span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${chips}</div>
               </div>
-              <!-- Action buttons -->
               <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;align-items:flex-end;">
-                <button class="edit-btn" onclick="openEditReminder(${r.id})" title="Edit reminder">
-                  <i class="ti ti-edit" style="font-size:13px" aria-hidden="true"></i>
-                  Edit
-                </button>
-                <button class="reminder-delete" onclick="deleteReminder(${r.id})" title="Delete">
-                  <i class="ti ti-trash" style="font-size:13px" aria-hidden="true"></i>
-                  Delete
-                </button>
+                <button class="edit-btn" onclick="openEditReminder(${r.id})">✏️ Edit</button>
+                <button class="reminder-delete" onclick="deleteReminder(${r.id})">🗑 Delete</button>
               </div>
             </div>
-            <!-- Edit panel container -->
-            <div id="editContainer_${r.id}"></div>`;
+            <div id="editContainer_${r.id}" class="edit-panel"></div>`;
     }).join("");
-}
-
-function legacyFormat(t) {
-    if (!t) return "—";
-    const [h, m] = t.split(":").map(Number);
-    return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;
 }
 
 function goBack() { window.location.href = "dashboard.html"; }
