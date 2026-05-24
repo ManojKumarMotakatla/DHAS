@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
   <title>Diet for Your Condition - DHAS</title>
   <script src="theme.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root {
       --primary: #2563eb;
@@ -25,7 +27,6 @@
       color: var(--text);
     }
 
-    /* NAVBAR */
     .dhas-navbar {
       background: linear-gradient(145deg, #112057, #0b1437);
       padding: 14px 20px;
@@ -43,7 +44,11 @@
       font-size: 1.3rem;
       font-weight: 900;
       letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+    .brand i { font-size: 22px; }
     .dhas-navbar a {
       color: rgba(255,255,255,0.85);
       font-size: 0.85rem;
@@ -52,17 +57,19 @@
       padding: 6px 14px;
       border-radius: 20px;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+    .dhas-navbar a i { font-size: 14px; }
 
-    /* PAGE WRAP */
     .page-wrap {
       max-width: 520px;
       margin: 0 auto;
       padding: 20px 16px 50px;
     }
 
-    /* HERO HEADER */
     .page-header {
       background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0ea5e9 100%);
       border-radius: 20px;
@@ -87,7 +94,19 @@
       background: rgba(255,255,255,0.05);
       border-radius: 50%;
     }
-    .header-emoji { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+    .header-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .header-icon-wrap i { font-size: 26px; color: #fff; }
     .page-title {
       font-family: 'Playfair Display', serif;
       color: #fff;
@@ -98,7 +117,6 @@
     }
     .page-subtitle { color: rgba(255,255,255,0.75); font-size: 0.85rem; font-weight: 500; position: relative; }
 
-    /* SOURCE BADGE */
     .source-badge {
       display: inline-flex;
       align-items: center;
@@ -112,19 +130,10 @@
       color: #fff;
       margin-top: 10px;
       letter-spacing: 0.5px;
+      position: relative;
     }
-    .badge-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #34d399;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    .source-badge i { font-size: 12px; color: #34d399; }
 
-    /* RESULT CARD */
     .result-card {
       background: #fff;
       border-radius: 20px;
@@ -146,7 +155,11 @@
       margin-bottom: 18px;
       padding-bottom: 12px;
       border-bottom: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .result-title i { font-size: 22px; color: var(--primary); }
 
     .food-section-label {
       font-weight: 700;
@@ -158,6 +171,7 @@
       align-items: center;
       gap: 8px;
     }
+    .food-section-label i { font-size: 16px; }
     .food-section-label.eat { color: #065f46; }
     .food-section-label.avoid { color: #991b1b; }
     .food-section-label::after {
@@ -181,6 +195,7 @@
       margin: 3px;
       font-family: 'DM Sans', sans-serif;
     }
+    .food-tag i { font-size: 13px; }
     .food-eat {
       background: linear-gradient(135deg, #d1fae5, #a7f3d0);
       color: #065f46;
@@ -200,7 +215,6 @@
       opacity: 0.15;
     }
 
-    /* BACK + REMEDIES BUTTONS */
     .action-row {
       display: flex;
       gap: 10px;
@@ -223,6 +237,7 @@
       font-family: 'DM Sans', sans-serif;
       text-decoration: none;
     }
+    .btn-back i { font-size: 16px; }
     .btn-back:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
 
     .btn-remedies {
@@ -243,19 +258,19 @@
       flex: 1;
       justify-content: center;
     }
+    .btn-remedies i { font-size: 16px; }
     .btn-remedies:hover {
       background: linear-gradient(135deg, #a7f3d0, #d1fae5);
       transform: translateY(-2px);
       box-shadow: 0 6px 18px rgba(16,185,129,0.25);
     }
 
-    /* NOT FOUND */
     .not-found {
       text-align: center;
       padding: 50px 20px;
       color: var(--text-muted);
     }
-    .not-found .nf-emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .not-found .nf-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.4; margin-bottom: 12px; display: block; }
     .not-found .nf-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
     .not-found .nf-sub { font-size: 0.87rem; }
   </style>
@@ -263,27 +278,35 @@
 <body>
 
   <nav class="dhas-navbar">
-    <div class="brand">🏥 DHAS</div>
-    <a href="dashboard.html">← Dashboard</a>
+    <div class="brand">
+      <i class="ti ti-heart" aria-hidden="true"></i>
+      DHAS
+    </div>
+    <a href="dashboard.html">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      dashboard
+    </a>
   </nav>
 
   <div class="page-wrap">
 
-    <!-- Hero Header -->
     <div class="page-header">
-      <span class="header-emoji">🥗</span>
+      <div class="header-icon-wrap">
+        <i class="ti ti-salad" aria-hidden="true"></i>
+      </div>
       <div class="page-title" id="heroTitle">Diet Guide</div>
       <div class="page-subtitle" id="heroSub">Personalised food recommendations based on your symptoms</div>
-      <div class="source-badge"><span class="badge-dot"></span> Based on your symptom analysis</div>
+      <div class="source-badge">
+        <i class="ti ti-circle-check" aria-hidden="true"></i>
+        Based on your symptom analysis
+      </div>
     </div>
 
-    <!-- Content injected by JS -->
     <div id="content"></div>
 
   </div>
 
   <script>
-    // ── Full diet data (same as diet.html) ──
     const DISEASES = [
       { name: "Asthma",               key: ["asthma"],                eat: ["Ginger tea","Honey","Turmeric milk","Garlic","Spinach","Apples","Avocado"],                                               avoid: ["Processed foods","Sulphites (wine, dried fruits)","Cold drinks","Excess salt","Artificial colours"] },
       { name: "Arthritis",            key: ["arthritis"],             eat: ["Fatty fish (salmon)","Walnuts","Berries","Spinach","Olive oil","Ginger","Turmeric"],                                      avoid: ["Fried food","Processed sugar","Red meat","Alcohol","Refined carbs"] },
@@ -299,7 +322,7 @@
       { name: "Headache / Migraine",  key: ["headache","migraine"],   eat: ["Plenty of water","Banana","Almonds","Spinach","Ginger tea","Watermelon","Magnesium-rich foods"],                        avoid: ["Excess caffeine","Alcohol","Processed meats","Too much salt","Skipping meals"] },
       { name: "Hypertension (High BP)",key:["hypertension","high_bp"],eat: ["Banana","Leafy greens","Beets","Garlic","Oats","Low-fat dairy","Berries"],                                              avoid: ["Excess salt","Processed foods","Alcohol","Red meat","Caffeine","Pickles"] },
       { name: "Jaundice",             key: ["jaundice"],              eat: ["Sugarcane juice","Coconut water","Papaya","Lemon water","Vegetable soup","Rice gruel"],                                  avoid: ["Oily food","Spicy food","Alcohol","Red meat","Fried food","Junk food"] },
-      { name: "Kidney Stones",        key: ["kidney_stones"],         eat: ["Plenty of water (3–4L)","Lemon water","Coconut water","Low-oxalate fruits","Calcium-rich foods"],                       avoid: ["Spinach (excess)","Nuts (excess)","Salt","Animal protein (excess)","Vitamin C supplements"] },
+      { name: "Kidney Stones",        key: ["kidney_stones"],         eat: ["Plenty of water (3-4L)","Lemon water","Coconut water","Low-oxalate fruits","Calcium-rich foods"],                       avoid: ["Spinach (excess)","Nuts (excess)","Salt","Animal protein (excess)","Vitamin C supplements"] },
       { name: "Malaria",              key: ["malaria"],               eat: ["Warm soups","Coconut water","Papaya","Pomegranate","Light khichdi","Ginger tea"],                                        avoid: ["Spicy food","Oily food","Alcohol","Junk food","Cold drinks"] },
       { name: "Nausea / Vomiting",    key: ["nausea","vomiting"],     eat: ["Ginger tea","Plain crackers / rusk","Banana","Clear broths","Coconut water","Small frequent meals"],                    avoid: ["Oily food","Spicy food","Strong smells","Dairy","Large heavy meals"] },
       { name: "Obesity",              key: ["obesity"],               eat: ["Fruits and vegetables","Whole grains","Lean protein (dal, fish)","Water before meals","Green tea"],                     avoid: ["Sugary drinks","Junk food","Fried food","White bread/rice","Late-night eating"] },
@@ -309,7 +332,6 @@
     ];
 
     function findDisease() {
-      // Try dhas_symptom_condition first (set by symptom checker), then dhas_condition
       const raw = localStorage.getItem("dhas_symptom_condition") || localStorage.getItem("dhas_condition") || "";
       const cond = raw.toLowerCase().trim();
       if (!cond || cond === "general") return null;
@@ -323,38 +345,54 @@
       if (!disease) {
         content.innerHTML = `
           <div class="not-found">
-            <span class="nf-emoji">🤔</span>
+            <i class="ti ti-mood-puzzled nf-icon" aria-hidden="true"></i>
             <div class="nf-title">No condition detected</div>
             <div class="nf-sub">Please go back and complete the symptom checker first.</div>
             <br>
-            <a href="symptom.html" class="btn-back" style="display:inline-flex;margin-top:8px;">← Check Symptoms</a>
+            <a href="symptom.html" class="btn-back" style="display:inline-flex;margin-top:8px;">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i> Check Symptoms
+            </a>
           </div>`;
         return;
       }
 
-      // Update hero
       document.getElementById("heroTitle").textContent = "Diet for " + disease.name;
       document.getElementById("heroSub").textContent = "Foods recommended and to avoid for " + disease.name;
 
       content.innerHTML = `
         <div class="result-card">
-          <div class="result-title">🥗 Diet Plan — ${disease.name}</div>
+          <div class="result-title">
+            <i class="ti ti-clipboard-list" aria-hidden="true"></i>
+            Diet Plan — ${disease.name}
+          </div>
 
-          <div class="food-section-label eat">✅ Foods to Eat</div>
+          <div class="food-section-label eat">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>
+            Foods to Eat
+          </div>
           <div class="food-tags-wrap">
-            ${disease.eat.map(f => `<span class="food-tag food-eat">✓ ${f}</span>`).join("")}
+            ${disease.eat.map(f => `<span class="food-tag food-eat"><i class="ti ti-check" aria-hidden="true"></i> ${f}</span>`).join("")}
           </div>
 
           <div class="section-divider"></div>
 
-          <div class="food-section-label avoid">❌ Foods to Avoid</div>
+          <div class="food-section-label avoid">
+            <i class="ti ti-circle-x" aria-hidden="true"></i>
+            Foods to Avoid
+          </div>
           <div class="food-tags-wrap">
-            ${disease.avoid.map(f => `<span class="food-tag food-avoid">✗ ${f}</span>`).join("")}
+            ${disease.avoid.map(f => `<span class="food-tag food-avoid"><i class="ti ti-x" aria-hidden="true"></i> ${f}</span>`).join("")}
           </div>
 
           <div class="action-row">
-            <a href="dashboard.html" class="btn-back">← Dashboard</a>
-            <a href="symptom_remedies.html" class="btn-remedies">🌿 View Remedies →</a>
+            <a href="symptom.html" class="btn-back">
+              <i class="ti ti-layout-symptom" aria-hidden="true"></i>
+              symptom
+            </a>
+            <a href="symptom_remedies.html" class="btn-remedies">
+              <i class="ti ti-plant" aria-hidden="true"></i>
+              View Remedies
+            </a>
           </div>
         </div>`;
     }

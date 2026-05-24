@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
   <title>Remedies for Your Condition - DHAS</title>
   <script src="theme.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root {
       --accent: #10b981;
@@ -26,7 +28,6 @@
       color: var(--text);
     }
 
-    /* NAVBAR */
     .dhas-navbar {
       background: linear-gradient(145deg, #112057, #0b1437);
       padding: 14px 20px;
@@ -44,7 +45,11 @@
       font-size: 1.3rem;
       font-weight: 900;
       letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+    .brand i { font-size: 22px; }
     .dhas-navbar a {
       color: rgba(255,255,255,0.85);
       font-size: 0.85rem;
@@ -53,17 +58,19 @@
       padding: 6px 14px;
       border-radius: 20px;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+    .dhas-navbar a i { font-size: 14px; }
 
-    /* PAGE WRAP */
     .page-wrap {
       max-width: 520px;
       margin: 0 auto;
       padding: 20px 16px 50px;
     }
 
-    /* HERO HEADER */
     .page-header {
       background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #34d399 100%);
       border-radius: 20px;
@@ -88,7 +95,19 @@
       background: rgba(255,255,255,0.05);
       border-radius: 50%;
     }
-    .header-emoji { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+    .header-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .header-icon-wrap i { font-size: 26px; color: #fff; }
     .page-title {
       font-family: 'Playfair Display', serif;
       color: #fff;
@@ -99,7 +118,6 @@
     }
     .page-subtitle { color: rgba(255,255,255,0.75); font-size: 0.85rem; font-weight: 500; position: relative; }
 
-    /* SOURCE BADGE */
     .source-badge {
       display: inline-flex;
       align-items: center;
@@ -113,19 +131,10 @@
       color: #fff;
       margin-top: 10px;
       letter-spacing: 0.5px;
+      position: relative;
     }
-    .badge-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #fbbf24;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    .source-badge i { font-size: 12px; color: #fbbf24; }
 
-    /* RESULT CARD */
     .result-card {
       background: #fff;
       border-radius: 20px;
@@ -147,9 +156,12 @@
       margin-bottom: 18px;
       padding-bottom: 12px;
       border-bottom: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .result-title i { font-size: 22px; color: var(--accent); }
 
-    /* REMEDY STEPS */
     .remedy-step {
       display: flex;
       gap: 12px;
@@ -166,7 +178,8 @@
       background: linear-gradient(135deg, var(--accent), #34d399);
       color: #fff;
       border-radius: 50%;
-      width: 26px; height: 26px;
+      width: 26px;
+      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -177,7 +190,6 @@
     }
     .step-text { font-size: 0.9rem; line-height: 1.55; padding-top: 3px; }
 
-    /* WARNING CARD */
     .warning-card {
       background: linear-gradient(135deg, #fff8f0, #fff);
       border: 2px solid #fed7aa;
@@ -186,11 +198,19 @@
       margin-bottom: 14px;
       animation: fadeIn 0.4s ease;
     }
-    .warning-title { color: #c2410c; font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
+    .warning-title {
+      color: #c2410c;
+      font-weight: 800;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .warning-title i { font-size: 18px; }
     .warning-card ul { padding-left: 18px; margin: 0; }
     .warning-card ul li { font-size: 0.87rem; color: #7c2d12; margin-bottom: 5px; line-height: 1.45; }
 
-    /* ACTION BUTTONS */
     .action-row {
       display: flex;
       gap: 10px;
@@ -213,6 +233,7 @@
       font-family: 'DM Sans', sans-serif;
       text-decoration: none;
     }
+    .btn-back i { font-size: 16px; }
     .btn-back:hover { border-color: var(--accent); color: var(--accent); background: #f0fdf4; }
 
     .btn-diet {
@@ -233,19 +254,19 @@
       flex: 1;
       justify-content: center;
     }
+    .btn-diet i { font-size: 16px; }
     .btn-diet:hover {
       background: linear-gradient(135deg, #bfdbfe, #dbeafe);
       transform: translateY(-2px);
       box-shadow: 0 6px 18px rgba(37,99,235,0.22);
     }
 
-    /* NOT FOUND */
     .not-found {
       text-align: center;
       padding: 50px 20px;
       color: var(--text-muted);
     }
-    .not-found .nf-emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .not-found .nf-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.4; margin-bottom: 12px; display: block; }
     .not-found .nf-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
     .not-found .nf-sub { font-size: 0.87rem; }
   </style>
@@ -253,27 +274,35 @@
 <body>
 
   <nav class="dhas-navbar">
-    <div class="brand">🏥 DHAS</div>
-    <a href="dashboard.html">← Dashboard</a>
+    <div class="brand">
+      <i class="ti ti-heart" aria-hidden="true"></i>
+      DHAS
+    </div>
+    <a href="dashboard.html">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+    dashboard
+    </a>
   </nav>
 
   <div class="page-wrap">
 
-    <!-- Hero Header -->
     <div class="page-header">
-      <span class="header-emoji">🌿</span>
+      <div class="header-icon-wrap">
+        <i class="ti ti-plant" aria-hidden="true"></i>
+      </div>
       <div class="page-title" id="heroTitle">Home Remedies</div>
       <div class="page-subtitle" id="heroSub">Natural relief based on your symptoms</div>
-      <div class="source-badge"><span class="badge-dot"></span> Based on your symptom analysis</div>
+      <div class="source-badge">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        Based on your symptom analysis
+      </div>
     </div>
 
-    <!-- Content injected by JS -->
     <div id="content"></div>
 
   </div>
 
   <script>
-    // ── Full remedies data (same as remedies.html) ──
     const REMEDIES = [
       { name: "Acidity",           key: ["acidity"],                      steps: ["Drink cold milk or buttermilk for instant relief", "Eat a banana — acts as a natural antacid", "Chew fennel seeds (saunf) after every meal", "Drink coconut water to neutralize stomach acid", "Avoid lying down immediately after eating"] },
       { name: "Arthritis",         key: ["arthritis"],                    steps: ["Apply warm mustard oil and massage joints gently", "Add turmeric to warm milk — drink nightly", "Soak in warm water with Epsom salt for 15 min", "Apply hot/cold compress alternately on painful joints", "Practice gentle yoga and stretching daily"] },
@@ -312,16 +341,17 @@
       if (!remedy) {
         content.innerHTML = `
           <div class="not-found">
-            <span class="nf-emoji">🤔</span>
+            <i class="ti ti-mood-puzzled nf-icon" aria-hidden="true"></i>
             <div class="nf-title">No condition detected</div>
             <div class="nf-sub">Please go back and complete the symptom checker first.</div>
             <br>
-            <a href="symptom.html" class="btn-back" style="display:inline-flex;margin-top:8px;">← Check Symptoms</a>
+            <a href="symptom.html" class="btn-back" style="display:inline-flex;margin-top:8px;">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i> Check Symptoms
+            </a>
           </div>`;
         return;
       }
 
-      // Update hero
       document.getElementById("heroTitle").textContent = "Remedies for " + remedy.name;
       document.getElementById("heroSub").textContent = "Step-by-step natural relief for " + remedy.name;
 
@@ -334,16 +364,28 @@
 
       content.innerHTML = `
         <div class="result-card">
-          <div class="result-title">🌿 Remedies — ${remedy.name}</div>
+          <div class="result-title">
+            <i class="ti ti-plant" aria-hidden="true"></i>
+            Remedies — ${remedy.name}
+          </div>
           ${stepsHTML}
           <div class="action-row">
-            <a href="dashboard.html" class="btn-back">← Dashboard</a>
-            <a href="symptom_diet.html" class="btn-diet">🥗 View Diet Plan →</a>
+            <a href="symptom.html" class="btn-back">
+              <i class="ti ti-layout-symptom" aria-hidden="true"></i>
+              symptom
+            </a>
+            <a href="symptom_diet.html" class="btn-diet">
+              <i class="ti ti-salad" aria-hidden="true"></i>
+              View Diet Plan
+            </a>
           </div>
         </div>
 
         <div class="warning-card">
-          <div class="warning-title">⚠️ When to See a Doctor</div>
+          <div class="warning-title">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            When to See a Doctor
+          </div>
           <ul>
             <li>Symptoms last more than 3–5 days</li>
             <li>High fever above 103°F (39.4°C)</li>
@@ -357,3 +399,4 @@
   </script>
 </body>
 </html>
+
