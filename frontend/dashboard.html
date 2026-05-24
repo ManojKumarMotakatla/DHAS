@@ -376,7 +376,6 @@
     .rem-card.warn { border-left-color: var(--amber); }
     .rem-card.ok   { border-left-color: var(--green); }
 
-    /* Reminder card content */
     .rem-header {
       display: flex; align-items: center; gap: 7px;
       margin-bottom: 6px;
@@ -534,8 +533,7 @@
     </div>
 
     <div class="sec-head">
-      <div class="sec-title">Today's Reminders</div>
-      <!-- ✅ CHANGED: links to saved_reminders.html instead of full reminder.html -->
+      <div class="sec-title">Today's Active Reminders</div>
       <a href="saved_reminders.html" class="sec-link">Manage →</a>
     </div>
     <div class="reminder-strip" id="reminderStrip">
@@ -603,6 +601,76 @@ document.querySelectorAll(".side-link").forEach(l =>
   l.classList.toggle("active", l.getAttribute("href") === currentPage)
 );
 
+/* ── Convert 12-hour time parts to 24-hour integers [h, m] ── */
+function to24(h, m, ampm) {
+  let hour = parseInt(h, 10);
+  if (ampm === "PM" && hour !== 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  return [hour, parseInt(m, 10)];
+}
+
+/* ── shouldFireToday: checks schedule date/day logic only ── */
+function shouldFireToday(r) {
+  const now = new Date();
+  const dow = now.getDay(), dom = now.getDate();
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
+
+  if (r.startDate) {
+    const start = new Date(r.startDate + "T00:00:00");
+    if (todayMidnight < start) return false;
+  }
+  if (r.duration && r.duration !== "forever") {
+    const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
+    base.setHours(0, 0, 0, 0);
+    if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
+  }
+  switch (r.sched) {
+    case "daily":     return true;
+    case "alternate": {
+      if (!r.altBase) return true;
+      const base  = new Date(r.altBase);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const bDay  = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+      return Math.round((today - bDay) / 86400000) % 2 === 0;
+    }
+    case "weekly": case "twice_week": case "three_week": case "custom":
+      return (r.days || []).includes(dow);
+    case "monthly": return dom === (r.monthDay || 1);
+    default: return false;
+  }
+}
+
+/* ── hasUpcomingTimeToday: true if any scheduled time is >= now (up to 11:59 PM) ── */
+function hasUpcomingTimeToday(r) {
+  if (!r.times || !r.times.length) return true; // no time slots = always show
+  const now  = new Date();
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
+  return r.times.some(t => {
+    const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
+    return alarmH > nowH || (alarmH === nowH && alarmM >= nowM);
+  });
+}
+
+/* ── getNextTimeDisplay: returns the next upcoming time slot's display string ── */
+function getNextTimeDisplay(r) {
+  if (!r.times || !r.times.length) {
+    return r.schedule_label || r.scheduleLabel || "—";
+  }
+  const now  = new Date();
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
+
+  /* find first time that is still in the future today */
+  const upcoming = r.times.find(t => {
+    const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
+    return alarmH > nowH || (alarmH === nowH && alarmM >= nowM);
+  });
+
+  const slot = upcoming || r.times[0]; /* fallback to first slot */
+  return slot.display || `${slot.h}:${slot.m} ${slot.ampm}`;
+}
+
 /* Health Snapshot */
 function renderSnapshot(p) {
   const grid      = document.getElementById("snapshotGrid");
@@ -649,16 +717,19 @@ async function loadDashboard() {
     document.getElementById("statReports").textContent   = rpd.success ? rpd.data.length : "0";
     renderSnapshot(p);
 
+    /* ── Filter: scheduled for today AND has at least one time still upcoming ── */
     const strip = document.getElementById("reminderStrip");
-    if (rd.success && rd.data.length) {
-      const accentClasses = ["","warn","ok"];
-      strip.innerHTML = rd.data.slice(0,5).map((r, i) => {
+    const todayRems = rd.success
+      ? rd.data.filter(r => shouldFireToday(r) && hasUpcomingTimeToday(r))
+      : [];
+
+    if (todayRems.length) {
+      const accentClasses = ["", "warn", "ok"];
+      strip.innerHTML = todayRems.slice(0, 5).map((r, i) => {
         const name     = r.medicine || r.medicine_name || "Medication";
-        const timeInfo = (r.times && r.times.length)
-          ? (r.times[0].display || `${r.times[0].h}:${r.times[0].m} ${r.times[0].ampm}`)
-          : (r.schedule_label || r.scheduleLabel || "—");
-        const freq = r.dosesLabel || r.doses_label || r.scheduleLabel || "Daily";
-        const cls  = accentClasses[i % 3];
+        const timeInfo = getNextTimeDisplay(r);
+        const freq     = r.dosesLabel || r.doses_label || r.scheduleLabel || "Daily";
+        const cls      = accentClasses[i % 3];
 
         return `<div class="rem-card ${cls}">
           <div class="rem-header">
@@ -678,7 +749,7 @@ async function loadDashboard() {
         </div>`;
       }).join("");
     } else {
-      strip.innerHTML = `<div class="rem-card" style="min-width:220px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">No reminders set. <a href="reminder.html" style="color:var(--blue);font-weight:600;">Add one →</a></div>`;
+      strip.innerHTML = `<div class="rem-card" style="min-width:240px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">No active reminders for today. <a href="reminder.html" style="color:var(--blue);font-weight:600;">Add one →</a></div>`;
     }
   } catch(e) {
     console.warn("Dashboard load failed:", e);
