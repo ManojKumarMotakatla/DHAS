@@ -12,17 +12,57 @@ function getUser() {
     try { return JSON.parse(localStorage.getItem("dhas_user")); } catch { return null; }
 }
 
-// ── In-page toast ──────────────────────────────────────────────
+// ── In-page toast (bottom-left, matches reminders page) ───────
 let _toastTimer = null;
 function showToast(text, type = "success", duration = 4500) {
-    const t = document.getElementById("dhasToast");
-    if (!t) return;
-    const icon = type === "success" ? "ti-circle-check" : "ti-alert-circle";
-    t.className = type;
-    t.innerHTML = `<i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
-    t.style.display = "flex";
+    let toast = document.getElementById("dhasPageToast");
+    if (!toast) {
+        // Inject toast container if missing
+        toast = document.createElement("div");
+        toast.id = "dhasPageToast";
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        document.body.appendChild(toast);
+
+        const style = document.createElement("style");
+        style.textContent = `
+            #dhasPageToast {
+                position: fixed;
+                bottom: 24px;
+                left: 20px;
+                z-index: 99999;
+                max-width: 340px;
+                min-width: 240px;
+                padding: 13px 18px;
+                border-radius: 14px;
+                font-size: 0.87rem;
+                font-weight: 600;
+                line-height: 1.5;
+                display: none;
+                align-items: flex-start;
+                gap: 10px;
+                box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+                font-family: 'DM Sans', sans-serif;
+                animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
+            }
+            #dhasPageToast.success { background:#d1fae5; border:1.5px solid #86efac; color:#166534; }
+            #dhasPageToast.error   { background:#fee2e2; border:1.5px solid #fca5a5; color:#991b1b; }
+            html.dark #dhasPageToast.success, body.dark #dhasPageToast.success { background:#052e16; border-color:#166534; color:#86efac; }
+            html.dark #dhasPageToast.error,   body.dark #dhasPageToast.error   { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
+            @keyframes dhasToastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+            #dhasPageToast .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+            #dhasPageToast .toast-dismiss { margin-left:auto; background:none; border:none; cursor:pointer; color:inherit; opacity:0.6; font-size:14px; padding:0 0 0 8px; flex-shrink:0; }
+            #dhasPageToast .toast-dismiss:hover { opacity:1; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const iconClass = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+    toast.className = type;
+    toast.innerHTML = `<i class="ti ${iconClass} toast-icon" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
+    toast.style.display = "flex";
     if (_toastTimer) clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
+    _toastTimer = setTimeout(() => { toast.style.display = "none"; }, duration);
 }
 
 const CONDITION_MAP = {
