@@ -1,10 +1,12 @@
-const express = require("express");
-const router  = express.Router();
+// ── reportRoutes.js — CHANGED: protected with requireAuth ────
+const express  = require("express");
+const router   = express.Router();
 const { uploadReport, getReports, viewReport, deleteReport } = require("../controllers/reportController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
-router.post("/upload",      uploadReport);
-router.get("/view/:id",     viewReport);     // ← new (must be BEFORE /:user_id)
-router.get("/:user_id",     getReports);     // ← changed from /get/:user_id
-router.delete("/:id",       deleteReport);   // ← changed from /delete/:id
+router.post(   "/upload",    requireAuth, uploadReport);
+router.get(    "/view/:id",  requireAuth, viewReport);
+router.get(    "/:user_id",  requireAuth, getReports);
+router.delete( "/:id",       requireAuth, deleteReport);
 
 module.exports = router;

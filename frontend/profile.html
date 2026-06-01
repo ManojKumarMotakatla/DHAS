@@ -405,14 +405,60 @@ async function load() {
 load();
 
 async function confirmDelete() {
-  if (!confirm("Permanently delete your account and all health data?")) return;
-  if (!confirm("Final confirmation — this cannot be undone.")) return;
-  try {
-    const d = await fetch(`${BASE}/profile/${userId}`,{method:"DELETE"}).then(r=>r.json());
-    if (d.success) { localStorage.clear(); window.location.href="login.html"; }
-    else alert("Failed: "+d.message);
-  } catch { alert("Cannot connect to server."); }
+    // First confirmation
+    if (!confirm("Permanently delete your account and all health data?")) return;
+
+    const user    = JSON.parse(localStorage.getItem("dhas_user") || "{}");
+    const profile = await fetch(
+        window.API_BASE + "/profile/" + user.id,
+        { headers: window.getAuthHeaders() }
+    ).then(r => r.json()).catch(() => ({}));
+
+    const isGoogleOnly = (profile.profile && profile.profile.provider === "google" && !profile.profile.password);
+
+    let password = null;
+    if (!isGoogleOnly) {
+        // CHANGED: ask for password before deleting
+        password = prompt(
+            "Enter your account password to confirm permanent deletion.\n\n" +
+            "This action cannot be undone."
+        );
+        if (password === null) return; // user cancelled
+        if (!password.trim()) {
+            alert("Password is required to delete your account.");
+            return;
+        }
+        // Hash the password the same way login does (SHA-256)
+        const buf      = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
+        password       = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+    } else {
+        if (!confirm("Final confirmation — this cannot be undone.")) return;
+    }
+
+    try {
+        const res = await fetch(
+            window.API_BASE + "/profile/" + user.id,
+            {
+                method:  "DELETE",
+                headers: window.getAuthHeaders(),
+                body:    JSON.stringify({ password })  // null for Google accounts
+            }
+        );
+        const d = await res.json();
+
+        if (d.success) {
+            localStorage.removeItem("dhas_user");
+            localStorage.removeItem("dhas_token");
+            window.location.href = "login.html";
+        } else {
+            alert("Failed: " + d.message);
+        }
+    } catch {
+        alert("Cannot connect to server.");
+    }
 }
+
 </script>
+
 </body>
 </html>

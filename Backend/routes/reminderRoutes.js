@@ -1,11 +1,13 @@
-const express = require("express");
-const router  = express.Router();
+// ── reminderRoutes.js — CHANGED: protected with requireAuth ──
+const express  = require("express");
+const router   = express.Router();
 const { addReminder, getReminders, deleteReminder } = require("../controllers/reminderController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
-router.post("/add",          addReminder);
-router.get("/get/:user_id",  getReminders);   // used by reminder.js
-router.get("/:user_id",      getReminders);   // used by dashboard.html
-router.delete("/delete/:id", deleteReminder); // used by reminder.js
-router.delete("/:id",        deleteReminder); // fallback
+router.post(   "/add",          requireAuth, addReminder);
+router.get(    "/get/:user_id", requireAuth, getReminders);
+router.get(    "/:user_id",     requireAuth, getReminders);
+router.delete( "/delete/:id",   requireAuth, deleteReminder);
+router.delete( "/:id",          requireAuth, deleteReminder);
 
 module.exports = router;

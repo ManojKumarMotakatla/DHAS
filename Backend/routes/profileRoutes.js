@@ -1,21 +1,16 @@
-const express = require("express");
-const router  = express.Router();
+// ── CHANGED: all routes now require JWT ──────────────────────
+const express  = require("express");
+const router   = express.Router();
 const { getProfile, saveProfile, deleteAccount } = require("../controllers/profileController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
-/* ── Middleware: validate numeric user_id for param routes ── */
-const validateUserId = (req, res, next) => {
-    const id = req.params.user_id;
-    if (!id || isNaN(id) || parseInt(id) <= 0) {
-        return res.json({ success: false, message: "Invalid user ID." });
-    }
-    next();
-};
+// Every profile route requires a valid token.
+// requireAuth sets req.userId from the token — controllers use that,
+// not a user_id from the request body or params.
 
-/* ── Routes ── */
-// POST /profile/save  — must be declared BEFORE /:user_id to avoid param match
-router.post("/profile/save", saveProfile);
-
-router.get("/profile/:user_id",    validateUserId, getProfile);
-router.delete("/profile/:user_id", validateUserId, deleteAccount);
+// CHANGED: removed the /profile/ prefix — server.js mounts this at /profile
+router.get(   "/:user_id", requireAuth, getProfile);
+router.post(  "/save",     requireAuth, saveProfile);
+router.delete("/:user_id", requireAuth, deleteAccount);
 
 module.exports = router;

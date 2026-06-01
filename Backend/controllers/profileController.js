@@ -1,20 +1,18 @@
-const db = require("../config/db");
+// ── CHANGED: user_id now comes from req.userId (JWT), not params/body ──
+// This means a user cannot access or modify another user's profile by
+// changing the ID in the URL — the server ignores the URL param for
+// auth purposes and uses the token-verified ID instead.
+const db      = require("../config/db");
+const bcrypt  = require("bcrypt");
+const { isSelf } = require("../middleware/authMiddleware");
 
-/* ─────────────────────────────────────────────────────────────────────
-   IMPORTANT — run this in MySQL before starting the server if upgrading:
-
-   ALTER TABLE user_profiles
-     ADD COLUMN IF NOT EXISTS profile_image MEDIUMTEXT NULL DEFAULT NULL;
-
-   Or just drop & recreate from schema.sql if it's a dev database.
-───────────────────────────────────────────────────────────────────── */
-
-/* ── GET profile ──────────────────────────────────────────────────── */
+/* ── GET profile ──────────────────────────────────────────────── */
 const getProfile = (req, res) => {
-    const { user_id } = req.params;
+    const requestedId = parseInt(req.params.user_id);
 
-    if (!user_id || isNaN(user_id)) {
-        return res.json({ success: false, message: "Invalid user ID." });
+    // CHANGED: verify that the token owner is requesting their own profile
+    if (!isSelf(req, requestedId)) {
+        return res.status(403).json({ success: false, message: "Access denied." });
     }
 
     const sql = `
@@ -28,37 +26,31 @@ const getProfile = (req, res) => {
         WHERE u.id = ?
     `;
 
-    db.query(sql, [user_id], (err, rows) => {
+    db.query(sql, [requestedId], (err, rows) => {
         if (err) {
-            console.error("Get profile SQL error:", err.sqlMessage || err.message, err);
-            return res.json({
-                success: false,
-                message: "Database error: " + (err.sqlMessage || err.message)
-            });
+            console.error("Get profile SQL error:", err.sqlMessage || err.message);
+            return res.json({ success: false, message: "Database error: " + (err.sqlMessage || err.message) });
         }
-        if (rows.length === 0) {
-            return res.json({ success: false, message: "User not found." });
-        }
+        if (rows.length === 0) return res.json({ success: false, message: "User not found." });
         res.json({ success: true, profile: rows[0] });
     });
 };
 
-/* ── SAVE / UPDATE profile ────────────────────────────────────────── */
+/* ── SAVE / UPDATE profile ────────────────────────────────────── */
 const saveProfile = (req, res) => {
+    // CHANGED: use token-verified ID, ignore any user_id in the body
+    const user_id = req.userId;
+
     const {
-        user_id, name, phone, dob, gender,
-        blood_group, conditions,
-        profile_image   // base64 data-URL (optional, null = keep existing)
+        name, phone, dob, gender, blood_group,
+        conditions, profile_image
     } = req.body;
 
-    // Parse numerics safely
     const height = (req.body.height !== "" && req.body.height != null && !isNaN(req.body.height))
         ? parseFloat(req.body.height) : null;
     const weight = (req.body.weight !== "" && req.body.weight != null && !isNaN(req.body.weight))
         ? parseFloat(req.body.weight) : null;
 
-    // Required field validation
-    if (!user_id)                           return res.json({ success: false, message: "User ID required." });
     if (!name || !name.trim())              return res.json({ success: false, message: "Full name is required." });
     if (!phone || !phone.trim())            return res.json({ success: false, message: "Phone number is required." });
     if (!dob)                               return res.json({ success: false, message: "Date of birth is required." });
@@ -66,74 +58,95 @@ const saveProfile = (req, res) => {
     if (!blood_group)                       return res.json({ success: false, message: "Blood group is required." });
     if (height === null || weight === null) return res.json({ success: false, message: "Height and weight are required." });
 
-    // Step 1: Update name in users table
-    db.query(
-        "UPDATE users SET name = ? WHERE id = ?",
-        [name.trim(), user_id],
-        (err) => {
-            if (err) {
-                console.error("Update name error:", err.sqlMessage || err.message);
-                return res.json({ success: false, message: "Failed to update name: " + (err.sqlMessage || err.message) });
-            }
+    db.query("UPDATE users SET name = ? WHERE id = ?", [name.trim(), user_id], (err) => {
+        if (err) return res.json({ success: false, message: "Failed to update name." });
 
-            // Step 2: Upsert profile
-            // COALESCE keeps existing profile_image if client sends null
-            const upsertSql = `
-                INSERT INTO user_profiles
-                    (user_id, phone, dob, gender, blood_group, height, weight,
-                     conditions, profile_image)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    phone         = VALUES(phone),
-                    dob           = VALUES(dob),
-                    gender        = VALUES(gender),
-                    blood_group   = VALUES(blood_group),
-                    height        = VALUES(height),
-                    weight        = VALUES(weight),
-                    conditions    = VALUES(conditions),
-                    profile_image = COALESCE(VALUES(profile_image), profile_image),
-                    updated_at    = NOW()
-            `;
+        const upsertSql = `
+            INSERT INTO user_profiles
+                (user_id, phone, dob, gender, blood_group, height, weight, conditions, profile_image)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                phone         = VALUES(phone),
+                dob           = VALUES(dob),
+                gender        = VALUES(gender),
+                blood_group   = VALUES(blood_group),
+                height        = VALUES(height),
+                weight        = VALUES(weight),
+                conditions    = VALUES(conditions),
+                profile_image = COALESCE(VALUES(profile_image), profile_image),
+                updated_at    = NOW()
+        `;
 
-            db.query(upsertSql, [
-                user_id,
-                phone.trim(),
-                dob,
-                gender,
-                blood_group,
-                height,
-                weight,
-                conditions ? conditions.trim() : "None",
-                profile_image || null   // null → COALESCE keeps existing
-            ], (err2) => {
-                if (err2) {
-                    console.error("Upsert profile error:", err2.sqlMessage || err2.message);
-                    return res.json({
-                        success: false,
-                        message: "Failed to save profile: " + (err2.sqlMessage || err2.message)
-                    });
-                }
-                res.json({ success: true, message: "Profile saved successfully." });
-            });
-        }
-    );
+        db.query(upsertSql, [
+            user_id, phone.trim(), dob, gender, blood_group,
+            height, weight,
+            conditions ? conditions.trim() : "None",
+            profile_image || null
+        ], (err2) => {
+            if (err2) return res.json({ success: false, message: "Failed to save profile: " + (err2.sqlMessage || err2.message) });
+            res.json({ success: true, message: "Profile saved successfully." });
+        });
+    });
 };
 
-/* ── DELETE account ───────────────────────────────────────────────── */
-const deleteAccount = (req, res) => {
-    const { user_id } = req.params;
+/* ── DELETE account ───────────────────────────────────────────────
+   CHANGED: requires the user's current password as extra confirmation.
+   This directly answers your question: "if a user wants to delete,
+   they must provide the password."
+   
+   Google-only accounts are exempt (they have no password).
+────────────────────────────────────────────────────────────────── */
+const deleteAccount = async (req, res) => {
+    const requestedId = parseInt(req.params.user_id);
 
-    if (!user_id || isNaN(user_id)) {
-        return res.json({ success: false, message: "Invalid user ID." });
+    // Only the account owner can delete their own account
+    if (!isSelf(req, requestedId)) {
+        return res.status(403).json({ success: false, message: "Access denied." });
     }
 
-    db.query("DELETE FROM users WHERE id = ?", [user_id], (err) => {
-        if (err) {
-            console.error("Delete account error:", err.sqlMessage || err.message);
-            return res.json({ success: false, message: "Failed to delete account." });
+    // CHANGED: require password confirmation before deleting
+    const { password } = req.body;
+
+    try {
+        // Fetch the stored password hash for this user
+        const [rows] = await db.promise().query(
+            "SELECT password, provider FROM users WHERE id = ?",
+            [requestedId]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: false, message: "User not found." });
         }
-        res.json({ success: true, message: "Account deleted." });
-    });
+
+        const user = rows[0];
+
+        // Google-only accounts have no password — skip the check
+        if (user.provider !== "google") {
+            if (!password) {
+                return res.json({
+                    success: false,
+                    message: "Please enter your password to confirm account deletion."
+                });
+            }
+
+            const match = await bcrypt.compare(password, user.password);
+            if (!match) {
+                return res.json({
+                    success: false,
+                    message: "Incorrect password. Account not deleted."
+                });
+            }
+        }
+
+        db.query("DELETE FROM users WHERE id = ?", [requestedId], (err) => {
+            if (err) return res.json({ success: false, message: "Failed to delete account." });
+            res.json({ success: true, message: "Account deleted." });
+        });
+
+    } catch (err) {
+        console.error("Delete account error:", err);
+        return res.json({ success: false, message: "Server error." });
+    }
 };
 
 module.exports = { getProfile, saveProfile, deleteAccount };

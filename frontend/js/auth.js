@@ -1,43 +1,49 @@
-// ============================================
-// DHAS - auth.js (frontend)
-// Handles login & register with DB responses
+// ── CHANGED: stores JWT token; all API calls send Authorization header ──
 //
-// SECURITY: This file receives SHA-256 hashed
-// passwords from login.html / register.html.
-// Plain-text passwords NEVER reach this file.
-// The hash is sent to the backend, where it
-// should be hashed again (bcrypt) before storage.
-// ============================================
+// WHY THIS MATTERS:
+//   Before: fetch("/profile/5", { body: {user_id:5} })
+//     → anyone could change 5 to 999 in DevTools
+//   After:  fetch("/profile/5", { headers: { Authorization: "Bearer <token>" } })
+//     → the server ignores what the frontend claims; it reads user_id from the token
+//
+// STORAGE: token goes in localStorage under "dhas_token".
+// It is sent automatically by the getHeaders() helper below.
+// ─────────────────────────────────────────────────────────────────────
 
+const API = "http://localhost:3006";
 
-// ── LOGIN ─────────────────────────────────────────────────────
-// Called by login.html AFTER the password is hashed.
-// Parameters: email (string), hashedPassword (SHA-256 hex string)
-// ──────────────────────────────────────────────────────────────
+/* ── Helper: build auth headers for every fetch call ────────── */
+function getHeaders() {
+    const token = localStorage.getItem("dhas_token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+    return headers;
+}
+
+/* Expose globally so report.js, reminder.js, symptom.js, etc. can use it */
+window.getAuthHeaders = getHeaders;
+window.API_BASE       = API;
+
+/* ── LOGIN ────────────────────────────────────────────────────── */
 function handleLogin(email, hashedPassword) {
+    if (!email || !hashedPassword) { showError("Please fill in all fields."); return; }
 
-    if (!email || !hashedPassword) {
-        showError("Please fill in all fields.");
-        return;
-    }
-
-    fetch("http://localhost:3006/login", {
-        method: "POST",
+    fetch(API + "/login", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ Only the hash is sent — plain text NEVER leaves the browser
-        body: JSON.stringify({ email, password: hashedPassword })
+        body:    JSON.stringify({ email, password: hashedPassword })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // ✅ Store only safe session info — NEVER store password or hash
-            localStorage.setItem("dhas_user", JSON.stringify(data.user));
+            // CHANGED: store the token alongside the user object
+            localStorage.setItem("dhas_token", data.token);
+            localStorage.setItem("dhas_user",  JSON.stringify(data.user));
             window.location.href = "dashboard.html";
 
         } else if (data.notRegistered) {
             showError("No account found with this email. Please register first.");
             showRegisterLink();
-
         } else {
             showError(data.message || "Login failed. Please try again.");
         }
@@ -48,34 +54,23 @@ function handleLogin(email, hashedPassword) {
     });
 }
 
-
-// ── REGISTER ──────────────────────────────────────────────────
-// Called by register.html AFTER the password is hashed.
-// Parameters: name, email (strings), hashedPassword (SHA-256 hex)
-// ──────────────────────────────────────────────────────────────
+/* ── REGISTER ─────────────────────────────────────────────────── */
 function handleRegister(name, email, hashedPassword) {
+    if (!name || !email || !hashedPassword) { showError("Please fill in all fields."); return; }
 
-    if (!name || !email || !hashedPassword) {
-        showError("Please fill in all fields.");
-        return;
-    }
-
-    fetch("http://localhost:3006/register", {
-        method: "POST",
+    fetch(API + "/register", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ Only the hash is sent — plain text NEVER leaves the browser
-        body: JSON.stringify({ name, email, password: hashedPassword })
+        body:    JSON.stringify({ name, email, password: hashedPassword })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
             showSuccess("Account created successfully! Redirecting to login...");
             setTimeout(() => window.location.href = "login.html", 1500);
-
         } else if (data.alreadyExists) {
             showError("This email is already registered.");
             showLoginLink();
-
         } else {
             showError(data.message || "Registration failed. Please try again.");
         }
@@ -86,32 +81,51 @@ function handleRegister(name, email, hashedPassword) {
     });
 }
 
-
-// ── LOGOUT ────────────────────────────────────────────────────
-// Called from dashboard.html navbar
-// ──────────────────────────────────────────────────────────────
+/* ── LOGOUT ───────────────────────────────────────────────────── */
 function handleLogout() {
     if (confirm("Are you sure you want to logout?")) {
-        localStorage.removeItem("dhas_user");   // clear session only
+        // CHANGED: also clear the token
+        localStorage.removeItem("dhas_user");
+        localStorage.removeItem("dhas_token");
         window.location.href = "login.html";
     }
 }
 
+/* ── GOOGLE AUTH ──────────────────────────────────────────────── */
+async function handleGoogleAuth(name, email, googleId) {
+    try {
+        const res  = await fetch(API + "/auth/google", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ name, email, google_id: googleId })
+        });
+        const data = await res.json();
 
-// ── Show error message ─────────────────────────────────────────
+        if (data.success) {
+            // CHANGED: store token
+            localStorage.setItem("dhas_token", data.token);
+            localStorage.setItem("dhas_user",  JSON.stringify(data.user));
+            window.location.href = "dashboard.html";
+        } else {
+            showError(data.message || "Google sign-in failed.");
+        }
+    } catch (err) {
+        console.error("Google auth error:", err);
+        showError("Cannot connect to server. Make sure backend is running.");
+    }
+}
+
+/* ── UI helpers ────────────────────────────────────────────────── */
 function showError(msg) {
-    // register.html style
-    const el = document.getElementById("errorMsg");
-    const ok = document.getElementById("successMsg");
+    const el  = document.getElementById("errorMsg");
+    const ok  = document.getElementById("successMsg");
     if (ok) ok.style.display = "none";
     if (el) { el.textContent = msg; el.style.display = "block"; }
 
-    // login.html Bootstrap style
     const el2 = document.getElementById("loginError");
-    if (el2) { el2.textContent = msg; el2.classList.remove("d-none"); }
+    if (el2) { el2.textContent = msg; el2.classList.remove("d-none"); el2.style.display = "block"; }
 }
 
-// ── Show success message ───────────────────────────────────────
 function showSuccess(msg) {
     const el = document.getElementById("successMsg");
     const er = document.getElementById("errorMsg");
@@ -119,59 +133,26 @@ function showSuccess(msg) {
     if (el) { el.textContent = msg; el.style.display = "block"; }
 }
 
-// ── "Go to Register" button on login page ─────────────────────
 function showRegisterLink() {
-    let btn = document.getElementById("registerRedirectBtn");
-    if (!btn) {
-        btn = document.createElement("a");
-        btn.id            = "registerRedirectBtn";
-        btn.href          = "register.html";   // ✅ Fixed typo: was "regiester.html"
-        btn.className     = "btn-dhas primary mt-12";
-        btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
-        btn.textContent   = "Go to Register →";
-        const anchor = document.getElementById("loginError") || document.getElementById("errorMsg");
-        if (anchor) anchor.after(btn);
-    }
+    if (document.getElementById("registerRedirectBtn")) return;
+    const btn = document.createElement("a");
+    btn.id        = "registerRedirectBtn";
+    btn.href      = "register.html";
+    btn.className = "btn-dhas primary mt-12";
+    btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
+    btn.textContent   = "Go to Register →";
+    const anchor = document.getElementById("loginError") || document.getElementById("errorMsg");
+    if (anchor) anchor.after(btn);
 }
 
-// ── "Go to Login" button on register page ─────────────────────
 function showLoginLink() {
-    let btn = document.getElementById("loginRedirectBtn");
-    if (!btn) {
-        btn = document.createElement("a");
-        btn.id            = "loginRedirectBtn";
-        btn.href          = "login.html";
-        btn.className     = "btn-dhas primary mt-12";
-        btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
-        btn.textContent   = "Go to Login →";
-        const anchor = document.getElementById("errorMsg");
-        if (anchor) anchor.after(btn);
-    }
-}
-// ── GOOGLE AUTH ───────────────────────────────────────────────
-// Called by handleCredentialResponse in login.html / register.html
-// after decoding the Google JWT. Saves user to DB if new,
-// or logs them in if they already exist.
-// ──────────────────────────────────────────────────────────────
-async function handleGoogleAuth(name, email, googleId) {
-    try {
-        const res = await fetch("http://localhost:3006/auth/google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, google_id: googleId })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            localStorage.setItem("dhas_user", JSON.stringify(data.user));
-            window.location.href = "dashboard.html";
-        } else {
-            showError(data.message || "Google sign-in failed.");
-        }
-
-    } catch (err) {
-        console.error("Google auth error:", err);
-        showError("Cannot connect to server. Make sure backend is running.");
-    }
+    if (document.getElementById("loginRedirectBtn")) return;
+    const btn = document.createElement("a");
+    btn.id        = "loginRedirectBtn";
+    btn.href      = "login.html";
+    btn.className = "btn-dhas primary mt-12";
+    btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
+    btn.textContent   = "Go to Login →";
+    const anchor = document.getElementById("errorMsg");
+    if (anchor) anchor.after(btn);
 }
