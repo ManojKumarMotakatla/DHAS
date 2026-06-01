@@ -82,71 +82,31 @@
     .pi-clear{display:none;margin-top:6px;font-size:.72rem;font-weight:600;color:var(--rose);cursor:pointer}
     .pi-clear.visible{display:inline-block}
 
-    /* ── CROP MODAL ── */
-    .crop-overlay{
-      display:none;position:fixed;inset:0;
-      background:rgba(0,0,0,.85);z-index:500;
-      align-items:center;justify-content:center;
-      padding:18px;backdrop-filter:blur(10px);
-    }
+    /* CROP MODAL */
+    .crop-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(10px);}
     .crop-overlay.open{display:flex}
-    .crop-modal{
-      width:100%;max-width:420px;
-      background:var(--surface);border-radius:28px;
-      border:1px solid var(--border);
-      box-shadow:0 20px 70px rgba(0,0,0,.45);
-      animation:cropPop .24s ease;
-      /* No overflow:hidden here — lets Cropper paint freely */
-    }
+    .crop-modal{width:100%;max-width:420px;background:var(--surface);border-radius:28px;border:1px solid var(--border);box-shadow:0 20px 70px rgba(0,0,0,.45);animation:cropPop .24s ease;}
     .crop-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;border-radius:28px 28px 0 0;}
     .crop-header h3{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;color:var(--text)}
     .crop-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)}
     .crop-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5}
-
-    /* ── CROP CANVAS WRAP ── */
-    .crop-canvas-wrap{
-      position:relative;
-      width:100%;
-      height:340px;
-      background:#0b1120;
-      overflow:hidden;   /* clips the dark background; Cropper still works */
-      display:block;
-    }
-    /* The <img> injected by JS — hidden until Cropper initialises */
-    #cropWrap img {
-      display:block;
-      max-width:100%;
-      opacity:0;
-      transition:opacity .2s;
-    }
-
-    /* Cropper circle style */
+    .crop-canvas-wrap{position:relative;width:100%;height:340px;background:#0b1120;overflow:hidden;display:block;}
+    #cropWrap img{display:block;max-width:100%;opacity:0;transition:opacity .2s;}
     .cropper-view-box,.cropper-face{border-radius:50%}
     .cropper-view-box{outline:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
     .cropper-dashed,.cropper-center,.cropper-line{display:none !important}
     .cropper-bg{background-image:none !important;background:#111827 !important}
-
-    /* ── CROP CONTROLS ── */
     .crop-controls{padding:14px 16px 16px;border-top:1px solid var(--border)}
     .crop-tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
-    .tool-btn{
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:5px;padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);
-      background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
-      font-size:.7rem;font-weight:600;cursor:pointer;transition:all .18s;line-height:1;user-select:none;
-    }
+    .tool-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .18s;line-height:1;user-select:none;}
     .tool-btn:hover{border-color:var(--blue);color:var(--blue);background:rgba(42,108,246,.07)}
     .tool-btn:active{transform:scale(.95)}
     .tool-btn .t-icon{font-size:1.15rem;line-height:1}
     .tool-btn .t-label{font-size:.64rem;font-weight:600;color:inherit;opacity:.8}
-    .tool-btn.reset-btn{
-      grid-column:span 4;flex-direction:row;gap:7px;padding:8px 12px;
-      background:rgba(42,108,246,.06);color:var(--blue);border-color:rgba(42,108,246,.2);
-    }
+    .tool-btn.reset-btn{grid-column:span 4;flex-direction:row;gap:7px;padding:8px 12px;background:rgba(42,108,246,.06);color:var(--blue);border-color:rgba(42,108,246,.2);}
     .tool-btn.reset-btn:hover{background:rgba(42,108,246,.12);border-color:var(--blue)}
     .tool-btn.reset-btn .t-icon{font-size:1rem}
     .tool-btn.reset-btn .t-label{font-size:.75rem;opacity:1}
-
     .crop-actions{display:flex;gap:10px}
     .crop-btn{flex:1;padding:11px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;border:none;transition:all .18s}
     .crop-btn.cancel{background:var(--bg);color:var(--text);border:1px solid var(--border)}
@@ -213,7 +173,6 @@
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
       Personal Information
     </div>
-
     <!-- PHOTO UPLOAD -->
     <div class="photo-field" onclick="document.getElementById('fPhoto').click()">
       <div class="photo-preview" id="photoPreview">
@@ -329,20 +288,16 @@
   <button class="btn btn-save"    id="btnSave" onclick="saveProfile()" style="display:none;">Save Profile ✓</button>
 </div>
 
-<!-- ── CROP MODAL ── -->
+<!-- CROP MODAL -->
 <div class="crop-overlay" id="cropOverlay">
   <div class="crop-modal">
-
     <div class="crop-header">
       <h3>Adjust Photo</h3>
       <div class="crop-close" onclick="closeCrop()">
         <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
       </div>
     </div>
-
-    <!-- <img> is injected here dynamically — never put a static <img> here -->
     <div class="crop-canvas-wrap" id="cropWrap"></div>
-
     <div class="crop-controls">
       <div class="crop-tools">
         <button class="tool-btn" type="button" id="btnRotateL">
@@ -366,15 +321,10 @@
         <button class="crop-btn apply"  type="button" id="btnCropApply">Use this photo</button>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     SCRIPT
-════════════════════════════════════════════ -->
 <script>
-/* ── Auth & theme ─────────────────────────────────────────── */
 const BASE = "http://localhost:3006";
 const user = JSON.parse(localStorage.getItem("dhas_user"));
 if (!user) window.location.href = "login.html";
@@ -386,14 +336,17 @@ if (userId !== null && user.id === undefined) {
   localStorage.setItem("dhas_user", JSON.stringify(user));
 }
 
+// ── Auth headers helper ──────────────────────────────────────
+function authHeaders(extraHeaders) {
+  const token = localStorage.getItem("dhas_token");
+  const h = { "Content-Type": "application/json", ...extraHeaders };
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+
 let currentStep = 1;
 const TOTAL = 3;
 
-/* ── Photo state ──────────────────────────────────────────────
-   null      → keep existing photo on save (no change)
-   ""        → clear photo on save
-   "data:…"  → new photo data to upload
-──────────────────────────────────────────────────────────────── */
 let photoBase64 = null;
 
 function camBadgeHTML() {
@@ -426,212 +379,92 @@ function clearPhoto(e) {
   setPhotoPreview(null);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CROP ENGINE  — completely rewritten to fix all issues
-   ═══════════════════════════════════════════════════════════
-
-   Root causes fixed:
-   1. Static <img id="cropImage"> replaced with dynamic creation
-      → eliminates stale-reference and cached-image race conditions
-   2. Double rAF after overlay opens
-      → ensures the container has painted before Cropper measures it
-   3. All control buttons query the current cropper instance at
-      call-time via addEventListener, not a captured reference
-   4. closeCrop() empties #cropWrap so there's no ghost element
-   ═══════════════════════════════════════════════════════════ */
-
+/* ── CROP ENGINE ─────────────────────────────────────────────── */
 const cropOverlay = document.getElementById("cropOverlay");
 const cropWrap    = document.getElementById("cropWrap");
-
 let cropper      = null;
 let currentScaleX = 1;
 let currentScaleY = 1;
 
-/* Safely destroy an existing Cropper.js instance */
 function destroyCropper() {
-  if (cropper) {
-    try { cropper.destroy(); } catch (_) {}
-    cropper = null;
-  }
+  if (cropper) { try { cropper.destroy(); } catch (_) {} cropper = null; }
 }
 
-/* ── openCrop ──────────────────────────────────────────────────
-   Called with a data-URL from the FileReader.
-   Always creates a brand-new <img> so there are zero caching
-   or stale-element issues.
-──────────────────────────────────────────────────────────────── */
 function openCrop(imgSrc) {
   destroyCropper();
-  cropWrap.innerHTML = ""; // nuke any leftover <img>
-
-  /* Create fresh <img> */
+  cropWrap.innerHTML = "";
   const img = document.createElement("img");
   img.id = "cropImage";
   img.style.cssText = "display:block;max-width:100%;max-height:340px;opacity:0;transition:opacity .2s;";
   cropWrap.appendChild(img);
-
-  /* Show overlay so the container gets real pixel dimensions */
   cropOverlay.classList.add("open");
-
-  /* Bind onload BEFORE setting src */
   img.onload = function () {
     img.style.opacity = "1";
-    /* Double rAF: first frame commits the overlay display,
-       second frame commits the image paint — then Cropper can
-       safely read offsetWidth / offsetHeight */
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        initCropper();
-      });
-    });
+    requestAnimationFrame(() => requestAnimationFrame(() => initCropper()));
   };
-
   img.src = imgSrc;
-
-  /* Guard: browser may serve a cached data-URL synchronously */
   if (img.complete && img.naturalWidth > 0) {
-    img.onload = null;
-    img.style.opacity = "1";
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        initCropper();
-      });
-    });
+    img.onload = null; img.style.opacity = "1";
+    requestAnimationFrame(() => requestAnimationFrame(() => initCropper()));
   }
 }
 
-/* ── initCropper ───────────────────────────────────────────────
-   Always queries #cropImage fresh — it was just created by
-   openCrop(), so document.getElementById is safe here.
-──────────────────────────────────────────────────────────────── */
 function initCropper() {
   destroyCropper();
-  currentScaleX = 1;
-  currentScaleY = 1;
-
+  currentScaleX = 1; currentScaleY = 1;
   const img = document.getElementById("cropImage");
-  if (!img || img.naturalWidth === 0) {
-    console.error("DHAS Crop: image not ready for Cropper init");
-    return;
-  }
-
+  if (!img || img.naturalWidth === 0) return;
   cropper = new Cropper(img, {
-    aspectRatio:              1,
-    viewMode:                 1,     // restrict crop box to canvas
-    dragMode:                 "move",
-    autoCropArea:             0.85,
-    background:               false,
-    guides:                   false,
-    center:                   false,
-    highlight:                false,
-    cropBoxMovable:           false,
-    cropBoxResizable:         false,
-    toggleDragModeOnDblclick: false,
-    movable:                  true,
-    zoomable:                 true,
-    rotatable:                true,
-    scalable:                 true,
-    responsive:               true,
-    wheelZoomRatio:           0.08,
-    minContainerWidth:        280,
-    minContainerHeight:       280,
-    ready: function () {
-      console.log("DHAS Crop: Cropper.js ready ✓");
-    }
+    aspectRatio:1, viewMode:1, dragMode:"move", autoCropArea:0.85,
+    background:false, guides:false, center:false, highlight:false,
+    cropBoxMovable:false, cropBoxResizable:false, toggleDragModeOnDblclick:false,
+    movable:true, zoomable:true, rotatable:true, scalable:true, responsive:true,
+    wheelZoomRatio:0.08, minContainerWidth:280, minContainerHeight:280
   });
 }
 
-/* ── closeCrop ── */
 function closeCrop() {
   cropOverlay.classList.remove("open");
   destroyCropper();
-  cropWrap.innerHTML = ""; // clean up so no ghost img lingers
+  cropWrap.innerHTML = "";
 }
 
-/* ── applyCrop ─────────────────────────────────────────────────
-   Exports a 500×500 circular JPEG from the crop selection.
-──────────────────────────────────────────────────────────────── */
 function applyCrop() {
-  if (!cropper) {
-    console.error("DHAS Crop: no active cropper — cannot apply");
-    return;
-  }
-
-  const rawCanvas = cropper.getCroppedCanvas({
-    width:                 500,
-    height:                500,
-    imageSmoothingEnabled: true,
-    imageSmoothingQuality: "high"
-  });
-
-  if (!rawCanvas) {
-    console.error("DHAS Crop: getCroppedCanvas() returned null");
-    return;
-  }
-
-  /* Clip to a circle */
+  if (!cropper) return;
+  const rawCanvas = cropper.getCroppedCanvas({ width:500, height:500, imageSmoothingEnabled:true, imageSmoothingQuality:"high" });
+  if (!rawCanvas) return;
   const out = document.createElement("canvas");
-  out.width  = 500;
-  out.height = 500;
-  const ctx  = out.getContext("2d");
-  ctx.beginPath();
-  ctx.arc(250, 250, 250, 0, Math.PI * 2);
-  ctx.closePath();
-  ctx.clip();
-  ctx.drawImage(rawCanvas, 0, 0, 500, 500);
-
-  photoBase64 = out.toDataURL("image/jpeg", 0.82);
+  out.width = out.height = 500;
+  const ctx = out.getContext("2d");
+  ctx.beginPath(); ctx.arc(250,250,250,0,Math.PI*2); ctx.closePath(); ctx.clip();
+  ctx.drawImage(rawCanvas,0,0,500,500);
+  photoBase64 = out.toDataURL("image/jpeg",0.82);
   setPhotoPreview(photoBase64);
   closeCrop();
 }
 
-/* ── Control button bindings (addEventListener, not inline) ── */
-document.getElementById("btnRotateL").addEventListener("click", function () {
-  if (cropper) cropper.rotate(-90);
-});
-document.getElementById("btnRotateR").addEventListener("click", function () {
-  if (cropper) cropper.rotate(90);
-});
-document.getElementById("btnFlipX").addEventListener("click", function () {
-  if (!cropper) return;
-  currentScaleX *= -1;
-  cropper.scaleX(currentScaleX);
-});
-document.getElementById("btnFlipY").addEventListener("click", function () {
-  if (!cropper) return;
-  currentScaleY *= -1;
-  cropper.scaleY(currentScaleY);
-});
-document.getElementById("btnReset").addEventListener("click", function () {
-  if (!cropper) return;
-  currentScaleX = 1;
-  currentScaleY = 1;
-  cropper.reset();
-});
+document.getElementById("btnRotateL").addEventListener("click", () => { if(cropper) cropper.rotate(-90); });
+document.getElementById("btnRotateR").addEventListener("click", () => { if(cropper) cropper.rotate(90); });
+document.getElementById("btnFlipX").addEventListener("click",   () => { if(!cropper) return; currentScaleX*=-1; cropper.scaleX(currentScaleX); });
+document.getElementById("btnFlipY").addEventListener("click",   () => { if(!cropper) return; currentScaleY*=-1; cropper.scaleY(currentScaleY); });
+document.getElementById("btnReset").addEventListener("click",   () => { if(!cropper) return; currentScaleX=1; currentScaleY=1; cropper.reset(); });
 document.getElementById("btnCropCancel").addEventListener("click", closeCrop);
-document.getElementById("btnCropApply").addEventListener("click", applyCrop);
+document.getElementById("btnCropApply").addEventListener("click",  applyCrop);
+document.addEventListener("keydown", e => { if(e.key==="Escape" && cropOverlay.classList.contains("open")) closeCrop(); });
 
-/* Keyboard: Escape closes the modal */
-document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape" && cropOverlay.classList.contains("open")) closeCrop();
-});
-
-/* ── File input ── */
 function handlePhotoSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = function (ev) { openCrop(ev.target.result); };
+  reader.onload = ev => openCrop(ev.target.result);
   reader.readAsDataURL(file);
-  e.target.value = ""; // allow re-selecting the same file
+  e.target.value = "";
 }
 
-/* ═══════════════════════════════════════════
-   PRE-FILL form from server
-════════════════════════════════════════════ */
+/* ── PRE-FILL from server ─────────────────────────────────────── */
 async function prefill() {
   try {
-    const res  = await fetch(`${BASE}/profile/${userId}`);
+    // ── FIX: send JWT token ──
+    const res  = await fetch(`${BASE}/profile/${userId}`, { headers: authHeaders() });
     const data = await res.json();
     const p    = (data.success && data.profile) ? data.profile : {};
 
@@ -646,7 +479,7 @@ async function prefill() {
 
     const existingPhoto = p.profile_image || user.profile_image || null;
     setPhotoPreview(existingPhoto || null);
-    photoBase64 = existingPhoto ? null : null; // null = keep on save
+    photoBase64 = null;
   } catch (e) {
     console.error("Prefill error:", e);
     document.getElementById("fName").value = user.name || "";
@@ -655,9 +488,7 @@ async function prefill() {
 }
 prefill();
 
-/* ═══════════════════════════════════════════
-   STEP NAVIGATION
-════════════════════════════════════════════ */
+/* ── STEP NAVIGATION ─────────────────────────────────────────── */
 function updateStepUI() {
   for (let i = 1; i <= TOTAL; i++) {
     const dot = document.getElementById(`dot${i}`);
@@ -682,136 +513,109 @@ function updateStepUI() {
   if (currentStep === TOTAL) buildReview();
 }
 
-/* ═══════════════════════════════════════════
-   VALIDATION
-════════════════════════════════════════════ */
+/* ── VALIDATION ──────────────────────────────────────────────── */
 function showError(msg) {
   const b = document.getElementById("errorBox");
-  b.textContent = msg;
-  b.style.display = "block";
-  b.scrollIntoView({ behavior: "smooth", block: "center" });
+  b.textContent = msg; b.style.display = "block";
+  b.scrollIntoView({ behavior:"smooth", block:"center" });
 }
-function clearError() {
-  document.getElementById("errorBox").style.display = "none";
-}
+function clearError() { document.getElementById("errorBox").style.display = "none"; }
 
 function validateStep(step) {
   clearError();
   if (step === 1) {
-    if (!document.getElementById("fName").value.trim())
-      { showError("Full name is required."); return false; }
-    const ph = document.getElementById("fPhone").value.replace(/\s+/g, "").trim();
-    if (!ph || !/^[6-9]\d{9}$/.test(ph))
-      { showError("Enter a valid 10-digit Indian mobile number."); return false; }
-    if (!document.getElementById("fDob").value)
-      { showError("Date of birth is required."); return false; }
-    if (!document.getElementById("fGender").value)
-      { showError("Please select your gender."); return false; }
+    if (!document.getElementById("fName").value.trim())   { showError("Full name is required."); return false; }
+    const ph = document.getElementById("fPhone").value.replace(/\s+/g,"").trim();
+    if (!ph || !/^[6-9]\d{9}$/.test(ph))                  { showError("Enter a valid 10-digit Indian mobile number."); return false; }
+    if (!document.getElementById("fDob").value)            { showError("Date of birth is required."); return false; }
+    if (!document.getElementById("fGender").value)         { showError("Please select your gender."); return false; }
   }
   if (step === 2) {
-    if (!document.getElementById("fBlood").value)
-      { showError("Please select your blood group."); return false; }
-    if (!document.getElementById("fHeight").value)
-      { showError("Height is required."); return false; }
-    if (!document.getElementById("fWeight").value)
-      { showError("Weight is required."); return false; }
+    if (!document.getElementById("fBlood").value)          { showError("Please select your blood group."); return false; }
+    if (!document.getElementById("fHeight").value)         { showError("Height is required."); return false; }
+    if (!document.getElementById("fWeight").value)         { showError("Weight is required."); return false; }
   }
   return true;
 }
 
 function goNext() {
   if (!validateStep(currentStep)) return;
-  if (currentStep < TOTAL) {
-    currentStep++;
-    updateStepUI();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  if (currentStep < TOTAL) { currentStep++; updateStepUI(); window.scrollTo({top:0,behavior:"smooth"}); }
 }
 function goBack() {
-  if (currentStep > 1) {
-    currentStep--;
-    updateStepUI();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  if (currentStep > 1) { currentStep--; updateStepUI(); window.scrollTo({top:0,behavior:"smooth"}); }
 }
 
-/* ═══════════════════════════════════════════
-   REVIEW PAGE
-════════════════════════════════════════════ */
+/* ── REVIEW PAGE ─────────────────────────────────────────────── */
 function buildReview() {
   const rows = [
-    { k: "Full Name",     v: document.getElementById("fName").value },
-    { k: "Phone",         v: "+91 " + document.getElementById("fPhone").value },
-    { k: "Date of Birth", v: document.getElementById("fDob").value },
-    { k: "Gender",        v: document.getElementById("fGender").value },
-    { k: "Blood Group",   v: document.getElementById("fBlood").value },
-    { k: "Height",        v: document.getElementById("fHeight").value + " cm" },
-    { k: "Weight",        v: document.getElementById("fWeight").value + " kg" },
-    { k: "Conditions",    v: document.getElementById("fConditions").value || "None" },
-    { k: "Photo",         v: photoBase64 ? "New photo selected" : (photoBase64 === "" ? "Remove photo" : "Keep existing") },
+    { k:"Full Name",     v:document.getElementById("fName").value },
+    { k:"Phone",         v:"+91 "+document.getElementById("fPhone").value },
+    { k:"Date of Birth", v:document.getElementById("fDob").value },
+    { k:"Gender",        v:document.getElementById("fGender").value },
+    { k:"Blood Group",   v:document.getElementById("fBlood").value },
+    { k:"Height",        v:document.getElementById("fHeight").value+" cm" },
+    { k:"Weight",        v:document.getElementById("fWeight").value+" kg" },
+    { k:"Conditions",    v:document.getElementById("fConditions").value || "None" },
+    { k:"Photo",         v:photoBase64?"New photo selected":(photoBase64===""?"Remove photo":"Keep existing") },
   ];
-  document.getElementById("reviewContent").innerHTML = rows.map(r => `
+  document.getElementById("reviewContent").innerHTML = rows.map(r=>`
     <div class="review-row">
       <div class="rr-key">${r.k}</div>
-      <div class="rr-val">${r.v || "—"}</div>
-    </div>
-  `).join("");
+      <div class="rr-val">${r.v||"—"}</div>
+    </div>`).join("");
 }
 
-/* ═══════════════════════════════════════════
-   SAVE PROFILE
-════════════════════════════════════════════ */
+/* ── SAVE PROFILE ─────────────────────────────────────────────── */
 async function saveProfile() {
   clearError();
-  const btn       = document.getElementById("btnSave");
-  btn.disabled    = true;
-  btn.textContent = "Saving…";
+  const btn = document.getElementById("btnSave");
+  btn.disabled = true; btn.textContent = "Saving…";
 
   try {
+    // ── FIX: send JWT token ──
     const res = await fetch(`${BASE}/profile/save`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({
         user_id:       userId,
         name:          document.getElementById("fName").value.trim(),
-        phone:         "+91" + document.getElementById("fPhone").value.replace(/\s+/g, "").trim(),
+        phone:         "+91"+document.getElementById("fPhone").value.replace(/\s+/g,"").trim(),
         dob:           document.getElementById("fDob").value,
         gender:        document.getElementById("fGender").value,
         blood_group:   document.getElementById("fBlood").value,
         height:        document.getElementById("fHeight").value,
         weight:        document.getElementById("fWeight").value,
         conditions:    document.getElementById("fConditions").value.trim() || "None",
-        profile_image: photoBase64   // null=keep | ""=clear | "data:…"=new
+        profile_image: photoBase64
       })
     });
 
     const data = await res.json();
     if (data.success) {
-      /* Refresh local user cache */
       let updatedImage = user.profile_image || null;
       try {
-        const fresh = await fetch(`${BASE}/profile/${userId}`).then(r => r.json());
+        // ── FIX: send JWT token for refresh fetch ──
+        const fresh = await fetch(`${BASE}/profile/${userId}`, { headers: authHeaders() }).then(r=>r.json());
         if (fresh.success && fresh.profile) updatedImage = fresh.profile.profile_image || null;
-      } catch (_) {}
+      } catch(_) {}
 
       localStorage.setItem("dhas_user", JSON.stringify({
         ...user,
-        name:          document.getElementById("fName").value.trim(),
+        name: document.getElementById("fName").value.trim(),
         profile_image: updatedImage
       }));
 
       document.getElementById("successBanner").style.display = "flex";
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({top:0,behavior:"smooth"});
       setTimeout(() => window.location.href = "profile.html", 1800);
     } else {
       showError((data.message || "Failed to save. Please try again.") + " (user_id: " + userId + ")");
-      btn.disabled    = false;
-      btn.textContent = "Save Profile ✓";
+      btn.disabled = false; btn.textContent = "Save Profile ✓";
     }
-  } catch (e) {
+  } catch(e) {
     showError("Cannot connect to server. Is it running on " + BASE + "?");
-    btn.disabled    = false;
-    btn.textContent = "Save Profile ✓";
+    btn.disabled = false; btn.textContent = "Save Profile ✓";
   }
 }
 </script>

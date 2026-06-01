@@ -301,6 +301,14 @@ if (userId !== null && user.id === undefined) {
   localStorage.setItem("dhas_user", JSON.stringify(user));
 }
 
+// ── Auth headers helper (token from localStorage) ────────────
+function authHeaders() {
+  const token = localStorage.getItem("dhas_token");
+  const h = { "Content-Type": "application/json" };
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+
 function showApiBanner(msg) {
   const b = document.getElementById("apiBanner");
   b.textContent = "⚠ " + msg; b.style.display = "block";
@@ -313,7 +321,6 @@ function sv(val, id) {
   else     { el.textContent = "Not set"; el.classList.add("empty"); }
 }
 
-// Emergency contact removed from progress tracking
 const FIELDS = [
   {key:"phone",label:"Phone"},{key:"dob",label:"Date of Birth"},
   {key:"gender",label:"Gender"},{key:"blood_group",label:"Blood Group"},
@@ -340,7 +347,11 @@ async function load() {
     showApiBanner("User ID missing — please log out and log in again.");
   } else {
     try {
-      const pd = await fetch(`${BASE}/profile/${userId}`).then(r => r.json());
+      // ── FIX: send JWT token with every request ──
+      const pd = await fetch(`${BASE}/profile/${userId}`, {
+        headers: authHeaders()
+      }).then(r => r.json());
+
       if (pd.success && pd.profile) {
         p = pd.profile;
         if (p.profile_image !== user.profile_image) {
@@ -356,8 +367,16 @@ async function load() {
   }
 
   let reminderCount = 0, reportCount = 0;
-  try { const r = await fetch(`${BASE}/reminders/${userId}`).then(r=>r.json()); reminderCount = r.success ? (r.data||r.reminders||[]).length : 0; } catch(_){}
-  try { const r = await fetch(`${BASE}/reports/${userId}`).then(r=>r.json());   reportCount   = r.success ? (r.data||r.reports||[]).length   : 0; } catch(_){}
+  try {
+    // ── FIX: send JWT token ──
+    const r = await fetch(`${BASE}/reminders/${userId}`, { headers: authHeaders() }).then(r => r.json());
+    reminderCount = r.success ? (r.data || r.reminders || []).length : 0;
+  } catch(_) {}
+  try {
+    // ── FIX: send JWT token ──
+    const r = await fetch(`${BASE}/reports/${userId}`, { headers: authHeaders() }).then(r => r.json());
+    reportCount = r.success ? (r.data || r.reports || []).length : 0;
+  } catch(_) {}
 
   document.getElementById("statS").textContent = p.symptom_count ?? 0;
   document.getElementById("statR").textContent = reportCount;
@@ -405,59 +424,53 @@ async function load() {
 load();
 
 async function confirmDelete() {
-    // First confirmation
-    if (!confirm("Permanently delete your account and all health data?")) return;
+  if (!confirm("Permanently delete your account and all health data?")) return;
 
-    const user    = JSON.parse(localStorage.getItem("dhas_user") || "{}");
-    const profile = await fetch(
-        window.API_BASE + "/profile/" + user.id,
-        { headers: window.getAuthHeaders() }
-    ).then(r => r.json()).catch(() => ({}));
+  // ── FIX: use authHeaders() for profile fetch ──
+  const profileRes = await fetch(`${BASE}/profile/${userId}`, {
+    headers: authHeaders()
+  }).then(r => r.json()).catch(() => ({}));
 
-    const isGoogleOnly = (profile.profile && profile.profile.provider === "google" && !profile.profile.password);
+  const isGoogleOnly = (
+    profileRes.profile &&
+    profileRes.profile.provider === "google" &&
+    !profileRes.profile.password
+  );
 
-    let password = null;
-    if (!isGoogleOnly) {
-        // CHANGED: ask for password before deleting
-        password = prompt(
-            "Enter your account password to confirm permanent deletion.\n\n" +
-            "This action cannot be undone."
-        );
-        if (password === null) return; // user cancelled
-        if (!password.trim()) {
-            alert("Password is required to delete your account.");
-            return;
-        }
-        // Hash the password the same way login does (SHA-256)
-        const buf      = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
-        password       = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  let password = null;
+  if (!isGoogleOnly) {
+    password = prompt(
+      "Enter your account password to confirm permanent deletion.\n\nThis action cannot be undone."
+    );
+    if (password === null) return;
+    if (!password.trim()) { alert("Password is required to delete your account."); return; }
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
+    password = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  } else {
+    if (!confirm("Final confirmation — this cannot be undone.")) return;
+  }
+
+  try {
+    // ── FIX: send JWT + password in delete request ──
+    const headers = authHeaders();
+    const res = await fetch(`${BASE}/profile/${userId}`, {
+      method:  "DELETE",
+      headers: headers,
+      body:    JSON.stringify({ password })
+    });
+    const d = await res.json();
+
+    if (d.success) {
+      localStorage.removeItem("dhas_user");
+      localStorage.removeItem("dhas_token");
+      window.location.href = "login.html";
     } else {
-        if (!confirm("Final confirmation — this cannot be undone.")) return;
+      alert("Failed: " + d.message);
     }
-
-    try {
-        const res = await fetch(
-            window.API_BASE + "/profile/" + user.id,
-            {
-                method:  "DELETE",
-                headers: window.getAuthHeaders(),
-                body:    JSON.stringify({ password })  // null for Google accounts
-            }
-        );
-        const d = await res.json();
-
-        if (d.success) {
-            localStorage.removeItem("dhas_user");
-            localStorage.removeItem("dhas_token");
-            window.location.href = "login.html";
-        } else {
-            alert("Failed: " + d.message);
-        }
-    } catch {
-        alert("Cannot connect to server.");
-    }
+  } catch {
+    alert("Cannot connect to server.");
+  }
 }
-
 </script>
 
 </body>
