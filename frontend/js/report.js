@@ -1,13 +1,21 @@
+
 // ============================================
-// DHAS - report.js (icons edition)
+// DHAS - report.js (icons edition + auth headers)
 // Upload, view, and delete medical reports
-// Files stored as base64 in MySQL database
 // ============================================
 
 const BASE_URL = "http://localhost:3006";
 
 function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));
+}
+
+// ── JWT auth helper ───────────────────────────────────────────
+function getAuthHeaders(extra) {
+    const token = localStorage.getItem("dhas_token");
+    const h = { "Content-Type": "application/json", ...extra };
+    if (token) h["Authorization"] = "Bearer " + token;
+    return h;
 }
 
 // ── In-page toast ──────────────────────────────────────────────
@@ -58,7 +66,9 @@ async function showReportViewer(id) {
     viewerSection.innerHTML = `<p style="text-align:center;color:#888;padding:40px 0;">Loading report…</p>`;
 
     try {
-        const res  = await fetch(`${BASE_URL}/reports/view/${id}`);
+        const res  = await fetch(`${BASE_URL}/reports/view/${id}`, {
+            headers: getAuthHeaders()   // ← FIXED
+        });
         const data = await res.json();
 
         if (!data.success || !data.dataurl) {
@@ -175,7 +185,7 @@ function uploadReport() {
         try {
             const res = await fetch(`${BASE_URL}/reports/upload`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders(),   // ← FIXED
                 body: JSON.stringify({
                     user_id:  user.id,
                     filename: file.name,
@@ -221,7 +231,9 @@ async function displayReports() {
     list.innerHTML = `<p style="text-align:center;color:#888;">Loading reports...</p>`;
 
     try {
-        const res  = await fetch(`${BASE_URL}/reports/${user.id}`);
+        const res  = await fetch(`${BASE_URL}/reports/${user.id}`, {
+            headers: getAuthHeaders()   // ← FIXED
+        });
         const data = await res.json();
 
         if (!data.success || data.data.length === 0) {
@@ -280,7 +292,10 @@ async function deleteReport(id) {
 
     delete _pendingDelete[id];
     try {
-        const res  = await fetch(`${BASE_URL}/reports/${id}`, { method: "DELETE" });
+        const res  = await fetch(`${BASE_URL}/reports/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()   // ← FIXED
+        });
         const data = await res.json();
 
         if (data.success) {
@@ -309,3 +324,4 @@ function fileIconEl(type) {
     if (type.startsWith("image/"))      return { iconEl: "ti-photo",         iconLabel: "Image" };
     return { iconEl: "ti-file", iconLabel: "File" };
 }
+
