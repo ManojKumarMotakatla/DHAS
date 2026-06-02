@@ -40,7 +40,10 @@
     html.dark .dhas-alert.success,body.dark .dhas-alert.success{background:rgba(34,208,122,.12);border-color:rgba(34,208,122,.3);color:#6ee7b7;}
     html.dark p,body.dark p{color:#7d93c3;}
     html.dark a,body.dark a{color:#7aafff;}
-    /* ─────────────────────── */
+
+    /* ─── EMAIL STATUS HINT ─── */
+    html.dark .email-status.warn,body.dark .email-status.warn{color:#fbbf24;}
+    html.dark .email-status.warn strong{color:#fde68a;}
 
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;transition:background .35s,color .35s;color:var(--text);}
@@ -81,8 +84,13 @@
     .req-list li{display:flex;align-items:center;gap:6px;color:var(--muted);margin-bottom:3px;transition:color .25s;}
     .req-list li::before{content:"✗";font-weight:700;color:#e74c3c;min-width:14px;}
     .req-list li.ok{color:#27ae60;}.req-list li.ok::before{content:"✓";color:#27ae60;}
+
+    /* email status */
     .email-status{font-size:.75rem;margin-top:3px;margin-bottom:10px;display:none;}
-    .email-status.valid{color:#27ae60;display:block;}.email-status.invalid{color:#e74c3c;display:block;}
+    .email-status.valid{color:#27ae60;display:block;}
+    .email-status.invalid{color:#e74c3c;display:block;}
+    .email-status.warn{color:#d97706;display:block;}
+
     .strength-bar-wrap{display:flex;gap:4px;margin-top:6px;}
     .strength-label{font-size:.75rem;margin-top:4px;font-weight:600;}
     p{color:var(--muted);}
@@ -115,7 +123,8 @@
     <input type="text" id="name" class="dhas-input" placeholder="Your full name">
 
     <label class="dhas-label">Email Address</label>
-    <input type="email" id="email" class="dhas-input" placeholder="you@example.com" oninput="validateEmail(this.value)">
+    <input type="email" id="email" class="dhas-input" placeholder="you@example.com"
+           oninput="validateEmail(this.value)">
     <div class="email-status" id="emailStatus"></div>
 
     <label class="dhas-label">Password</label>
@@ -171,24 +180,112 @@
 </div>
 
 <script>
-  function validateEmail(email) {
-    const s = document.getElementById("emailStatus");
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!email.length) { s.textContent=""; s.className="email-status"; return; }
-    s.textContent = ok ? "✓ Email looks good" : "✗ Invalid email format";
-    s.className   = "email-status " + (ok ? "valid" : "invalid");
+  // ─────────────────────────────────────────────────────────────
+  // EMAIL VALIDATION
+  // ─────────────────────────────────────────────────────────────
+
+  // Known common-domain typos → correct spelling
+  const DOMAIN_HINTS = {
+    "gmial.com":"gmail.com",   "gmai.com":"gmail.com",
+    "gmal.com":"gmail.com",    "gmil.com":"gmail.com",
+    "gmaill.com":"gmail.com",  "gmail.co":"gmail.com",
+    "gmail.cm":"gmail.com",    "gmail.con":"gmail.com",
+    "gmail.cpm":"gmail.com",   "gamil.com":"gmail.com",
+    "gnail.com":"gmail.com",   "gmail.om":"gmail.com",
+    "yahooo.com":"yahoo.com",  "yaho.com":"yahoo.com",
+    "yahoo.co":"yahoo.com",    "yahoo.cm":"yahoo.com",
+    "ymail.com":"yahoo.com",   "yahooo.in":"yahoo.com",
+    "hotmial.com":"hotmail.com","hotmail.co":"hotmail.com",
+    "hotmail.cm":"hotmail.com","hotmall.com":"hotmail.com",
+    "outlok.com":"outlook.com","outook.com":"outlook.com",
+    "otulook.com":"outlook.com","outlook.co":"outlook.com",
+    "outlookk.com":"outlook.com",
+  };
+
+  // Strict regex:
+  //   - local part: at least 1 char, no spaces or @
+  //   - @ exactly once
+  //   - domain: proper labels (letters/digits/hyphens), no consecutive dots
+  //   - TLD: 2–10 alpha characters only (rejects purely numeric TLDs)
+  const EMAIL_RE = /^[^\s@]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,10}$/;
+
+  function isValidEmailFormat(email) {
+    return EMAIL_RE.test(email);
   }
 
+  function getDomainHint(email) {
+    const parts = email.split("@");
+    if (parts.length !== 2) return null;
+    return DOMAIN_HINTS[parts[1].toLowerCase()] || null;
+  }
+
+  function validateEmail(email) {
+    const s   = document.getElementById("emailStatus");
+    const raw = email.trim();
+
+    if (!raw.length) {
+      s.textContent = "";
+      s.className   = "email-status";
+      return;
+    }
+
+    const hint = getDomainHint(raw);
+
+    if (!isValidEmailFormat(raw)) {
+      // Typo domain takes priority — gives a more helpful message
+      if (hint) {
+        const local = raw.split("@")[0];
+        s.innerHTML   = `✗ Did you mean <strong>${local}@${hint}</strong>?`;
+        s.className   = "email-status invalid";
+      } else if (!raw.includes("@")) {
+        s.textContent = "✗ Missing @ symbol";
+        s.className   = "email-status invalid";
+      } else if (raw.indexOf("@") === raw.lastIndexOf("@") && !raw.split("@")[1].includes(".")) {
+        s.textContent = "✗ Missing domain extension (e.g. .com, .in)";
+        s.className   = "email-status invalid";
+      } else {
+        s.textContent = "✗ Invalid email — check spelling and format (e.g. name@gmail.com)";
+        s.className   = "email-status invalid";
+      }
+      return;
+    }
+
+    // Format is technically valid but domain is a known typo
+    if (hint) {
+      const local = raw.split("@")[0];
+      s.innerHTML = `⚠ Did you mean <strong>${local}@${hint}</strong>?`;
+      s.className = "email-status warn";
+      return;
+    }
+
+    s.textContent = "✓ Email looks good";
+    s.className   = "email-status valid";
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // PASSWORD TOGGLE
+  // ─────────────────────────────────────────────────────────────
   function togglePw(fieldId, iconId) {
-    const field = document.getElementById(fieldId);
-    const icon  = document.getElementById(iconId);
+    const field  = document.getElementById(fieldId);
+    const icon   = document.getElementById(iconId);
     const hiding = field.type === "password";
     field.type   = hiding ? "text" : "password";
     icon.innerHTML = hiding
-      ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
-      : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      ? `<path stroke-linecap="round" stroke-linejoin="round"
+             d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+                a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5
+                c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02
+                M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+      : `<path stroke-linecap="round" stroke-linejoin="round"
+             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+         <path stroke-linecap="round" stroke-linejoin="round"
+             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+                -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // PASSWORD STRENGTH
+  // ─────────────────────────────────────────────────────────────
   const RULES = {
     len:   v => v.length >= 6,
     upper: v => /[A-Z]/.test(v),
@@ -218,31 +315,73 @@
     return Object.values(RULES).every(fn => fn(val));
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // SHA-256 HASH
+  // ─────────────────────────────────────────────────────────────
   async function sha256(plain) {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // FORM SUBMIT
+  // ─────────────────────────────────────────────────────────────
   async function submitRegister() {
     const name     = document.getElementById("name").value.trim();
     const email    = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
     const errBox   = document.getElementById("errorMsg");
     const okBox    = document.getElementById("successMsg");
-    const showErr  = msg => { errBox.textContent=msg; errBox.style.display="block"; okBox.style.display="none"; };
+
+    const showErr = msg => {
+      errBox.textContent = msg;
+      errBox.style.display = "block";
+      okBox.style.display  = "none";
+    };
 
     errBox.style.display = "none";
+
+    // ── Field presence checks ──
     if (!name)  { showErr("Full name is required."); return; }
     if (!email) { showErr("Email address is required."); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr("Please enter a valid email address."); return; }
+
+    // ── Strict format check ──
+    if (!isValidEmailFormat(email)) {
+      const hint = getDomainHint(email);
+      if (hint) {
+        const local = email.split("@")[0];
+        showErr(`Did you mean ${local}@${hint}? Please correct the email address.`);
+      } else if (!email.includes("@")) {
+        showErr("Email address must contain an @ symbol.");
+      } else if (!email.split("@")[1]?.includes(".")) {
+        showErr("Email must include a domain extension (e.g. .com or .in).");
+      } else {
+        showErr("Please enter a valid email address (e.g. name@gmail.com).");
+      }
+      return;
+    }
+
+    // ── Typo domain check — block even if format passes ──
+    const hint = getDomainHint(email);
+    if (hint) {
+      const local = email.split("@")[0];
+      showErr(`Did you mean ${local}@${hint}? Please correct the email address.`);
+      return;
+    }
+
+    // ── Password strength check ──
     if (!isPasswordValid(password)) {
       showErr("Password must be at least 6 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.");
       return;
     }
+
     const hashedPassword = await sha256(password);
     handleRegister(name, email, hashedPassword);
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // GOOGLE AUTH CALLBACK
+  // ─────────────────────────────────────────────────────────────
   function handleCredentialResponse(response) {
     const payload = JSON.parse(atob(response.credential.split('.')[1]));
     handleGoogleAuth(payload.name, payload.email, payload.sub);

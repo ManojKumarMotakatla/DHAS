@@ -12,12 +12,19 @@ function getUser() {
     try { return JSON.parse(localStorage.getItem("dhas_user")); } catch { return null; }
 }
 
+// ── Auth headers helper ────────────────────────────────────────
+function getAuthHeaders() {
+    const token = localStorage.getItem("dhas_token");
+    const h = { "Content-Type": "application/json" };
+    if (token) h["Authorization"] = "Bearer " + token;
+    return h;
+}
+
 // ── In-page toast (bottom-left, matches reminders page) ───────
 let _toastTimer = null;
 function showToast(text, type = "success", duration = 4500) {
     let toast = document.getElementById("dhasPageToast");
     if (!toast) {
-        // Inject toast container if missing
         toast = document.createElement("div");
         toast.id = "dhasPageToast";
         toast.setAttribute("role", "status");
@@ -199,6 +206,8 @@ async function submitSymptoms() {
 
     const user = getUser();
     if (user) {
+        // FIX: saveSymptomsToDB now sends the JWT so requireAuth accepts it
+        // and the symptom_count on the dashboard updates correctly.
         saveSymptomsToDB(user.id, checked, condition.label, condition.severityLabel)
             .catch(err => console.warn("DB save failed (non-critical):", err));
     }
@@ -206,10 +215,12 @@ async function submitSymptoms() {
     showResult(condition, conditionKey, checked);
 }
 
+// FIX: added Authorization header so the backend's requireAuth middleware
+// accepts the request and the symptom_count in the profile query increments.
 async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     const res = await fetch(`${BASE_URL}/symptoms/save`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),          // ← was just { "Content-Type": "application/json" }
         body:    JSON.stringify({ user_id, symptoms, condition_name, severity })
     });
     const data = await res.json();
