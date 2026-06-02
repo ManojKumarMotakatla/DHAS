@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,8 +41,6 @@
     html.dark .dhas-alert.success,body.dark .dhas-alert.success{background:rgba(34,208,122,.12);border-color:rgba(34,208,122,.3);color:#6ee7b7;}
     html.dark p,body.dark p{color:#7d93c3;}
     html.dark a,body.dark a{color:#7aafff;}
-
-    /* ─── EMAIL STATUS HINT ─── */
     html.dark .email-status.warn,body.dark .email-status.warn{color:#fbbf24;}
     html.dark .email-status.warn strong{color:#fde68a;}
 
@@ -86,10 +85,15 @@
     .req-list li.ok{color:#27ae60;}.req-list li.ok::before{content:"✓";color:#27ae60;}
 
     /* email status */
-    .email-status{font-size:.75rem;margin-top:3px;margin-bottom:10px;display:none;}
-    .email-status.valid{color:#27ae60;display:block;}
+    .email-status{font-size:.75rem;margin-top:3px;margin-bottom:10px;display:none;line-height:1.5;}
+    .email-status.valid  {color:#27ae60;display:block;}
     .email-status.invalid{color:#e74c3c;display:block;}
-    .email-status.warn{color:#d97706;display:block;}
+    .email-status.warn   {color:#d97706;display:block;}
+
+    /* email input border states */
+    .dhas-input.input-valid  {border-color:#27ae60 !important;}
+    .dhas-input.input-invalid{border-color:#e74c3c !important;}
+    .dhas-input.input-warn   {border-color:#d97706 !important;}
 
     .strength-bar-wrap{display:flex;gap:4px;margin-top:6px;}
     .strength-label{font-size:.75rem;margin-top:4px;font-weight:600;}
@@ -123,8 +127,8 @@
     <input type="text" id="name" class="dhas-input" placeholder="Your full name">
 
     <label class="dhas-label">Email Address</label>
-    <input type="email" id="email" class="dhas-input" placeholder="you@example.com"
-           oninput="validateEmail(this.value)">
+    <input type="email" id="email" class="dhas-input" placeholder="you@gmail.com"
+           oninput="validateEmail(this.value)" onblur="validateEmailStrict(this.value)">
     <div class="email-status" id="emailStatus"></div>
 
     <label class="dhas-label">Password</label>
@@ -165,7 +169,6 @@
 
     <div class="or-divider">OR</div>
 
-    <!-- Google button always on white background -->
     <div class="google-btn-wrap">
       <div id="g_id_onload"
            data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
@@ -180,212 +183,385 @@
 </div>
 
 <script>
-  // ─────────────────────────────────────────────────────────────
-  // EMAIL VALIDATION
-  // ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// COMPREHENSIVE EMAIL VALIDATION — DHAS register.html
+//
+// Layers of checks (in order):
+//   1. Structural regex  — must look like x@y.z
+//   2. Local-part rules  — no leading/trailing dots, no ".."
+//   3. Domain label rules — each label ≥ 2 chars, no hyphens at
+//      start/end, no purely numeric labels
+//   4. TLD allowlist     — only real/common TLDs accepted
+//   5. Known-bad domains — disposable / obviously fake domains
+//   6. Typo detection    — Levenshtein distance against known good
+//      domains, surface a "Did you mean?" suggestion
+// ═══════════════════════════════════════════════════════════════
 
-  // Known common-domain typos → correct spelling
-  const DOMAIN_HINTS = {
-    "gmial.com":"gmail.com",   "gmai.com":"gmail.com",
-    "gmal.com":"gmail.com",    "gmil.com":"gmail.com",
-    "gmaill.com":"gmail.com",  "gmail.co":"gmail.com",
-    "gmail.cm":"gmail.com",    "gmail.con":"gmail.com",
-    "gmail.cpm":"gmail.com",   "gamil.com":"gmail.com",
-    "gnail.com":"gmail.com",   "gmail.om":"gmail.com",
-    "yahooo.com":"yahoo.com",  "yaho.com":"yahoo.com",
-    "yahoo.co":"yahoo.com",    "yahoo.cm":"yahoo.com",
-    "ymail.com":"yahoo.com",   "yahooo.in":"yahoo.com",
-    "hotmial.com":"hotmail.com","hotmail.co":"hotmail.com",
-    "hotmail.cm":"hotmail.com","hotmall.com":"hotmail.com",
-    "outlok.com":"outlook.com","outook.com":"outlook.com",
-    "otulook.com":"outlook.com","outlook.co":"outlook.com",
-    "outlookk.com":"outlook.com",
+// ── 1. KNOWN GOOD DOMAINS (canonical spellings) ───────────────
+// We check the user's domain against this list for typo detection.
+const KNOWN_DOMAINS = [
+  "gmail.com","yahoo.com","yahoo.in","yahoo.co.in","hotmail.com",
+  "outlook.com","outlook.in","live.com","icloud.com","me.com",
+  "protonmail.com","proton.me","zoho.com","yandex.com","yandex.ru",
+  "aol.com","msn.com","rediffmail.com","rocketmail.com",
+  "googlemail.com","mail.com","email.com","inbox.com",
+  "tutanota.com","fastmail.com","pm.me","hey.com",
+];
+
+// ── 2. DISPOSABLE / OBVIOUSLY FAKE DOMAINS ───────────────────
+const BAD_DOMAINS = new Set([
+  "mailinator.com","guerrillamail.com","throwam.com","trashmail.com",
+  "fakeinbox.com","tempmail.com","yopmail.com","maildrop.cc",
+  "sharklasers.com","guerrillamailblock.com","grr.la","spam4.me",
+  "mytemp.email","dispostable.com","10minutemail.com","temp-mail.org",
+  "mailnull.com","spamgourmet.com","throwam.com","spamhereplease.com",
+]);
+
+// ── 3. TLD ALLOWLIST ─────────────────────────────────────────
+// Only TLDs that real email addresses actually use.
+// This prevents things like user@gmail.xyz or user@example.qwerty
+const VALID_TLDS = new Set([
+  // Generic
+  "com","net","org","edu","gov","mil","int","info","biz","name","pro",
+  "mobi","tel","travel","jobs","museum","coop","aero","cat","post",
+  "xyz","online","site","web","app","io","ai","co","me","tv","cc","ws",
+  "cloud","tech","store","shop","blog","media","news","agency","studio",
+  "design","dev","page","email","mail","digital","solutions","services",
+  "global","world","network","systems","group","team","live","show",
+  // Country codes — India-specific + major ones
+  "in","us","uk","gb","au","ca","de","fr","jp","cn","br","ru","za",
+  "sg","nz","ie","nl","se","no","dk","fi","es","it","pt","pl","ch",
+  "at","be","cz","gr","hu","ro","tr","il","ae","sa","pk","bd","lk",
+  "np","my","id","ph","th","vn","hk","tw","kr",
+  // Common second-level under country codes (treat as TLD after dot)
+  "co","ac","gov","edu","net","org","nic",
+]);
+
+// ── 4. LEVENSHTEIN DISTANCE ───────────────────────────────────
+// Used to find the closest known-good domain to what the user typed.
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m + 1}, (_, i) =>
+    Array.from({length: n + 1}, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Find the closest known domain within a given edit-distance threshold.
+// Returns { suggestion: "gmail.com", distance: 1 } or null.
+function findClosestDomain(typed) {
+  const lower = typed.toLowerCase();
+  // Exact match — no suggestion needed
+  if (KNOWN_DOMAINS.includes(lower)) return null;
+
+  let best = null;
+  let bestDist = Infinity;
+  for (const known of KNOWN_DOMAINS) {
+    const d = levenshtein(lower, known);
+    if (d < bestDist) { bestDist = d; best = known; }
+  }
+  // Only suggest if the edit distance is small relative to the domain length
+  // e.g. "gmial.com" → distance 2 from "gmail.com" → suggest
+  // but "yahoo123.net" → distance too large → no suggestion
+  const threshold = Math.max(2, Math.floor(lower.length * 0.35));
+  return bestDist <= threshold ? { suggestion: best, distance: bestDist } : null;
+}
+
+// ── 5. STRUCTURAL CHECKS ─────────────────────────────────────
+// Returns an object: { valid: bool, error: string|null, warn: string|null }
+function deepValidateEmail(email) {
+  const raw = email.trim();
+
+  // Empty
+  if (!raw) return { valid: false, error: null, warn: null };
+
+  // Must contain exactly one @
+  const atCount = (raw.match(/@/g) || []).length;
+  if (atCount === 0) return { valid: false, error: "Missing @ symbol — email must look like name@gmail.com" };
+  if (atCount > 1)  return { valid: false, error: "Email must have only one @ symbol" };
+
+  const [local, domainPart] = raw.split("@");
+
+  // ── Local part checks ──
+  if (!local || local.length === 0)
+    return { valid: false, error: "Missing username before @ (e.g. yourname@gmail.com)" };
+  if (local.length > 64)
+    return { valid: false, error: "Username part before @ is too long (max 64 characters)" };
+  if (local.startsWith(".") || local.endsWith("."))
+    return { valid: false, error: "Username cannot start or end with a dot" };
+  if (local.includes(".."))
+    return { valid: false, error: "Username cannot have two dots in a row" };
+  // Only allow safe characters in local part
+  if (!/^[a-zA-Z0-9._%+\-]+$/.test(local))
+    return { valid: false, error: "Username contains invalid characters — only letters, numbers, dots, hyphens, and underscores are allowed" };
+
+  // ── Domain part checks ──
+  if (!domainPart || domainPart.length === 0)
+    return { valid: false, error: "Missing domain after @ — email must look like name@gmail.com" };
+  if (!domainPart.includes("."))
+    return { valid: false, error: `Missing domain extension after "@${domainPart}" — try something like @gmail.com or @yahoo.in` };
+  if (domainPart.startsWith(".") || domainPart.endsWith("."))
+    return { valid: false, error: "Domain cannot start or end with a dot" };
+  if (domainPart.includes(".."))
+    return { valid: false, error: "Domain cannot have two dots in a row" };
+
+  const labels = domainPart.toLowerCase().split(".");
+  const tld    = labels[labels.length - 1];
+
+  // TLD must be letters only (no numbers, no hyphens)
+  if (!/^[a-z]+$/.test(tld))
+    return { valid: false, error: `".${tld}" is not a valid domain extension — did you mean .com, .in, or .org?` };
+
+  // TLD must be in allowlist
+  if (!VALID_TLDS.has(tld))
+    return { valid: false, error: `".${tld}" is not a recognised email domain extension — common ones are .com, .in, .net, .org` };
+
+  // Each non-TLD label must be ≥ 2 chars and contain at least one letter
+  for (let i = 0; i < labels.length - 1; i++) {
+    const lbl = labels[i];
+    if (lbl.length < 2)
+      return { valid: false, error: `Domain part "${lbl}" is too short — check for typos` };
+    if (lbl.startsWith("-") || lbl.endsWith("-"))
+      return { valid: false, error: `Domain label "${lbl}" cannot start or end with a hyphen` };
+    if (!/[a-z]/.test(lbl))
+      return { valid: false, error: `Domain label "${lbl}" must contain at least one letter — check for typos` };
+    if (!/^[a-z0-9\-]+$/.test(lbl))
+      return { valid: false, error: `Domain label "${lbl}" contains invalid characters` };
+  }
+
+  // Disposable / fake domain check
+  if (BAD_DOMAINS.has(domainPart.toLowerCase()))
+    return { valid: false, error: "Disposable/temporary email addresses are not allowed — please use your real email" };
+
+  // ── Typo / suggestion check ──
+  const closest = findClosestDomain(domainPart);
+  if (closest) {
+    // Distance 1 = very likely a typo (e.g. "gmaill.com"), show as error
+    // Distance 2 = probable typo (e.g. "gmial.com"), show as error
+    // Distance 3 = possible typo, show as warning
+    const isLikelyTypo = closest.distance <= 2;
+    const suggestion   = `${local}@${closest.suggestion}`;
+    if (isLikelyTypo) {
+      return {
+        valid: false,
+        error: null,
+        typo: true,
+        suggestion,
+        warn: `Did you mean <strong>${suggestion}</strong>? "${domainPart}" looks like a typo.`
+      };
+    } else {
+      return {
+        valid: true,
+        warn: `Are you sure about "${domainPart}"? Did you mean <strong>${suggestion}</strong>?`
+      };
+    }
+  }
+
+  return { valid: true, warn: null };
+}
+
+// ── 6. UI WIRING ─────────────────────────────────────────────
+let _lastValidationResult = null;
+
+function setEmailUI(state, message) {
+  // state: 'valid' | 'invalid' | 'warn' | 'reset'
+  const input = document.getElementById("email");
+  const status = document.getElementById("emailStatus");
+
+  input.classList.remove("input-valid", "input-invalid", "input-warn");
+  status.className = "email-status";
+  status.innerHTML = "";
+
+  if (state === "reset") return;
+
+  if (state === "valid") {
+    input.classList.add("input-valid");
+    status.className = "email-status valid";
+    status.textContent = message || "✓ Email looks good";
+  } else if (state === "warn") {
+    input.classList.add("input-warn");
+    status.className = "email-status warn";
+    status.innerHTML = "⚠ " + (message || "");
+  } else {
+    input.classList.add("input-invalid");
+    status.className = "email-status invalid";
+    status.innerHTML = "✗ " + (message || "Invalid email address");
+  }
+}
+
+// Called on every keystroke — lenient (only flag obvious errors)
+function validateEmail(email) {
+  const raw = email.trim();
+  if (!raw) { setEmailUI("reset"); _lastValidationResult = null; return; }
+
+  const result = deepValidateEmail(raw);
+  _lastValidationResult = result;
+
+  if (result.error) {
+    // Only show mid-typing if the error is clear-cut (not just "TLD missing" while still typing)
+    // We use a heuristic: show error if there's an @ and the domain has a dot
+    const hasAtAndDot = raw.includes("@") && raw.split("@")[1]?.includes(".");
+    if (hasAtAndDot) {
+      setEmailUI("invalid", result.error);
+    } else if (result.typo) {
+      setEmailUI("warn", result.warn);
+    } else {
+      setEmailUI("reset"); // keep neutral while still typing
+    }
+  } else if (result.typo) {
+    setEmailUI("warn", result.warn);
+  } else if (result.warn) {
+    setEmailUI("warn", result.warn);
+  } else if (result.valid) {
+    setEmailUI("valid");
+  }
+}
+
+// Called on blur — strict (show all errors)
+function validateEmailStrict(email) {
+  const raw = email.trim();
+  if (!raw) { setEmailUI("reset"); return; }
+
+  const result = deepValidateEmail(raw);
+  _lastValidationResult = result;
+
+  if (result.error) {
+    setEmailUI("invalid", result.error);
+  } else if (result.typo) {
+    setEmailUI("warn", result.warn);
+  } else if (result.warn) {
+    setEmailUI("warn", result.warn);
+  } else if (result.valid) {
+    setEmailUI("valid");
+  }
+}
+
+// Returns true only if the email is genuinely valid (no errors, no typo)
+function isEmailAcceptable(email) {
+  const r = deepValidateEmail(email.trim());
+  // Accept if valid even with a non-blocking warning (user knows their own domain)
+  return r.valid === true && !r.typo;
+}
+
+// ── PASSWORD TOGGLE ───────────────────────────────────────────
+function togglePw(fieldId, iconId) {
+  const field  = document.getElementById(fieldId);
+  const icon   = document.getElementById(iconId);
+  const hiding = field.type === "password";
+  field.type   = hiding ? "text" : "password";
+  icon.innerHTML = hiding
+    ? `<path stroke-linecap="round" stroke-linejoin="round"
+           d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+              a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5
+              c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02
+              M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round"
+           d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+       <path stroke-linecap="round" stroke-linejoin="round"
+           d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+              -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+}
+
+// ── PASSWORD STRENGTH ─────────────────────────────────────────
+const RULES = {
+  len:   v => v.length >= 6,
+  upper: v => /[A-Z]/.test(v),
+  lower: v => /[a-z]/.test(v),
+  num:   v => /[0-9]/.test(v),
+  sym:   v => /[^A-Za-z0-9]/.test(v),
+};
+const COLORS = ["","#e74c3c","#e67e22","#f1c40f","#27ae60"];
+const LABELS = ["","Weak","Fair","Good","Strong"];
+
+function evaluatePassword(val) {
+  Object.keys(RULES).forEach(k => {
+    document.getElementById("req-"+k)?.classList.toggle("ok", RULES[k](val));
+  });
+  const score = Object.values(RULES).filter(fn => fn(val)).length;
+  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+  const color = COLORS[bars] || "#e0e0e0";
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById("seg"+i).style.background = i <= bars ? color : "";
+  }
+  const lbl = document.getElementById("strengthLabel");
+  lbl.textContent = val.length === 0 ? "—" : (LABELS[bars] || "—");
+  lbl.style.color = val.length === 0 ? "#aaa" : color;
+}
+
+function isPasswordValid(val) {
+  return Object.values(RULES).every(fn => fn(val));
+}
+
+// ── SHA-256 ───────────────────────────────────────────────────
+async function sha256(plain) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+// ── FORM SUBMIT ───────────────────────────────────────────────
+async function submitRegister() {
+  const name     = document.getElementById("name").value.trim();
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errBox   = document.getElementById("errorMsg");
+  const okBox    = document.getElementById("successMsg");
+
+  const showErr = msg => {
+    errBox.innerHTML  = msg;
+    errBox.style.display = "block";
+    okBox.style.display  = "none";
   };
+  errBox.style.display = "none";
 
-  // Strict regex:
-  //   - local part: at least 1 char, no spaces or @
-  //   - @ exactly once
-  //   - domain: proper labels (letters/digits/hyphens), no consecutive dots
-  //   - TLD: 2–10 alpha characters only (rejects purely numeric TLDs)
-  const EMAIL_RE = /^[^\s@]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,10}$/;
+  // Name
+  if (!name) { showErr("Full name is required."); return; }
 
-  function isValidEmailFormat(email) {
-    return EMAIL_RE.test(email);
-  }
+  // Email — run strict validation
+  if (!email) { showErr("Email address is required."); return; }
 
-  function getDomainHint(email) {
-    const parts = email.split("@");
-    if (parts.length !== 2) return null;
-    return DOMAIN_HINTS[parts[1].toLowerCase()] || null;
-  }
+  const emailResult = deepValidateEmail(email);
 
-  function validateEmail(email) {
-    const s   = document.getElementById("emailStatus");
-    const raw = email.trim();
+  if (!emailResult.valid || emailResult.typo) {
+    // Always run strict UI feedback first
+    validateEmailStrict(email);
 
-    if (!raw.length) {
-      s.textContent = "";
-      s.className   = "email-status";
-      return;
+    if (emailResult.error) {
+      showErr(emailResult.error);
+    } else if (emailResult.typo) {
+      showErr(`"${email.split("@")[1]}" looks like a typo. Did you mean <strong>${emailResult.suggestion}</strong>?<br>Please correct your email address before continuing.`);
+    } else {
+      showErr("Please enter a valid email address (e.g. yourname@gmail.com).");
     }
-
-    const hint = getDomainHint(raw);
-
-    if (!isValidEmailFormat(raw)) {
-      // Typo domain takes priority — gives a more helpful message
-      if (hint) {
-        const local = raw.split("@")[0];
-        s.innerHTML   = `✗ Did you mean <strong>${local}@${hint}</strong>?`;
-        s.className   = "email-status invalid";
-      } else if (!raw.includes("@")) {
-        s.textContent = "✗ Missing @ symbol";
-        s.className   = "email-status invalid";
-      } else if (raw.indexOf("@") === raw.lastIndexOf("@") && !raw.split("@")[1].includes(".")) {
-        s.textContent = "✗ Missing domain extension (e.g. .com, .in)";
-        s.className   = "email-status invalid";
-      } else {
-        s.textContent = "✗ Invalid email — check spelling and format (e.g. name@gmail.com)";
-        s.className   = "email-status invalid";
-      }
-      return;
-    }
-
-    // Format is technically valid but domain is a known typo
-    if (hint) {
-      const local = raw.split("@")[0];
-      s.innerHTML = `⚠ Did you mean <strong>${local}@${hint}</strong>?`;
-      s.className = "email-status warn";
-      return;
-    }
-
-    s.textContent = "✓ Email looks good";
-    s.className   = "email-status valid";
+    document.getElementById("email").focus();
+    return;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PASSWORD TOGGLE
-  // ─────────────────────────────────────────────────────────────
-  function togglePw(fieldId, iconId) {
-    const field  = document.getElementById(fieldId);
-    const icon   = document.getElementById(iconId);
-    const hiding = field.type === "password";
-    field.type   = hiding ? "text" : "password";
-    icon.innerHTML = hiding
-      ? `<path stroke-linecap="round" stroke-linejoin="round"
-             d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
-                a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5
-                c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02
-                M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
-      : `<path stroke-linecap="round" stroke-linejoin="round"
-             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-         <path stroke-linecap="round" stroke-linejoin="round"
-             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
-                -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+  // Non-blocking warning (e.g. unusual but valid domain) — allow through
+  // but re-run strict UI so the user sees the warning was noted
+  validateEmailStrict(email);
+
+  // Password
+  if (!isPasswordValid(password)) {
+    showErr("Password must be at least 6 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.");
+    return;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PASSWORD STRENGTH
-  // ─────────────────────────────────────────────────────────────
-  const RULES = {
-    len:   v => v.length >= 6,
-    upper: v => /[A-Z]/.test(v),
-    lower: v => /[a-z]/.test(v),
-    num:   v => /[0-9]/.test(v),
-    sym:   v => /[^A-Za-z0-9]/.test(v),
-  };
-  const COLORS = ["","#e74c3c","#e67e22","#f1c40f","#27ae60"];
-  const LABELS = ["","Weak","Fair","Good","Strong"];
+  const hashedPassword = await sha256(password);
+  handleRegister(name, email, hashedPassword);
+}
 
-  function evaluatePassword(val) {
-    Object.keys(RULES).forEach(k => {
-      document.getElementById("req-"+k)?.classList.toggle("ok", RULES[k](val));
-    });
-    const score = Object.values(RULES).filter(fn => fn(val)).length;
-    const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
-    const color = COLORS[bars] || "#e0e0e0";
-    for (let i = 1; i <= 4; i++) {
-      document.getElementById("seg"+i).style.background = i <= bars ? color : "";
-    }
-    const lbl = document.getElementById("strengthLabel");
-    lbl.textContent = val.length === 0 ? "—" : (LABELS[bars] || "—");
-    lbl.style.color = val.length === 0 ? "#aaa" : color;
-  }
-
-  function isPasswordValid(val) {
-    return Object.values(RULES).every(fn => fn(val));
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // SHA-256 HASH
-  // ─────────────────────────────────────────────────────────────
-  async function sha256(plain) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // FORM SUBMIT
-  // ─────────────────────────────────────────────────────────────
-  async function submitRegister() {
-    const name     = document.getElementById("name").value.trim();
-    const email    = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const errBox   = document.getElementById("errorMsg");
-    const okBox    = document.getElementById("successMsg");
-
-    const showErr = msg => {
-      errBox.textContent = msg;
-      errBox.style.display = "block";
-      okBox.style.display  = "none";
-    };
-
-    errBox.style.display = "none";
-
-    // ── Field presence checks ──
-    if (!name)  { showErr("Full name is required."); return; }
-    if (!email) { showErr("Email address is required."); return; }
-
-    // ── Strict format check ──
-    if (!isValidEmailFormat(email)) {
-      const hint = getDomainHint(email);
-      if (hint) {
-        const local = email.split("@")[0];
-        showErr(`Did you mean ${local}@${hint}? Please correct the email address.`);
-      } else if (!email.includes("@")) {
-        showErr("Email address must contain an @ symbol.");
-      } else if (!email.split("@")[1]?.includes(".")) {
-        showErr("Email must include a domain extension (e.g. .com or .in).");
-      } else {
-        showErr("Please enter a valid email address (e.g. name@gmail.com).");
-      }
-      return;
-    }
-
-    // ── Typo domain check — block even if format passes ──
-    const hint = getDomainHint(email);
-    if (hint) {
-      const local = email.split("@")[0];
-      showErr(`Did you mean ${local}@${hint}? Please correct the email address.`);
-      return;
-    }
-
-    // ── Password strength check ──
-    if (!isPasswordValid(password)) {
-      showErr("Password must be at least 6 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.");
-      return;
-    }
-
-    const hashedPassword = await sha256(password);
-    handleRegister(name, email, hashedPassword);
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // GOOGLE AUTH CALLBACK
-  // ─────────────────────────────────────────────────────────────
-  function handleCredentialResponse(response) {
-    const payload = JSON.parse(atob(response.credential.split('.')[1]));
-    handleGoogleAuth(payload.name, payload.email, payload.sub);
-  }
+// ── GOOGLE AUTH CALLBACK ──────────────────────────────────────
+function handleCredentialResponse(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  handleGoogleAuth(payload.name, payload.email, payload.sub);
+}
 </script>
 <script src="js/auth.js"></script>
 </body>
