@@ -1,4 +1,3 @@
-
 const API = "http://localhost:3006/reminders";
 
 // ── JWT auth helper ───────────────────────────────────────────
@@ -42,67 +41,69 @@ function getReminders() { return remindersCache; }
     style.id = "dhasToastStyle";
     style.textContent = `
         #dhasPageToast {
-            position: fixed;
-            bottom: 24px;
-            left: 20px;
-            z-index: 99998;
-            max-width: 340px;
-            min-width: 240px;
-            padding: 13px 18px;
-            border-radius: 14px;
-            font-size: 0.87rem;
-            font-weight: 600;
-            line-height: 1.5;
-            display: none;
-            align-items: flex-start;
-            gap: 10px;
-            box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+            position: fixed; bottom: 24px; left: 20px; z-index: 99998;
+            max-width: 340px; min-width: 240px; padding: 13px 18px;
+            border-radius: 14px; font-size: 0.87rem; font-weight: 600;
+            line-height: 1.5; display: none; align-items: flex-start;
+            gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,0.18);
             animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
             font-family: 'DM Sans', sans-serif;
         }
-        #dhasPageToast.success {
-            background: #d1fae5;
-            border: 1.5px solid #86efac;
-            color: #166534;
-        }
-        #dhasPageToast.error {
-            background: #fee2e2;
-            border: 1.5px solid #fca5a5;
-            color: #991b1b;
-        }
-        body.dark #dhasPageToast.success,
-        html.dark #dhasPageToast.success {
-            background: #052e16;
-            border-color: #166534;
-            color: #86efac;
-        }
-        body.dark #dhasPageToast.error,
-        html.dark #dhasPageToast.error {
-            background: #450a0a;
-            border-color: #991b1b;
-            color: #fca5a5;
-        }
-        @keyframes dhasToastIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        #dhasPageToast .toast-icon {
-            font-size: 16px;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
+        #dhasPageToast.success { background:#d1fae5; border:1.5px solid #86efac; color:#166534; }
+        #dhasPageToast.error   { background:#fee2e2; border:1.5px solid #fca5a5; color:#991b1b; }
+        body.dark #dhasPageToast.success, html.dark #dhasPageToast.success { background:#052e16; border-color:#166534; color:#86efac; }
+        body.dark #dhasPageToast.error,   html.dark #dhasPageToast.error   { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
+        @keyframes dhasToastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        #dhasPageToast .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
         #dhasPageToast .toast-dismiss {
-            margin-left: auto;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: inherit;
-            opacity: 0.6;
-            font-size: 14px;
-            padding: 0 0 0 8px;
-            flex-shrink: 0;
+            margin-left:auto; background:none; border:none; cursor:pointer;
+            color:inherit; opacity:0.6; font-size:14px; padding:0 0 0 8px; flex-shrink:0;
         }
-        #dhasPageToast .toast-dismiss:hover { opacity: 1; }
+        #dhasPageToast .toast-dismiss:hover { opacity:1; }
+        /* FIX-2: discard-changes bar style */
+        .edit-discard-bar {
+            display: flex; align-items: center; gap: 10px;
+            background: #fff8ec; border: 1.5px solid #f4a035;
+            border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;
+            font-size: 0.83rem; font-weight: 600; color: #92400e;
+            animation: dhasToastIn 0.2s ease;
+        }
+        html.dark .edit-discard-bar, body.dark .edit-discard-bar {
+            background: rgba(244,160,53,0.12); border-color: rgba(244,160,53,0.4); color: #fbbf6a;
+        }
+        .edit-discard-bar .discard-yes {
+            margin-left: auto; background: #f4a035; color: #fff;
+            border: none; border-radius: 7px; padding: 5px 12px;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .edit-discard-bar .discard-no {
+            background: none; border: 1.5px solid currentColor;
+            border-radius: 7px; padding: 4px 10px; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; color: inherit;
+            font-family: 'DM Sans', sans-serif;
+        }
+        /* FIX-3: multi-alarm container */
+        #dhasAlarmContainer {
+            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            z-index: 99999; display: flex; flex-direction: column;
+            gap: 10px; max-width: 360px; width: 92%;
+            pointer-events: none;
+        }
+        #dhasAlarmContainer > * { pointer-events: all; }
+        .alarm-card {
+            background: linear-gradient(135deg,#1a56db,#0ea5e9); color:#fff;
+            border-radius: 16px; padding: 16px 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+            animation: alarmSlideIn 0.35s ease;
+        }
+        @keyframes alarmSlideIn { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+        .alarm-card-title { display:flex; align-items:center; gap:8px; font-size:1rem; font-weight:700; margin-bottom:3px; }
+        .alarm-card-title i { font-size:18px; }
+        .alarm-card-sub { font-size:0.82rem; opacity:0.85; margin-bottom:10px; }
+        .alarm-card-actions { display:flex; gap:8px; }
+        .alarm-snooze { background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.4); color:#fff; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'DM Sans',sans-serif; }
+        .alarm-dismiss { background:#fff; border:none; color:#1a56db; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; display:flex; align-items:center; justify-content:center; gap:5px; font-size:0.78rem; font-family:'DM Sans',sans-serif; }
     `;
     document.head.appendChild(style);
 
@@ -111,6 +112,13 @@ function getReminders() { return remindersCache; }
     toast.setAttribute("role", "status");
     toast.setAttribute("aria-live", "polite");
     document.body.appendChild(toast);
+
+    // FIX-3: single container holds all concurrent alarm cards
+    const alarmContainer = document.createElement("div");
+    alarmContainer.id = "dhasAlarmContainer";
+    alarmContainer.setAttribute("aria-live", "assertive");
+    alarmContainer.setAttribute("aria-label", "Medicine reminders");
+    document.body.appendChild(alarmContainer);
 })();
 
 let _msgTimer = null;
@@ -176,15 +184,15 @@ window.previewSound = function () {
 // ── Snooze state ──────────────────────────────────────────────
 let snoozeTimers = {};
 
-function snoozeReminder(reminderId, soundKey, toastEl) {
-    toastEl.remove();
+function snoozeReminder(reminderId, soundKey, cardEl) {
+    cardEl.remove();
     if (snoozeTimers[reminderId]) clearTimeout(snoozeTimers[reminderId]);
     showPageMsg("Snoozed for 10 minutes.", "success");
     snoozeTimers[reminderId] = setTimeout(() => {
         const r = remindersCache.find(x => x.id === reminderId);
         const t = r?.times?.[0] || { label:"Reminder", display:"" };
         playSound(soundKey);
-        showAlarmToast(r || { id: reminderId, medicine: "Medicine", sound: soundKey }, t);
+        showAlarmCard(r || { id: reminderId, medicine: "Medicine", sound: soundKey }, t);
         delete snoozeTimers[reminderId];
     }, 10 * 60 * 1000);
 }
@@ -243,7 +251,9 @@ function checkAlarms() {
 
 function triggerAlarm(reminder, timeSlot) {
     playSound(reminder.sound || "bell");
-    showAlarmToast(reminder, timeSlot);
+    // FIX-3: use showAlarmCard (appends a new card) instead of showAlarmToast
+    // (which replaced the existing toast, losing any concurrent alarm)
+    showAlarmCard(reminder, timeSlot);
     if (Notification.permission === "granted") {
         navigator.serviceWorker.ready.then(reg =>
             reg.showNotification(`${reminder.medicine}`, {
@@ -256,48 +266,52 @@ function triggerAlarm(reminder, timeSlot) {
     }
 }
 
-function showAlarmToast(reminder, timeSlot) {
-    document.getElementById("dhasAlarmToast")?.remove();
-    const toast = document.createElement("div");
-    toast.id = "dhasAlarmToast";
+// ── FIX-3: showAlarmCard — APPENDS a card instead of replacing ─
+// Each medicine gets its own card stacked in #dhasAlarmContainer.
+// No medicine alarm can overwrite another's.
+function showAlarmCard(reminder, timeSlot) {
+    const container = document.getElementById("dhasAlarmContainer");
+    if (!container) return;
+
     const rid   = reminder.id;
     const sound = reminder.sound || "bell";
-    toast.innerHTML = `
-        <div style="position:fixed;top:20px;left:50%;transform:translateX(-50%);
-                    background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;
-                    border-radius:16px;padding:18px 24px;
-                    box-shadow:0 8px 32px rgba(0,0,0,0.3);
-                    z-index:99999;max-width:340px;width:90%;
-                    animation:toastIn 0.4s ease;font-family:'DM Sans',sans-serif;">
-          <style>@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
-          <div style="display:flex;align-items:center;gap:8px;font-size:1.1rem;font-weight:700;margin-bottom:4px;">
-            <i class="ti ti-bell-ringing" style="font-size:18px" aria-hidden="true"></i>
+    const cardId = `alarmCard_${rid}_${timeSlot.label || "dose"}`.replace(/\s+/g,"_");
+
+    // Don't stack duplicates for the exact same reminder+slot
+    if (document.getElementById(cardId)) return;
+
+    const card = document.createElement("div");
+    card.className = "alarm-card";
+    card.id = cardId;
+    card.innerHTML = `
+        <div class="alarm-card-title">
+            <i class="ti ti-bell-ringing" aria-hidden="true"></i>
             Medicine Time!
-          </div>
-          <div style="display:flex;align-items:center;gap:7px;font-size:1rem;font-weight:700;">
-            <i class="ti ti-pill" style="font-size:16px" aria-hidden="true"></i>
+        </div>
+        <div style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <i class="ti ti-pill" style="font-size:15px" aria-hidden="true"></i>
             ${reminder.medicine}
-          </div>
-          <div style="font-size:0.85rem;opacity:0.9;margin-top:4px;">${timeSlot.label}: ${timeSlot.display}</div>
-          <div style="display:flex;gap:8px;margin-top:14px;">
-            <button id="snoozeBtn_${rid}"
-                    style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;
-                           padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;font-size:0.82rem;
-                           display:flex;align-items:center;justify-content:center;gap:6px;">
-              <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i> Snooze 10 min
+        </div>
+        <div class="alarm-card-sub">${timeSlot.label}: ${timeSlot.display || "—"}</div>
+        <div class="alarm-card-actions">
+            <button class="alarm-snooze" id="snooze_${cardId}">
+                <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i>
+                Snooze 10 min
             </button>
-            <button onclick="document.getElementById('dhasAlarmToast').remove()"
-                    style="background:#fff;border:none;color:#1a56db;padding:7px 14px;border-radius:8px;
-                           cursor:pointer;font-weight:700;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-              <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i> Dismiss
+            <button class="alarm-dismiss" onclick="document.getElementById('${cardId}').remove()">
+                <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i>
+                Dismiss
             </button>
-          </div>
         </div>`;
-    document.body.appendChild(toast);
-    document.getElementById(`snoozeBtn_${rid}`).addEventListener("click", function() {
-        snoozeReminder(rid, sound, toast);
+
+    container.appendChild(card);
+
+    document.getElementById(`snooze_${cardId}`)?.addEventListener("click", () => {
+        snoozeReminder(rid, sound, card);
     });
-    setTimeout(() => toast.remove(), 40000);
+
+    // Auto-dismiss after 40 seconds if user doesn't interact
+    setTimeout(() => card.remove(), 40000);
 }
 
 // ── Schedule helpers ──────────────────────────────────────────
@@ -545,7 +559,7 @@ async function loadRemindersFromServer() {
     if (!uid) { displayReminders(); return; }
     try {
         const res  = await fetch(`${API}/get/${uid}`, {
-            headers: getAuthHeaders()   // ← FIXED
+            headers: getAuthHeaders()
         });
         const data = await res.json();
         if (data.success) remindersCache = data.data || [];
@@ -616,7 +630,7 @@ window.addReminder = async function () {
     try {
         const res  = await fetch(`${API}/add`, {
             method:"POST",
-            headers: getAuthHeaders(),   // ← FIXED
+            headers: getAuthHeaders(),
             body:JSON.stringify(payload)
         });
         const data = await res.json();
@@ -628,7 +642,6 @@ window.addReminder = async function () {
         await loadRemindersFromServer();
         showPageMsg(`Reminder for "${medicine}" saved at ${effectiveTimes[0]?.display}.`, "success", 5000);
 
-        // Reset form
         document.getElementById("medicine").value     = "";
         document.getElementById("scheduleType").value = "daily";
         document.getElementById("doseCount").value    = "1";
@@ -652,7 +665,7 @@ window.deleteReminder = async function (id) {
         try {
             const res  = await fetch(`${API}/delete/${id}`, {
                 method:"DELETE",
-                headers: getAuthHeaders()   // ← FIXED
+                headers: getAuthHeaders()
             });
             const data = await res.json();
             if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
@@ -670,6 +683,83 @@ window.deleteReminder = async function (id) {
     setTimeout(() => card?.removeAttribute("data-pending-delete"), 4000);
 };
 
+// ── FIX-2: hasUnsavedChanges — detects if the edit form was modified
+// Compares current form values against the original reminder data
+function hasUnsavedChanges(id) {
+    const r = remindersCache.find(x => x.id === id);
+    if (!r) return false;
+
+    const container = document.getElementById(`editContainer_${id}`);
+    if (!container || !container.innerHTML.trim()) return false;
+
+    // Check schedule
+    const schedEl = container.querySelector(`#edit_sched_${id}`);
+    if (schedEl && schedEl.value !== (r.sched || "daily")) return true;
+
+    // Check duration
+    const durEl = container.querySelector(`#edit_duration_${id}`);
+    if (durEl && durEl.value !== (r.duration || "forever")) return true;
+
+    // Check sound
+    const soundEl = container.querySelector(`#edit_sound_${id}`);
+    if (soundEl && soundEl.value !== (r.sound || "bell")) return true;
+
+    // Check dose count
+    const doseEl = container.querySelector(`#edit_doseCount_${id}`);
+    const originalDose = String(r.doseCount || r.dose_count || 1);
+    if (doseEl && doseEl.value !== originalDose) return true;
+
+    // Check time slots (compare each slot)
+    const slots = DOSE_DEFAULTS[doseEl ? doseEl.value : originalDose] || DOSE_DEFAULTS["1"];
+    const originalTimes = r.times || [];
+    for (let i = 0; i < slots.length; i++) {
+        const hEl  = container.querySelector(`#edit_h_${id}_${i}`);
+        const mEl  = container.querySelector(`#edit_m_${id}_${i}`);
+        const apEl = container.querySelector(`#edit_ap_${id}_${i}`);
+        const orig = originalTimes[i] || slots[i];
+        if (hEl  && hEl.value  !== String(orig.h    || slots[i].h))    return true;
+        if (mEl  && mEl.value  !== String(orig.m    || slots[i].m))    return true;
+        if (apEl && apEl.value !== String(orig.ampm || slots[i].ampm)) return true;
+    }
+
+    // Check selected days
+    const activeDayTiles = container.querySelectorAll(".day-tile.active");
+    const currentDays    = Array.from(activeDayTiles).map(t => parseInt(t.id.replace(`editDayTile_${id}_`, "")));
+    const originalDays   = r.days || [];
+    if (currentDays.length !== originalDays.length) return true;
+    if (!currentDays.every((d, i) => d === originalDays[i])) return true;
+
+    return false;
+}
+
+// ── FIX-2: showDiscardBar — prompts user before closing edit panel
+// Replaces the silent close-and-lose-changes behaviour.
+function showDiscardBar(id, onConfirm) {
+    const container = document.getElementById(`editContainer_${id}`);
+    if (!container) { onConfirm(); return; }
+
+    // Remove any existing discard bar first
+    container.querySelector(".edit-discard-bar")?.remove();
+
+    const bar = document.createElement("div");
+    bar.className = "edit-discard-bar";
+    bar.innerHTML = `
+        <i class="ti ti-alert-triangle" style="font-size:15px;flex-shrink:0;" aria-hidden="true"></i>
+        <span>You have unsaved changes. Discard them?</span>
+        <button class="discard-no">Keep editing</button>
+        <button class="discard-yes">Discard</button>
+    `;
+    container.insertBefore(bar, container.firstChild);
+
+    bar.querySelector(".discard-yes").addEventListener("click", () => {
+        bar.remove();
+        onConfirm();
+    });
+    bar.querySelector(".discard-no").addEventListener("click", () => {
+        bar.remove();
+    });
+}
+
 // ── EDIT REMINDER (inline) ────────────────────────────────────
 window.openEditReminder = function(id) {
     const r = remindersCache.find(x => x.id === id);
@@ -677,9 +767,31 @@ window.openEditReminder = function(id) {
 
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) return;
-    if (container.innerHTML.trim() !== "") { closeEditReminder(id); return; }
 
-    document.querySelectorAll(".edit-panel").forEach(el => el.innerHTML = "");
+    // FIX-2: if already open, check for unsaved changes before closing
+    if (container.innerHTML.trim() !== "") {
+        if (hasUnsavedChanges(id)) {
+            showDiscardBar(id, () => {
+                container.innerHTML = "";
+            });
+        } else {
+            container.innerHTML = "";
+        }
+        return;
+    }
+
+    // Close any other open edit panels before opening this one
+    document.querySelectorAll(".edit-panel").forEach(el => {
+        const otherIdMatch = el.closest("[id^='editContainer_']")?.id?.replace("editContainer_", "");
+        if (otherIdMatch && otherIdMatch !== String(id)) {
+            const otherId = parseInt(otherIdMatch);
+            if (hasUnsavedChanges(otherId)) {
+                // Don't silently close another panel with unsaved changes — just leave it
+                return;
+            }
+            el.innerHTML = "";
+        }
+    });
 
     const sched      = r.sched || "daily";
     const doseCount  = String(r.doseCount || r.dose_count || 1);
@@ -747,7 +859,7 @@ window.openEditReminder = function(id) {
               <i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i>
               Edit — ${r.medicine}
             </div>
-            <button onclick="closeEditReminder(${id})"
+            <button onclick="closeEditReminderSafe(${id})"
                     style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;color:var(--muted,#6b7fa3);display:flex;align-items:center;justify-content:center;">
               <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
             </button>
@@ -788,7 +900,7 @@ window.openEditReminder = function(id) {
           </div>
 
           <div style="display:flex;gap:10px;">
-            <button onclick="closeEditReminder(${id})"
+            <button onclick="closeEditReminderSafe(${id})"
                     style="flex:1;padding:11px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;
                            background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);font-weight:600;font-size:0.9rem;cursor:pointer;">
               Cancel
@@ -806,6 +918,20 @@ window.openEditReminder = function(id) {
     container.scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 
+// ── FIX-2: closeEditReminderSafe — checks for unsaved changes before closing
+window.closeEditReminderSafe = function(id) {
+    if (hasUnsavedChanges(id)) {
+        showDiscardBar(id, () => {
+            const container = document.getElementById(`editContainer_${id}`);
+            if (container) container.innerHTML = "";
+        });
+    } else {
+        const container = document.getElementById(`editContainer_${id}`);
+        if (container) container.innerHTML = "";
+    }
+};
+
+// Keep the old closeEditReminder for backward compatibility (no change check)
 window.closeEditReminder = function(id) {
     const container = document.getElementById(`editContainer_${id}`);
     if (container) container.innerHTML = "";
@@ -855,7 +981,7 @@ window.onEditDoseChange = function(id) {
     }).join("");
 };
 
-window.saveEditReminder = async function(id) {
+window.saveEditReminder = async function (id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return;
 
@@ -886,7 +1012,7 @@ window.saveEditReminder = async function(id) {
     try {
         const delData = await (await fetch(`${API}/delete/${id}`, {
             method:"DELETE",
-            headers: getAuthHeaders()   // ← FIXED
+            headers: getAuthHeaders()
         })).json();
         if (!delData.success) { showPageMsg("Could not update reminder. Please try again.", "error"); return; }
 
@@ -908,11 +1034,15 @@ window.saveEditReminder = async function(id) {
 
         const addData = await (await fetch(`${API}/add`, {
             method:"POST",
-            headers: getAuthHeaders(),   // ← FIXED
+            headers: getAuthHeaders(),
             body:JSON.stringify(payload)
         })).json();
 
         if (!addData.success) { showPageMsg(addData.message || "Failed to save changes.", "error"); return; }
+
+        // Close panel without change-guard (we just saved successfully)
+        const container = document.getElementById(`editContainer_${id}`);
+        if (container) container.innerHTML = "";
 
         await loadRemindersFromServer();
         showPageMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
