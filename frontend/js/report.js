@@ -1,6 +1,5 @@
-
 // ============================================
-// DHAS - report.js (icons edition + auth headers)
+// DHAS - report.js (fixed auth headers)
 // Upload, view, and delete medical reports
 // ============================================
 
@@ -11,9 +10,9 @@ function getUser() {
 }
 
 // ── JWT auth helper ───────────────────────────────────────────
-function getAuthHeaders(extra) {
+function getAuthHeaders() {
     const token = localStorage.getItem("dhas_token");
-    const h = { "Content-Type": "application/json", ...extra };
+    const h = { "Content-Type": "application/json" };
     if (token) h["Authorization"] = "Bearer " + token;
     return h;
 }
@@ -66,15 +65,29 @@ async function showReportViewer(id) {
     viewerSection.innerHTML = `<p style="text-align:center;color:#888;padding:40px 0;">Loading report…</p>`;
 
     try {
-        const res  = await fetch(`${BASE_URL}/reports/view/${id}`, {
-            headers: getAuthHeaders()   // ← FIXED
+        const res = await fetch(`${BASE_URL}/reports/view/${id}`, {
+            method: "GET",
+            headers: getAuthHeaders()
         });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            viewerSection.innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                    <p style="color:red;">${errData.message || "Access denied or session expired. Please log in again."}</p>
+                    <button class="viewer-back-btn" onclick="goBackToList()">
+                      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                    </button>
+                </div>`;
+            return;
+        }
+
         const data = await res.json();
 
         if (!data.success || !data.dataurl) {
             viewerSection.innerHTML = `
                 <div style="text-align:center;padding:40px;">
-                    <p style="color:red;">File data not found.</p>
+                    <p style="color:red;">File data not found. The file may have been deleted or is corrupted.</p>
                     <button class="viewer-back-btn" onclick="goBackToList()">
                       <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
                     </button>
@@ -126,7 +139,7 @@ async function showReportViewer(id) {
         console.error("View report error:", err);
         viewerSection.innerHTML = `
             <div style="text-align:center;padding:40px;">
-                <p style="color:red;">Cannot connect to server.</p>
+                <p style="color:red;">Cannot connect to server. Please check your connection.</p>
                 <button class="viewer-back-btn" onclick="goBackToList()">
                   <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
                 </button>
@@ -185,7 +198,7 @@ function uploadReport() {
         try {
             const res = await fetch(`${BASE_URL}/reports/upload`, {
                 method: "POST",
-                headers: getAuthHeaders(),   // ← FIXED
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     user_id:  user.id,
                     filename: file.name,
@@ -202,8 +215,7 @@ function uploadReport() {
                 showToast(`"${file.name}" uploaded successfully.`, "success");
                 displayReports();
             } else {
-                const detail = data.dbMessage ? ` (${data.dbError})` : "";
-                showToast((data.message || "Upload failed. Please try again.") + detail, "error");
+                showToast(data.message || "Upload failed. Please try again.", "error");
             }
 
         } catch (err) {
@@ -231,9 +243,11 @@ async function displayReports() {
     list.innerHTML = `<p style="text-align:center;color:#888;">Loading reports...</p>`;
 
     try {
-        const res  = await fetch(`${BASE_URL}/reports/${user.id}`, {
-            headers: getAuthHeaders()   // ← FIXED
+        const res = await fetch(`${BASE_URL}/reports/${user.id}`, {
+            method: "GET",
+            headers: getAuthHeaders()
         });
+
         const data = await res.json();
 
         if (!data.success || data.data.length === 0) {
@@ -276,7 +290,7 @@ async function displayReports() {
 
     } catch (err) {
         console.error("Fetch reports error:", err);
-        list.innerHTML = `<p style="text-align:center;color:red;">Failed to load reports.</p>`;
+        list.innerHTML = `<p style="text-align:center;color:red;">Failed to load reports. Please refresh.</p>`;
     }
 }
 
@@ -292,9 +306,9 @@ async function deleteReport(id) {
 
     delete _pendingDelete[id];
     try {
-        const res  = await fetch(`${BASE_URL}/reports/${id}`, {
+        const res = await fetch(`${BASE_URL}/reports/${id}`, {
             method: "DELETE",
-            headers: getAuthHeaders()   // ← FIXED
+            headers: getAuthHeaders()
         });
         const data = await res.json();
 
@@ -319,9 +333,8 @@ function formatSize(bytes) {
 }
 
 function fileIconEl(type) {
-    if (!type)                          return { iconEl: "ti-file",         iconLabel: "File" };
+    if (!type)                          return { iconEl: "ti-file",          iconLabel: "File" };
     if (type === "application/pdf")     return { iconEl: "ti-file-type-pdf", iconLabel: "PDF" };
-    if (type.startsWith("image/"))      return { iconEl: "ti-photo",         iconLabel: "Image" };
+    if (type.startsWith("image/"))      return { iconEl: "ti-photo",          iconLabel: "Image" };
     return { iconEl: "ti-file", iconLabel: "File" };
 }
-

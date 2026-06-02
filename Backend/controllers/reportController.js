@@ -1,4 +1,4 @@
-// ── CHANGED: user_id from req.userId; view/delete check ownership ──
+// ── reportController.js — user_id from req.userId; ownership checks ──
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
 
@@ -18,7 +18,6 @@ function getReportCols(callback) {
 
 /* ── UPLOAD ─────────────────────────────────────────────────── */
 const uploadReport = (req, res) => {
-    // CHANGED: use token-verified ID
     const user_id = req.userId;
     const { filename, filesize, filetype, dataurl } = req.body;
 
@@ -50,7 +49,6 @@ const uploadReport = (req, res) => {
 const getReports = (req, res) => {
     const requestedId = parseInt(req.params.user_id);
 
-    // CHANGED: ownership check
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
@@ -74,41 +72,49 @@ const getReports = (req, res) => {
     });
 };
 
-/* ── VIEW (single report with dataurl) ───────────────────────────
-   CHANGED: fetches the report's user_id and verifies ownership
-   before returning the file data.
-────────────────────────────────────────────────────────────────── */
-const viewReport = async (req, res) => {
+/* ── VIEW (single report with dataurl) ───────────────────────── */
+const viewReport = (req, res) => {
     const { id } = req.params;
 
-    try {
-        const [rows] = await db.promise().query(
-            "SELECT user_id, file_name, filename, filetype, dataurl FROM reports WHERE id = ?", [id]
+    getReportCols((err, cols) => {
+        if (err) return res.status(500).json({ success: false, message: "DB error." });
+
+        db.query(
+            `SELECT id, user_id, ${cols.nameCol} AS filename, filetype, dataurl FROM reports WHERE id = ?`,
+            [id],
+            (err2, rows) => {
+                if (err2) {
+                    console.error("viewReport DB error:", err2);
+                    return res.status(500).json({ success: false, message: "DB error." });
+                }
+
+                if (rows.length === 0) {
+                    return res.status(404).json({ success: false, message: "Report not found." });
+                }
+
+                const r = rows[0];
+
+                // Ownership check
+                if (!isSelf(req, r.user_id)) {
+                    return res.status(403).json({ success: false, message: "Access denied." });
+                }
+
+                if (!r.dataurl) {
+                    return res.json({ success: false, message: "File data is missing or corrupted." });
+                }
+
+                res.json({
+                    success:  true,
+                    filename: r.filename,
+                    filetype: r.filetype,
+                    dataurl:  r.dataurl
+                });
+            }
         );
-
-        if (rows.length === 0) return res.json({ success: false });
-
-        // CHANGED: only the owner can view the raw file data
-        if (!isSelf(req, rows[0].user_id)) {
-            return res.status(403).json({ success: false, message: "Access denied." });
-        }
-
-        const r = rows[0];
-        res.json({
-            success:  true,
-            filename: r.file_name || r.filename,
-            filetype: r.filetype,
-            dataurl:  r.dataurl
-        });
-    } catch (err) {
-        console.error("viewReport error:", err);
-        return res.json({ success: false });
-    }
+    });
 };
 
-/* ── DELETE ─────────────────────────────────────────────────────
-   CHANGED: verifies ownership before deleting.
-────────────────────────────────────────────────────────────────── */
+/* ── DELETE ─────────────────────────────────────────────────── */
 const deleteReport = async (req, res) => {
     const { id } = req.params;
 
@@ -119,7 +125,6 @@ const deleteReport = async (req, res) => {
 
         if (rows.length === 0) return res.json({ success: false, message: "Report not found." });
 
-        // CHANGED: only the owner can delete
         if (!isSelf(req, rows[0].user_id)) {
             return res.status(403).json({ success: false, message: "Access denied." });
         }
