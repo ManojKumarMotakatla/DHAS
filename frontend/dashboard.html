@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,6 +63,7 @@
       z-index:300; overflow-y:auto;
     }
     .sidebar.open { transform:translateX(0); }
+
     .sidebar-logo {
       display:flex; align-items:center; gap:10px;
       padding:22px 8px 20px;
@@ -74,6 +77,28 @@
     }
     .sidebar-logo-icon svg { width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2; }
     .sidebar-logo-text { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700; color:#fff; letter-spacing:.3px; }
+
+    /* ── CLOSE BUTTON ── */
+    .sidebar-close {
+      margin-left:auto;
+      width:32px; height:32px;
+      border-radius:8px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; color:rgba(255,255,255,.7);
+      transition:all .2s; flex-shrink:0;
+    }
+    .sidebar-close:hover {
+      background:rgba(255,255,255,.2);
+      color:#fff;
+      border-color:rgba(255,255,255,.3);
+    }
+    .sidebar-close svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.5; }
+    @media(min-width:900px) {
+      .sidebar-close { display:none !important; }
+    }
+
     .side-link {
       display:flex; align-items:center; gap:11px;
       padding:10px 12px; border-radius:11px;
@@ -84,6 +109,7 @@
     .side-link:hover { background:rgba(255,255,255,.08); color:#fff; }
     .side-link.active { background:rgba(42,108,246,.35); color:#fff; }
     .side-link svg { width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0; }
+
     .sidebar-overlay {
       display:none; position:fixed; inset:0;
       background:rgba(0,0,0,.45); z-index:299; backdrop-filter:blur(2px);
@@ -310,7 +336,14 @@
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
     </div>
     <span class="sidebar-logo-text">DHAS</span>
+    <!-- ✅ CLOSE BUTTON -->
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu" title="Close sidebar">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
   </div>
+
   <a href="dashboard.html" class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
   <a href="symptom.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Symptoms</a>
   <a href="reports.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Reports</a>
@@ -419,19 +452,11 @@
 </div>
 
 <script>
-/* ════════════════════════════════════════════════════════════════
-   dashboard.js — inline
-   KEY FIX: every fetch() now sends the JWT via authHeaders()
-   so the backend's requireAuth middleware accepts the calls.
-════════════════════════════════════════════════════════════════ */
-
-/* Guard */
 const storedUser = localStorage.getItem("dhas_user");
 if (!storedUser) { window.location.href = "login.html"; }
 const user = JSON.parse(storedUser || "{}");
 const BASE = "http://localhost:3006";
 
-/* ── JWT helper ─────────────────────────────────────────────── */
 function authHeaders() {
   const token = localStorage.getItem("dhas_token");
   const h = { "Content-Type": "application/json" };
@@ -439,7 +464,6 @@ function authHeaders() {
   return h;
 }
 
-/* ── Greeting ── */
 const hour = new Date().getHours();
 document.getElementById("timeOfDay").textContent =
   hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
@@ -447,7 +471,6 @@ document.getElementById("heroName").textContent = user.name || "there";
 document.getElementById("heroDate").textContent =
   new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
 
-/* ── Avatar + dropdown ── */
 const avatarBtn = document.getElementById("avatarBtn");
 function setAvatar(src, name) {
   if (src) {
@@ -490,9 +513,7 @@ document.querySelectorAll(".side-link").forEach(l =>
   l.classList.toggle("active", l.getAttribute("href") === currentPage)
 );
 
-/* ══════════════════════════════════════════════════════════════
-   Reminder helpers
-══════════════════════════════════════════════════════════════ */
+/* ── Reminder helpers ── */
 function to24(h, m, ampm) {
   let hour = parseInt(h, 10);
   if (ampm === "PM" && hour !== 12) hour += 12;
@@ -504,7 +525,6 @@ function shouldFireToday(r) {
   const now = new Date();
   const dow = now.getDay(), dom = now.getDate();
   const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
-
   if (r.startDate) {
     const start = new Date(r.startDate + "T00:00:00");
     if (todayMidnight < start) return false;
@@ -552,9 +572,7 @@ function getNextTimeDisplay(r) {
   return slot.display || `${slot.h}:${slot.m} ${slot.ampm}`;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   Health Snapshot renderer
-══════════════════════════════════════════════════════════════ */
+/* ── Health Snapshot ── */
 function renderSnapshot(p) {
   const grid      = document.getElementById("snapshotGrid");
   const hasBlood  = !!p.blood_group;
@@ -564,7 +582,6 @@ function renderSnapshot(p) {
   const anyData   = hasBlood || hasWeight || hasHeight;
   let html = "";
 
-  /* BMI card */
   if (hasBMI) {
     const h   = parseFloat(p.height) / 100;
     const bmi = (parseFloat(p.weight) / (h * h)).toFixed(1);
@@ -594,7 +611,6 @@ function renderSnapshot(p) {
     </div>`;
   }
 
-  /* Blood Group card */
   html += `<div class="snap-card">
     <div class="snap-top">
       <div class="snap-icon" style="background:#eff6ff;color:var(--blue);">
@@ -606,7 +622,6 @@ function renderSnapshot(p) {
     <div class="snap-lbl">Blood Group</div>
   </div>`;
 
-  /* Weight card */
   html += `<div class="snap-card">
     <div class="snap-top">
       <div class="snap-icon" style="background:#e6faf8;color:var(--teal);">
@@ -618,7 +633,6 @@ function renderSnapshot(p) {
     <div class="snap-lbl">Weight</div>
   </div>`;
 
-  /* Height card */
   html += `<div class="snap-card">
     <div class="snap-top">
       <div class="snap-icon" style="background:#fff8ec;color:var(--amber);">
@@ -630,7 +644,6 @@ function renderSnapshot(p) {
     <div class="snap-lbl">Height</div>
   </div>`;
 
-  /* Incomplete banner */
   if (!anyData) {
     html += `<div class="snap-incomplete">
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -642,15 +655,9 @@ function renderSnapshot(p) {
   grid.innerHTML = html;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   loadDashboard — THE FIX
-   All three fetch() calls now include { headers: authHeaders() }
-   so the backend's requireAuth middleware accepts them instead
-   of returning 401 / 403.
-══════════════════════════════════════════════════════════════ */
+/* ── Load dashboard ── */
 async function loadDashboard() {
   if (!user.id) { renderSnapshot({}); return; }
-
   try {
     const [pd, rd, rpd] = await Promise.all([
       fetch(`${BASE}/profile/${user.id}`,   { headers: authHeaders() }).then(r => r.json()),
@@ -658,27 +665,20 @@ async function loadDashboard() {
       fetch(`${BASE}/reports/${user.id}`,   { headers: authHeaders() }).then(r => r.json())
     ]);
 
-    /* ── Profile data ── */
     const p = (pd.success && pd.profile) ? pd.profile : {};
 
-    /* Keep hero name + avatar fresh from DB */
     if (p.name) {
       document.getElementById("heroName").textContent = p.name;
       document.getElementById("dropName").textContent = p.name;
     }
-    if (p.profile_image) {
-      setAvatar(p.profile_image, p.name || user.name);
-    }
+    if (p.profile_image) { setAvatar(p.profile_image, p.name || user.name); }
 
-    /* ── Stats ── */
     document.getElementById("statSymptoms").textContent  = p.symptom_count ?? "0";
     document.getElementById("statReminders").textContent = rd.success  ? (rd.data  || []).length : "0";
     document.getElementById("statReports").textContent   = rpd.success ? (rpd.data || []).length : "0";
 
-    /* ── Health Snapshot ── */
     renderSnapshot(p);
 
-    /* ── Today's reminders strip ── */
     const strip = document.getElementById("reminderStrip");
     const todayRems = rd.success
       ? (rd.data || []).filter(r => shouldFireToday(r) && hasUpcomingTimeToday(r))

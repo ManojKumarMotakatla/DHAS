@@ -397,6 +397,7 @@ function setEmailUI(state, message) {
 }
 
 // Called on every keystroke — lenient (only flag obvious errors)
+// REPLACE the existing validateEmail() function with this:
 function validateEmail(email) {
   const raw = email.trim();
   if (!raw) { setEmailUI("reset"); _lastValidationResult = null; return; }
@@ -404,22 +405,26 @@ function validateEmail(email) {
   const result = deepValidateEmail(raw);
   _lastValidationResult = result;
 
+  const hasAt  = raw.includes("@");
+  const hasDot = hasAt && raw.split("@")[1]?.includes(".");
+
   if (result.error) {
-    // Only show mid-typing if the error is clear-cut (not just "TLD missing" while still typing)
-    // We use a heuristic: show error if there's an @ and the domain has a dot
-    const hasAtAndDot = raw.includes("@") && raw.split("@")[1]?.includes(".");
-    if (hasAtAndDot) {
+    // Show error immediately if user has typed past the @ and dot
+    if (hasDot || result.typo) {
       setEmailUI("invalid", result.error);
-    } else if (result.typo) {
-      setEmailUI("warn", result.warn);
+    } else if (hasAt && result.error.includes("@")) {
+      // e.g. missing domain — wait until dot is typed
+      setEmailUI("reset");
+    } else if (hasAt) {
+      setEmailUI("invalid", result.error);
     } else {
-      setEmailUI("reset"); // keep neutral while still typing
+      setEmailUI("reset");
     }
   } else if (result.typo) {
     setEmailUI("warn", result.warn);
   } else if (result.warn) {
     setEmailUI("warn", result.warn);
-  } else if (result.valid) {
+  } else if (result.valid && hasDot) {
     setEmailUI("valid");
   }
 }
