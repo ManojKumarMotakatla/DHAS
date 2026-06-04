@@ -1,4 +1,4 @@
-// ── CHANGED: restricted CORS, added rate limiting, cleaned up error handler ──
+// ── server.js — added reminder-logs route ──
 require("dotenv").config();
 
 const express     = require("express");
@@ -9,7 +9,7 @@ const db          = require("./Backend/config/db");
 
 const app = express();
 
-// ── P1.3 FIX: CORS restricted to your actual origin ─────────────────────
+// ── P1.3: CORS restricted to actual origin ──────────────────────────────
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3006";
 
 app.use(cors({
@@ -22,7 +22,7 @@ app.use(cors({
     credentials: true
 }));
 
-// ── P5.1 FIX: Rate limiting ───────────────────────────────────────────────
+// ── P5.1: Rate limiting ──────────────────────────────────────────────────
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max:      200,
@@ -31,7 +31,7 @@ const globalLimiter = rateLimit({
     message: { success: false, message: "Too many requests. Please wait a few minutes." }
 });
 
-// Strict limiter for auth endpoints — 10 attempts per 15 minutes per IP
+// Strict limiter for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max:      10,
@@ -42,12 +42,12 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// ── Body parsers ──────────────────────────────────────────────────────────
-// P5.4 FIX: 1mb global limit; report upload gets its own higher limit
+// ── Body parsers ─────────────────────────────────────────────────────────
+// P5.4: 1mb global limit; report upload gets its own higher limit
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
-// ── Static files ──────────────────────────────────────────────────────────
+// ── Static files ─────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "frontend")));
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "frontend", "index.html"));
@@ -58,26 +58,28 @@ app.get("/test", (req, res) => {
 });
 
 // ── API Routes ────────────────────────────────────────────────────────────
-const authRoutes     = require("./Backend/routes/authRoutes");
-const symptomRoutes  = require("./Backend/routes/symptomRoutes");
-const reminderRoutes = require("./Backend/routes/reminderRoutes");
-const reportRoutes   = require("./Backend/routes/reportRoutes");
-const profileRoutes  = require("./Backend/routes/profileRoutes");
+const authRoutes        = require("./Backend/routes/authRoutes");
+const symptomRoutes     = require("./Backend/routes/symptomRoutes");
+const reminderRoutes    = require("./Backend/routes/reminderRoutes");
+const reminderLogRoutes = require("./Backend/routes/reminderLogRoutes");
+const reportRoutes      = require("./Backend/routes/reportRoutes");
+const profileRoutes     = require("./Backend/routes/profileRoutes");
 
-// ── FIX: Apply auth rate limiter to ALL auth endpoints including Google ───
+// Apply auth rate limiter to all auth endpoints
 app.use("/login",       authLimiter);
 app.use("/register",    authLimiter);
-app.use("/auth/google", authLimiter);   // ← ADDED: was missing before
+app.use("/auth/google", authLimiter);
 app.use("/",            authRoutes);
 
-app.use("/profile",   profileRoutes);
-app.use("/symptoms",  symptomRoutes);
-app.use("/reminders", reminderRoutes);
+app.use("/profile",        profileRoutes);
+app.use("/symptoms",       symptomRoutes);
+app.use("/reminders",      reminderRoutes);
+app.use("/reminder-logs",  reminderLogRoutes);
 
-// Report upload needs a higher body size limit
+// Report upload needs higher body size limit
 app.use("/reports", express.json({ limit: "20mb" }), reportRoutes);
 
-// ── 404 handler — serve custom page ──────────────────────────────────────
+// ── 404 handler ───────────────────────────────────────────────────────────
 app.use((req, res, next) => {
     if (req.accepts("html") && !req.path.startsWith("/api")) {
         return res.status(404).sendFile(path.join(__dirname, "frontend", "404.html"), (err) => {

@@ -1,4 +1,7 @@
-// ── CHANGED: P1.4 — no SQL error details sent to client ──
+// ── reminderController.js — SIMPLIFIED: removed getReminderCols() detection.
+//    Schema now uses fixed column names: medicine_name, schedule_type,
+//    schedule_label, dose_count, doses_label, start_date, alt_base.
+//    P1.4: No SQL error details sent to client.
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
 
@@ -6,26 +9,6 @@ function safeJSON(val, fallback) {
     if (val === null || val === undefined) return fallback;
     if (typeof val === "object") return val;
     try { return JSON.parse(val); } catch { return fallback; }
-}
-
-let _cols = null;
-function getReminderCols(callback) {
-    if (_cols) return callback(null, _cols);
-    db.query("DESCRIBE reminders", (err, rows) => {
-        if (err) return callback(err);
-        const names = rows.map(r => r.Field);
-        _cols = {
-            medicineCol:  names.includes("medicine_name")  ? "medicine_name"  : "medicine",
-            startDateCol: names.includes("start_date")     ? "start_date"     : "startDate",
-            schedTypeCol: names.includes("schedule_type")  ? "schedule_type"  : "sched",
-            schedLblCol:  names.includes("schedule_label") ? "schedule_label" : "scheduleLabel",
-            doseCountCol: names.includes("dose_count")     ? "dose_count"     : "doseCount",
-            dosesLblCol:  names.includes("doses_label")    ? "doses_label"    : "dosesLabel",
-            monthDayCol:  names.includes("month_day")      ? "month_day"      : "monthDay",
-            altBaseCol:   names.includes("alt_base")       ? "alt_base"       : "altBase",
-        };
-        callback(null, _cols);
-    });
 }
 
 function resolveDate(val) {
@@ -37,53 +20,54 @@ function resolveDate(val) {
 /* ── ADD ──────────────────────────────────────────────────────── */
 const addReminder = (req, res) => {
     const user_id = req.userId;
-
-    const { medicine, sched, scheduleLabel, doseCount, dosesLabel,
-            times, days, monthDay, duration, sound, startDate, altBase } = req.body;
+    const {
+        medicine, sched, scheduleLabel, doseCount, dosesLabel,
+        times, days, monthDay, duration, sound, startDate, altBase
+    } = req.body;
 
     if (!medicine || !String(medicine).trim())
         return res.status(400).json({ success: false, message: "Medicine name is required." });
     if (!times || (Array.isArray(times) && times.length === 0))
         return res.status(400).json({ success: false, message: "At least one time is required." });
 
-    getReminderCols((err, c) => {
+    const resolvedStart = resolveDate(startDate);
+    let resolvedAlt = null;
+    if (altBase) {
+        const d = new Date(altBase);
+        if (!isNaN(d)) resolvedAlt = d.toISOString().slice(0,19).replace('T',' ');
+    }
+
+    const timesJSON = JSON.stringify(Array.isArray(times) ? times : []);
+    const daysJSON  = JSON.stringify(Array.isArray(days)  ? days  : []);
+
+    const sql = `
+        INSERT INTO reminders
+          (user_id, medicine_name, schedule_type, schedule_label,
+           dose_count, doses_label, times, days, month_day,
+           duration, sound, start_date, alt_base)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.query(sql, [
+        user_id,
+        String(medicine).trim(),
+        sched        || "daily",
+        scheduleLabel || "",
+        parseInt(doseCount) || 1,
+        dosesLabel   || "",
+        timesJSON,
+        daysJSON,
+        parseInt(monthDay) || 1,
+        duration     || "forever",
+        sound        || "bell",
+        resolvedStart,
+        resolvedAlt
+    ], (err, result) => {
         if (err) {
-            console.error("getReminderCols error:", err.message);
+            console.error("addReminder DB error:", err.message);
             return res.status(500).json({ success: false, message: "Failed to save reminder. Please try again." });
         }
-
-        const resolvedStart = resolveDate(startDate);
-        let resolvedAlt = null;
-        if (altBase) { const d = new Date(altBase); if (!isNaN(d)) resolvedAlt = d.toISOString().slice(0,19).replace('T',' '); }
-
-        const timesJSON = JSON.stringify(Array.isArray(times) ? times : []);
-        const daysJSON  = JSON.stringify(Array.isArray(days)  ? days  : []);
-
-        const sql = `
-            INSERT INTO reminders
-              (user_id, ${c.medicineCol},
-               ${c.schedTypeCol}, ${c.schedLblCol},
-               ${c.doseCountCol}, ${c.dosesLblCol},
-               times, days, ${c.monthDayCol},
-               duration, sound,
-               ${c.startDateCol}, ${c.altBaseCol})
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        db.query(sql, [
-            user_id, String(medicine).trim(),
-            sched || "daily", scheduleLabel || "",
-            parseInt(doseCount) || 1, dosesLabel || "",
-            timesJSON, daysJSON, parseInt(monthDay) || 1,
-            duration || "forever", sound || "bell",
-            resolvedStart, resolvedAlt
-        ], (err2, result) => {
-            if (err2) {
-                console.error("addReminder DB error:", err2.message);
-                return res.status(500).json({ success: false, message: "Failed to save reminder. Please try again." });
-            }
-            res.json({ success: true, id: result.insertId });
-        });
+        res.json({ success: true, id: result.insertId });
     });
 };
 
@@ -95,34 +79,33 @@ const getReminders = (req, res) => {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
 
-    getReminderCols((err, c) => {
-        if (err) {
-            console.error("getReminderCols error:", err.message);
-            return res.status(500).json({ success: false, message: "Failed to load reminders." });
-        }
-
-        db.query("SELECT * FROM reminders WHERE user_id = ? ORDER BY created_at DESC", [requestedId], (err2, rows) => {
-            if (err2) {
-                console.error("getReminders DB error:", err2.message);
+    db.query(
+        "SELECT * FROM reminders WHERE user_id = ? ORDER BY created_at DESC",
+        [requestedId],
+        (err, rows) => {
+            if (err) {
+                console.error("getReminders DB error:", err.message);
                 return res.status(500).json({ success: false, message: "Failed to load reminders." });
             }
 
             const data = rows.map(r => {
-                const rawStart = r[c.startDateCol];
+                const rawStart = r.start_date;
                 const startStr = rawStart
-                    ? (rawStart instanceof Date ? rawStart.toISOString().split("T")[0] : String(rawStart).split("T")[0])
+                    ? (rawStart instanceof Date
+                        ? rawStart.toISOString().split("T")[0]
+                        : String(rawStart).split("T")[0])
                     : null;
-                const rawAlt = r[c.altBaseCol];
+                const rawAlt = r.alt_base;
                 return {
                     id:            r.id,
-                    medicine:      r[c.medicineCol],
-                    sched:         r[c.schedTypeCol],
-                    scheduleLabel: r[c.schedLblCol],
-                    doseCount:     String(r[c.doseCountCol]),
-                    dosesLabel:    r[c.dosesLblCol],
+                    medicine:      r.medicine_name,
+                    sched:         r.schedule_type,
+                    scheduleLabel: r.schedule_label,
+                    doseCount:     String(r.dose_count),
+                    dosesLabel:    r.doses_label,
                     times:         safeJSON(r.times, []),
                     days:          safeJSON(r.days,  []),
-                    monthDay:      r[c.monthDayCol],
+                    monthDay:      r.month_day,
                     duration:      r.duration,
                     sound:         r.sound,
                     startDate:     startStr,
@@ -130,9 +113,10 @@ const getReminders = (req, res) => {
                     createdAt:     r.created_at ? new Date(r.created_at).toISOString() : null
                 };
             });
+
             res.json({ success: true, data });
-        });
-    });
+        }
+    );
 };
 
 /* ── DELETE ───────────────────────────────────────────────────── */
