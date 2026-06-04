@@ -61,7 +61,7 @@ app.get("/test", (req, res) => {
 const authRoutes        = require("./Backend/routes/authRoutes");
 const symptomRoutes     = require("./Backend/routes/symptomRoutes");
 const reminderRoutes    = require("./Backend/routes/reminderRoutes");
-const reminderLogRoutes = require("./Backend/routes/reminderLogRoutes");
+const reminderLogRoutes = require("./Backend/routes/reminderlogroutes");
 const reportRoutes      = require("./Backend/routes/reportRoutes");
 const profileRoutes     = require("./Backend/routes/profileRoutes");
 

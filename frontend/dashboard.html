@@ -1,10 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="js/config.js"></script>
 <script src="theme.js"></script>
+<script src="js/language.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — DHAS</title>
@@ -53,6 +52,19 @@
     a { text-decoration:none; color:inherit; }
     svg { display:block; }
 
+    /* ── SKELETON LOADERS ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     /* ── SIDEBAR ── */
     .sidebar {
       position:fixed; top:0; left:0; width:236px; height:100vh;
@@ -79,7 +91,6 @@
     .sidebar-logo-icon svg { width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2; }
     .sidebar-logo-text { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700; color:#fff; letter-spacing:.3px; }
 
-    /* ── CLOSE BUTTON ── */
     .sidebar-close {
       margin-left:auto;
       width:32px; height:32px;
@@ -90,15 +101,9 @@
       cursor:pointer; color:rgba(255,255,255,.7);
       transition:all .2s; flex-shrink:0;
     }
-    .sidebar-close:hover {
-      background:rgba(255,255,255,.2);
-      color:#fff;
-      border-color:rgba(255,255,255,.3);
-    }
+    .sidebar-close:hover { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.3); }
     .sidebar-close svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.5; }
-    @media(min-width:900px) {
-      .sidebar-close { display:none !important; }
-    }
+    @media(min-width:900px) { .sidebar-close { display:none !important; } }
 
     .side-link {
       display:flex; align-items:center; gap:11px;
@@ -240,11 +245,11 @@
       pointer-events:none;
     }
     .hero-greeting { font-size:.75rem; font-weight:500; color:rgba(255,255,255,.55); letter-spacing:.8px; text-transform:uppercase; margin-bottom:4px; }
-    .hero-name { font-family:'Fraunces',serif; font-size:1.7rem; font-weight:700; color:#fff; line-height:1.2; margin-bottom:8px; }
+    .hero-name { font-family:'Fraunces',serif; font-size:1.7rem; font-weight:700; color:#fff; line-height:1.2; margin-bottom:8px; min-height:36px; }
     .hero-date { font-size:.82rem; color:rgba(255,255,255,.5); margin-bottom:20px; }
     .hero-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
     .hstat { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:12px; text-align:center; }
-    .hstat-val { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; color:#fff; line-height:1; }
+    .hstat-val { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; color:#fff; line-height:1; min-height:28px; display:flex; align-items:center; justify-content:center; }
     .hstat-lbl { font-size:.66rem; color:rgba(255,255,255,.45); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
 
     /* ── SECTION HEAD ── */
@@ -337,23 +342,20 @@
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
     </div>
     <span class="sidebar-logo-text">DHAS</span>
-    <!-- ✅ CLOSE BUTTON -->
-    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu" title="Close sidebar">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 18L18 6M6 6l12 12"/>
-      </svg>
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
 
-  <a href="dashboard.html" class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
-  <a href="symptom.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Symptoms</a>
-  <a href="reports.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Reports</a>
-  <a href="diet.html"      class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Diet</a>
-  <a href="remedies.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>Remedies</a>
-  <a href="reminder.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Reminders</a>
-  <a href="steps.html"     class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>Steps</a>
-  <a href="language.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>Language</a>
-  <a href="profile.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Profile</a>
+  <a href="dashboard.html" class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span data-i18n="dashboard">Dashboard</span></a>
+  <a href="symptom.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span data-i18n="symptoms">Symptoms</span></a>
+  <a href="reports.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span data-i18n="reports">Reports</span></a>
+  <a href="diet.html"      class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span data-i18n="diet">Diet</span></a>
+  <a href="remedies.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg><span data-i18n="remedies">Remedies</span></a>
+  <a href="reminder.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span data-i18n="reminders">Reminders</span></a>
+  <a href="steps.html"     class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span data-i18n="steps">Steps</span></a>
+  <a href="language.html"  class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg><span data-i18n="language">Language</span></a>
+  <a href="profile.html"   class="side-link"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span data-i18n="profile">Profile</span></a>
 </nav>
 
 <div class="main-layout" id="mainLayout">
@@ -389,17 +391,25 @@
           </div>
           <div class="pdrop-divider"></div>
           <a href="profile.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>My Profile
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span data-i18n="profile">My Profile</span>
           </a>
           <a href="profile_details.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>Edit Profile
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Edit Profile
+          </a>
+          <a href="change_password.html" class="pdrop-item">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Change Password
           </a>
           <a href="language.html" class="pdrop-item">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>Language
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+            <span data-i18n="language">Language</span>
           </a>
           <div class="pdrop-divider"></div>
           <div class="pdrop-item danger" onclick="handleLogout()">
-            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>Logout
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            <span data-i18n="logout">Logout</span>
           </div>
         </div>
       </div>
@@ -410,39 +420,100 @@
 
     <div class="hero-card">
       <div class="hero-greeting">Good <span id="timeOfDay">morning</span></div>
-      <div class="hero-name" id="heroName">Loading…</div>
+      <div class="hero-name" id="heroName">
+        <span class="skeleton" style="width:180px;height:32px;border-radius:8px;"></span>
+      </div>
       <div class="hero-date" id="heroDate"></div>
       <div class="hero-stats">
-        <div class="hstat"><div class="hstat-val" id="statSymptoms">—</div><div class="hstat-lbl">Symptoms logged</div></div>
-        <div class="hstat"><div class="hstat-val" id="statReminders">—</div><div class="hstat-lbl">Reminders active</div></div>
-        <div class="hstat"><div class="hstat-val" id="statReports">—</div><div class="hstat-lbl">Reports saved</div></div>
+        <div class="hstat">
+          <div class="hstat-val" id="statSymptoms"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Symptoms logged</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="statReminders"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Reminders active</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="statReports"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Reports saved</div>
+        </div>
       </div>
     </div>
 
     <div class="sec-head">
-      <div class="sec-title">Health Snapshot</div>
+      <div class="sec-title" data-i18n="healthSnapshot">Health Snapshot</div>
       <a href="profile.html" class="sec-link">View profile →</a>
     </div>
-    <div class="snapshot-grid" id="snapshotGrid"></div>
+    <div class="snapshot-grid" id="snapshotGrid">
+      <!-- Skeleton placeholders -->
+      <div class="snap-card">
+        <div class="snap-top">
+          <span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span>
+          <span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span>
+        </div>
+        <span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span>
+        <span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span>
+      </div>
+      <div class="snap-card">
+        <div class="snap-top">
+          <span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span>
+          <span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span>
+        </div>
+        <span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span>
+        <span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span>
+      </div>
+      <div class="snap-card">
+        <div class="snap-top">
+          <span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span>
+          <span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span>
+        </div>
+        <span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span>
+        <span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span>
+      </div>
+      <div class="snap-card">
+        <div class="snap-top">
+          <span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span>
+          <span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span>
+        </div>
+        <span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span>
+        <span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span>
+      </div>
+    </div>
 
     <div class="sec-head" style="margin-top:8px;">
-      <div class="sec-title">Quick Actions</div>
+      <div class="sec-title" data-i18n="quickActions">Quick Actions</div>
     </div>
     <div class="actions-grid">
-      <a href="symptom.html"  class="action-tile c-blue">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl">Symptoms</div></a>
-      <a href="reports.html"  class="action-tile c-teal">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl">Reports</div></a>
-      <a href="diet.html"     class="action-tile c-amber"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div><div class="at-lbl">Diet</div></a>
-      <a href="remedies.html" class="action-tile c-green">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><div class="at-lbl">Remedies</div></a>
-      <a href="reminder.html" class="action-tile c-rose">   <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="at-lbl">Reminders</div></a>
-      <a href="steps.html"    class="action-tile c-purple"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><div class="at-lbl">Steps</div></a>
+      <a href="symptom.html"  class="action-tile c-blue">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
+      <a href="reports.html"  class="action-tile c-teal">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="at-lbl" data-i18n="reports">Reports</div></a>
+      <a href="diet.html"     class="action-tile c-amber"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div><div class="at-lbl" data-i18n="diet">Diet</div></a>
+      <a href="remedies.html" class="action-tile c-green">  <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><div class="at-lbl" data-i18n="remedies">Remedies</div></a>
+      <a href="reminder.html" class="action-tile c-rose">   <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="at-lbl" data-i18n="reminders">Reminders</div></a>
+      <a href="steps.html"    class="action-tile c-purple"> <div class="at-icon"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><div class="at-lbl" data-i18n="steps">Steps</div></a>
     </div>
 
     <div class="sec-head">
-      <div class="sec-title">Today's Active Reminders</div>
+      <div class="sec-title" data-i18n="activeReminders">Today's Active Reminders</div>
       <a href="saved_reminders.html" class="sec-link">Manage →</a>
     </div>
     <div class="reminder-strip" id="reminderStrip">
-      <div class="rem-card" style="min-width:220px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">Loading reminders…</div>
+      <!-- Skeleton placeholders -->
+      <div class="rem-card" style="min-width:160px;">
+        <div class="rem-header">
+          <span class="skeleton" style="width:28px;height:28px;border-radius:8px;flex-shrink:0;"></span>
+          <span class="skeleton" style="width:90px;height:14px;border-radius:4px;"></span>
+        </div>
+        <span class="skeleton" style="width:100px;height:11px;border-radius:4px;margin-bottom:8px;display:block;"></span>
+        <span class="skeleton" style="width:70px;height:18px;border-radius:20px;"></span>
+      </div>
+      <div class="rem-card" style="min-width:160px;">
+        <div class="rem-header">
+          <span class="skeleton" style="width:28px;height:28px;border-radius:8px;flex-shrink:0;"></span>
+          <span class="skeleton" style="width:90px;height:14px;border-radius:4px;"></span>
+        </div>
+        <span class="skeleton" style="width:100px;height:11px;border-radius:4px;margin-bottom:8px;display:block;"></span>
+        <span class="skeleton" style="width:70px;height:18px;border-radius:20px;"></span>
+      </div>
     </div>
 
     <p class="disclaimer">
@@ -458,12 +529,12 @@ if (!storedUser) { window.location.href = "login.html"; }
 const user = JSON.parse(storedUser || "{}");
 const BASE = window.API_BASE;
 
-
-
 const hour = new Date().getHours();
 document.getElementById("timeOfDay").textContent =
-  hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-document.getElementById("heroName").textContent = user.name || "there";
+  hour < 12 ? window.DHAS_LANG.t("goodMorning")
+  : hour < 17 ? window.DHAS_LANG.t("goodAfternoon")
+  : window.DHAS_LANG.t("goodEvening");
+
 document.getElementById("heroDate").textContent =
   new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
 
@@ -655,7 +726,7 @@ function renderSnapshot(p) {
 async function loadDashboard() {
   if (!user.id) { renderSnapshot({}); return; }
   try {
-   const [pd, rd, rpd] = await Promise.all([
+    const [pd, rd, rpd] = await Promise.all([
       fetch(`${BASE}/profile/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json()),
       fetch(`${BASE}/reminders/${user.id}`, { headers: window.getAuthHeaders() }).then(r => r.json()),
       fetch(`${BASE}/reports/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json())
@@ -666,6 +737,8 @@ async function loadDashboard() {
     if (p.name) {
       document.getElementById("heroName").textContent = p.name;
       document.getElementById("dropName").textContent = p.name;
+    } else {
+      document.getElementById("heroName").textContent = user.name || "there";
     }
     if (p.profile_image) { setAvatar(p.profile_image, p.name || user.name); }
 
@@ -713,7 +786,12 @@ async function loadDashboard() {
 
   } catch (e) {
     console.warn("Dashboard load failed:", e);
+    document.getElementById("heroName").textContent = user.name || "there";
+    document.getElementById("statSymptoms").textContent  = "0";
+    document.getElementById("statReminders").textContent = "0";
+    document.getElementById("statReports").textContent   = "0";
     renderSnapshot({});
+    document.getElementById("reminderStrip").innerHTML = `<div class="rem-card" style="min-width:240px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">Could not load reminders.</div>`;
   }
 }
 

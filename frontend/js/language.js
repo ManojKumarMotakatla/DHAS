@@ -1,10 +1,8 @@
 // ============================================
 // DHAS - language.js
 // Functional language selection with translations
-// for key UI strings across the app.
 // ============================================
 
-// ── Translation dictionary ─────────────────────────────────
 const TRANSLATIONS = {
   English: {
     dashboard:        "Dashboard",
@@ -51,7 +49,18 @@ const TRANSLATIONS = {
     passwordLabel:    "Password",
     nameLabel:        "Full Name",
     todaySteps:       "Today's Stats",
-    weeklyRecord:     "This Week's Record"
+    weeklyRecord:     "This Week's Record",
+    healthSnapshot:   "Health Snapshot",
+    quickActions:     "Quick Actions",
+    activeReminders:  "Today's Active Reminders",
+    yourResults:      "Your Results",
+    likelyCond:       "Likely Condition",
+    severityLevel:    "Severity Level",
+    recommendation:   "Recommendation",
+    dietGuide:        "Diet Guide",
+    homeRemedies:     "Home Remedies",
+    uploadReports:    "Upload & manage your health documents securely",
+    medicineReminders:"Never miss a dose — set smart medication alerts"
   },
 
   Hindi: {
@@ -99,7 +108,18 @@ const TRANSLATIONS = {
     passwordLabel:    "पासवर्ड",
     nameLabel:        "पूरा नाम",
     todaySteps:       "आज के आंकड़े",
-    weeklyRecord:     "इस सप्ताह का रिकॉर्ड"
+    weeklyRecord:     "इस सप्ताह का रिकॉर्ड",
+    healthSnapshot:   "स्वास्थ्य स्नैपशॉट",
+    quickActions:     "त्वरित क्रियाएं",
+    activeReminders:  "आज के सक्रिय अनुस्मारक",
+    yourResults:      "आपके परिणाम",
+    likelyCond:       "संभावित स्थिति",
+    severityLevel:    "गंभीरता स्तर",
+    recommendation:   "सिफारिश",
+    dietGuide:        "आहार मार्गदर्शिका",
+    homeRemedies:     "घरेलू उपचार",
+    uploadReports:    "अपने स्वास्थ्य दस्तावेज़ सुरक्षित रूप से अपलोड करें",
+    medicineReminders:"दवा लेना न भूलें — स्मार्ट अलर्ट सेट करें"
   },
 
   Telugu: {
@@ -147,48 +167,66 @@ const TRANSLATIONS = {
     passwordLabel:    "పాస్‌వర్డ్",
     nameLabel:        "పూర్తి పేరు",
     todaySteps:       "నేటి గణాంకాలు",
-    weeklyRecord:     "ఈ వారపు రికార్డు"
+    weeklyRecord:     "ఈ వారపు రికార్డు",
+    healthSnapshot:   "ఆరోగ్య స్నాప్‌షాట్",
+    quickActions:     "త్వరిత చర్యలు",
+    activeReminders:  "నేటి క్రియాశీల రిమైండర్లు",
+    yourResults:      "మీ ఫలితాలు",
+    likelyCond:       "సంభావ్య పరిస్థితి",
+    severityLevel:    "తీవ్రత స్థాయి",
+    recommendation:   "సిఫార్సు",
+    dietGuide:        "ఆహార మార్గదర్శి",
+    homeRemedies:     "ఇంటి చికిత్సలు",
+    uploadReports:    "మీ ఆరోగ్య పత్రాలు సురక్షితంగా అప్‌లోడ్ చేయండి",
+    medicineReminders:"మందు వేయడం మర్చిపోవద్దు — స్మార్ట్ హెచ్చరికలు సెట్ చేయండి"
   }
 };
 
-// ── Apply translations to the current page ─────────────────
+// ── Apply translations to current page ────────────────────────
 function applyTranslations(lang) {
   const t = TRANSLATIONS[lang] || TRANSLATIONS["English"];
 
-  // Translate elements with data-i18n attribute
+  // Elements with data-i18n attribute
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.getAttribute("data-i18n");
-    if (t[key]) el.textContent = t[key];
+    if (t[key] !== undefined) el.textContent = t[key];
   });
 
-  // Translate placeholders with data-i18n-placeholder
+  // Placeholders
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     const key = el.getAttribute("data-i18n-placeholder");
-    if (t[key]) el.placeholder = t[key];
+    if (t[key] !== undefined) el.placeholder = t[key];
   });
+
+  // Page title
+  const pageTitle = document.querySelector("title");
+  if (pageTitle) {
+    const base = pageTitle.getAttribute("data-i18n-title");
+    if (base && t[base]) pageTitle.textContent = t[base] + " — DHAS";
+  }
 }
 
-// ── Get current translation for a key ──────────────────────
+// ── Get translation for a key ─────────────────────────────────
 function t(key) {
   const lang = localStorage.getItem("dhas_language") || "English";
   const dict = TRANSLATIONS[lang] || TRANSLATIONS["English"];
-  return dict[key] || TRANSLATIONS["English"][key] || key;
+  return dict[key] !== undefined ? dict[key] : (TRANSLATIONS["English"][key] || key);
 }
 
-// ── Apply on page load ─────────────────────────────────────
-window.addEventListener("DOMContentLoaded", function () {
+// ── Auto-apply on every page load ─────────────────────────────
+(function autoApply() {
   const saved = localStorage.getItem("dhas_language");
   if (saved && saved !== "English") {
-    applyTranslations(saved);
+    // Apply after DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => applyTranslations(saved));
+    } else {
+      applyTranslations(saved);
+    }
   }
+})();
 
-  // If we're on the language page, highlight the active button
-  if (document.getElementById("btn-English")) {
-    highlightActive(saved || "English");
-  }
-});
-
-// ── Language page functions ────────────────────────────────
+// ── Language page functions ───────────────────────────────────
 function setLanguage(lang) {
   localStorage.setItem("dhas_language", lang);
   highlightActive(lang);
@@ -197,11 +235,7 @@ function setLanguage(lang) {
   const msg = document.getElementById("selectedLangMsg");
   if (msg) {
     msg.style.display = "block";
-    const langNames = {
-      English: "English 🇬🇧",
-      Hindi:   "हिंदी 🇮🇳",
-      Telugu:  "తెలుగు 🇮🇳"
-    };
+    const langNames = { English: "English 🇬🇧", Hindi: "हिंदी 🇮🇳", Telugu: "తెలుగు 🇮🇳" };
     msg.textContent = "✅ Language changed to " + (langNames[lang] || lang) + ". Pages will now display in this language.";
   }
 }
@@ -213,9 +247,12 @@ function highlightActive(lang) {
   });
 }
 
-// ── Export for use in other scripts ───────────────────────
-window.DHAS_LANG = {
-  t,
-  applyTranslations,
-  TRANSLATIONS
-};
+// Highlight on language page load
+window.addEventListener("DOMContentLoaded", function () {
+  const saved = localStorage.getItem("dhas_language");
+  if (document.getElementById("btn-English")) {
+    highlightActive(saved || "English");
+  }
+});
+
+window.DHAS_LANG = { t, applyTranslations, TRANSLATIONS };
