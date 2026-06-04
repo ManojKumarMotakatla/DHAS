@@ -1,42 +1,50 @@
-// ── CHANGED: stores JWT token; all API calls send Authorization header ──
+// ============================================================
+// DHAS — frontend/js/auth.js
 //
-// WHY THIS MATTERS:
-//   Before: fetch("/profile/5", { body: {user_id:5} })
-//     → anyone could change 5 to 999 in DevTools
-//   After:  fetch("/profile/5", { headers: { Authorization: "Bearer <token>" } })
-//     → the server ignores what the frontend claims; it reads user_id from the token
+// FIX P1.1 — REMOVED SHA-256 hashing from the frontend.
 //
-// STORAGE: token goes in localStorage under "dhas_token".
-// It is sent automatically by the getHeaders() helper below.
-// ─────────────────────────────────────────────────────────────────────
+// THE BUG THAT WAS HERE:
+//   Frontend was hashing the password with SHA-256 before
+//   sending it to the backend. The backend then called:
+//     bcrypt.compare(sha256_string, bcrypt_hash)
+//   Bcrypt was comparing a SHA-256 hash against a bcrypt hash
+//   of the ORIGINAL password. These will never match unless
+//   the password was also registered with the same SHA-256
+//   pre-hash, creating a brittle dependency.
+//
+//   The correct flow is:
+//     Frontend  → sends plain password over HTTPS
+//     Backend   → bcrypt.hash(plain) on register
+//     Backend   → bcrypt.compare(plain, stored_hash) on login
+//
+// FIX P1.5 — Uses window.API_BASE from config.js instead of
+//             the hardcoded "http://localhost:3006" string.
+//
+// FIX P1.6 — Uses window.getAuthHeaders from config.js.
+//             The local getHeaders() function is removed.
+//
+// IMPORTANT: config.js MUST be loaded before this file.
+//   <script src="js/config.js"></script>
+//   <script src="js/auth.js"></script>
+// ============================================================
 
-const API = "http://localhost:3006";
+// ── LOGIN ──────────────────────────────────────────────────────
+// Called from login.html after the user submits the form.
+// Sends plain password — bcrypt on the backend handles security.
+function handleLogin(email, password) {
+    if (!email || !password) {
+        showError("Please fill in all fields.");
+        return;
+    }
 
-/* ── Helper: build auth headers for every fetch call ────────── */
-function getHeaders() {
-    const token = localStorage.getItem("dhas_token");
-    const headers = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = "Bearer " + token;
-    return headers;
-}
-
-/* Expose globally so report.js, reminder.js, symptom.js, etc. can use it */
-window.getAuthHeaders = getHeaders;
-window.API_BASE       = API;
-
-/* ── LOGIN ────────────────────────────────────────────────────── */
-function handleLogin(email, hashedPassword) {
-    if (!email || !hashedPassword) { showError("Please fill in all fields."); return; }
-
-    fetch(API + "/login", {
+    fetch(window.API_BASE + "/login", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email, password: hashedPassword })
+        body:    JSON.stringify({ email, password })   // ← plain password, no SHA-256
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // CHANGED: store the token alongside the user object
             localStorage.setItem("dhas_token", data.token);
             localStorage.setItem("dhas_user",  JSON.stringify(data.user));
             window.location.href = "dashboard.html";
@@ -50,18 +58,22 @@ function handleLogin(email, hashedPassword) {
     })
     .catch(err => {
         console.error(err);
-        showError("Cannot connect to server. Make sure backend is running.");
+        showError("Cannot connect to server. Make sure the backend is running.");
     });
 }
 
-/* ── REGISTER ─────────────────────────────────────────────────── */
-function handleRegister(name, email, hashedPassword) {
-    if (!name || !email || !hashedPassword) { showError("Please fill in all fields."); return; }
+// ── REGISTER ────────────────────────────────────────────────────
+// Called from register.html. Sends plain password.
+function handleRegister(name, email, password) {
+    if (!name || !email || !password) {
+        showError("Please fill in all fields.");
+        return;
+    }
 
-    fetch(API + "/register", {
+    fetch(window.API_BASE + "/register", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ name, email, password: hashedPassword })
+        body:    JSON.stringify({ name, email, password })   // ← plain password
     })
     .then(res => res.json())
     .then(data => {
@@ -77,24 +89,23 @@ function handleRegister(name, email, hashedPassword) {
     })
     .catch(err => {
         console.error(err);
-        showError("Cannot connect to server. Make sure backend is running.");
+        showError("Cannot connect to server. Make sure the backend is running.");
     });
 }
 
-/* ── LOGOUT ───────────────────────────────────────────────────── */
+// ── LOGOUT ──────────────────────────────────────────────────────
 function handleLogout() {
     if (confirm("Are you sure you want to logout?")) {
-        // CHANGED: also clear the token
         localStorage.removeItem("dhas_user");
         localStorage.removeItem("dhas_token");
         window.location.href = "login.html";
     }
 }
 
-/* ── GOOGLE AUTH ──────────────────────────────────────────────── */
+// ── GOOGLE AUTH ──────────────────────────────────────────────────
 async function handleGoogleAuth(name, email, googleId) {
     try {
-        const res  = await fetch(API + "/auth/google", {
+        const res  = await fetch(window.API_BASE + "/auth/google", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ name, email, google_id: googleId })
@@ -102,7 +113,6 @@ async function handleGoogleAuth(name, email, googleId) {
         const data = await res.json();
 
         if (data.success) {
-            // CHANGED: store token
             localStorage.setItem("dhas_token", data.token);
             localStorage.setItem("dhas_user",  JSON.stringify(data.user));
             window.location.href = "dashboard.html";
@@ -111,11 +121,11 @@ async function handleGoogleAuth(name, email, googleId) {
         }
     } catch (err) {
         console.error("Google auth error:", err);
-        showError("Cannot connect to server. Make sure backend is running.");
+        showError("Cannot connect to server. Make sure the backend is running.");
     }
 }
 
-/* ── UI helpers ────────────────────────────────────────────────── */
+// ── UI HELPERS ───────────────────────────────────────────────────
 function showError(msg) {
     const el  = document.getElementById("errorMsg");
     const ok  = document.getElementById("successMsg");
@@ -136,11 +146,11 @@ function showSuccess(msg) {
 function showRegisterLink() {
     if (document.getElementById("registerRedirectBtn")) return;
     const btn = document.createElement("a");
-    btn.id        = "registerRedirectBtn";
-    btn.href      = "register.html";
-    btn.className = "btn-dhas primary mt-12";
-    btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
-    btn.textContent   = "Go to Register →";
+    btn.id              = "registerRedirectBtn";
+    btn.href            = "register.html";
+    btn.className       = "btn-dhas primary mt-12";
+    btn.style.cssText   = "display:block;text-align:center;margin-top:10px;";
+    btn.textContent     = "Go to Register →";
     const anchor = document.getElementById("loginError") || document.getElementById("errorMsg");
     if (anchor) anchor.after(btn);
 }
@@ -148,11 +158,11 @@ function showRegisterLink() {
 function showLoginLink() {
     if (document.getElementById("loginRedirectBtn")) return;
     const btn = document.createElement("a");
-    btn.id        = "loginRedirectBtn";
-    btn.href      = "login.html";
-    btn.className = "btn-dhas primary mt-12";
-    btn.style.cssText = "display:block;text-align:center;margin-top:10px;";
-    btn.textContent   = "Go to Login →";
+    btn.id              = "loginRedirectBtn";
+    btn.href            = "login.html";
+    btn.className       = "btn-dhas primary mt-12";
+    btn.style.cssText   = "display:block;text-align:center;margin-top:10px;";
+    btn.textContent     = "Go to Login →";
     const anchor = document.getElementById("errorMsg");
     if (anchor) anchor.after(btn);
 }
