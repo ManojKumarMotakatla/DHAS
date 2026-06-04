@@ -1,4 +1,4 @@
-// ── CHANGED: user_id from req.userId; delete checks ownership ──
+// ── CHANGED: P1.4 — no SQL error details sent to client ──
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
 
@@ -34,9 +34,8 @@ function resolveDate(val) {
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 }
 
-/* ── ADD ─────────────────────────────────────────────────────── */
+/* ── ADD ──────────────────────────────────────────────────────── */
 const addReminder = (req, res) => {
-    // CHANGED: always use token-verified ID
     const user_id = req.userId;
 
     const { medicine, sched, scheduleLabel, doseCount, dosesLabel,
@@ -48,7 +47,10 @@ const addReminder = (req, res) => {
         return res.status(400).json({ success: false, message: "At least one time is required." });
 
     getReminderCols((err, c) => {
-        if (err) return res.status(500).json({ success: false, message: "DB error." });
+        if (err) {
+            console.error("getReminderCols error:", err.message);
+            return res.status(500).json({ success: false, message: "Failed to save reminder. Please try again." });
+        }
 
         const resolvedStart = resolveDate(startDate);
         let resolvedAlt = null;
@@ -77,28 +79,33 @@ const addReminder = (req, res) => {
             resolvedStart, resolvedAlt
         ], (err2, result) => {
             if (err2) {
-                console.error("addReminder DB error:", err2);
-                return res.status(500).json({ success: false, message: "Failed to save reminder." });
+                console.error("addReminder DB error:", err2.message);
+                return res.status(500).json({ success: false, message: "Failed to save reminder. Please try again." });
             }
             res.json({ success: true, id: result.insertId });
         });
     });
 };
 
-/* ── GET ─────────────────────────────────────────────────────── */
+/* ── GET ──────────────────────────────────────────────────────── */
 const getReminders = (req, res) => {
     const requestedId = parseInt(req.params.user_id);
 
-    // CHANGED: ownership check
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
 
     getReminderCols((err, c) => {
-        if (err) return res.status(500).json({ success: false });
+        if (err) {
+            console.error("getReminderCols error:", err.message);
+            return res.status(500).json({ success: false, message: "Failed to load reminders." });
+        }
 
         db.query("SELECT * FROM reminders WHERE user_id = ? ORDER BY created_at DESC", [requestedId], (err2, rows) => {
-            if (err2) return res.status(500).json({ success: false });
+            if (err2) {
+                console.error("getReminders DB error:", err2.message);
+                return res.status(500).json({ success: false, message: "Failed to load reminders." });
+            }
 
             const data = rows.map(r => {
                 const rawStart = r[c.startDateCol];
@@ -128,16 +135,11 @@ const getReminders = (req, res) => {
     });
 };
 
-/* ── DELETE ─────────────────────────────────────────────────────
-   CHANGED: verifies that the reminder belongs to the token owner
-   before deleting. Previously anyone could delete any reminder by
-   hitting DELETE /reminders/42.
-────────────────────────────────────────────────────────────────── */
+/* ── DELETE ───────────────────────────────────────────────────── */
 const deleteReminder = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Fetch the reminder first to check ownership
         const [rows] = await db.promise().query(
             "SELECT user_id FROM reminders WHERE id = ?", [id]
         );
@@ -146,18 +148,20 @@ const deleteReminder = async (req, res) => {
             return res.json({ success: false, message: "Reminder not found." });
         }
 
-        // CHANGED: only the owner can delete
         if (!isSelf(req, rows[0].user_id)) {
             return res.status(403).json({ success: false, message: "Access denied." });
         }
 
         db.query("DELETE FROM reminders WHERE id = ?", [id], (err) => {
-            if (err) return res.status(500).json({ success: false });
+            if (err) {
+                console.error("deleteReminder DB error:", err.message);
+                return res.status(500).json({ success: false, message: "Failed to delete reminder." });
+            }
             res.json({ success: true, message: "Reminder deleted." });
         });
     } catch (err) {
-        console.error("deleteReminder error:", err);
-        return res.status(500).json({ success: false });
+        console.error("deleteReminder error:", err.message);
+        return res.status(500).json({ success: false, message: "Server error. Please try again." });
     }
 };
 

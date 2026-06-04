@@ -1,7 +1,4 @@
-// ── CHANGED: user_id now comes from req.userId (JWT), not params/body ──
-// This means a user cannot access or modify another user's profile by
-// changing the ID in the URL — the server ignores the URL param for
-// auth purposes and uses the token-verified ID instead.
+// ── CHANGED: P1.4 — no SQL error details sent to client ──
 const db      = require("../config/db");
 const bcrypt  = require("bcrypt");
 const { isSelf } = require("../middleware/authMiddleware");
@@ -10,7 +7,6 @@ const { isSelf } = require("../middleware/authMiddleware");
 const getProfile = (req, res) => {
     const requestedId = parseInt(req.params.user_id);
 
-    // CHANGED: verify that the token owner is requesting their own profile
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
@@ -28,8 +24,9 @@ const getProfile = (req, res) => {
 
     db.query(sql, [requestedId], (err, rows) => {
         if (err) {
-            console.error("Get profile SQL error:", err.sqlMessage || err.message);
-            return res.json({ success: false, message: "Database error: " + (err.sqlMessage || err.message) });
+            // P1.4: log internally, never send err.sqlMessage to client
+            console.error("Get profile error:", err.message);
+            return res.json({ success: false, message: "Failed to load profile. Please try again." });
         }
         if (rows.length === 0) return res.json({ success: false, message: "User not found." });
         res.json({ success: true, profile: rows[0] });
@@ -38,7 +35,6 @@ const getProfile = (req, res) => {
 
 /* ── SAVE / UPDATE profile ────────────────────────────────────── */
 const saveProfile = (req, res) => {
-    // CHANGED: use token-verified ID, ignore any user_id in the body
     const user_id = req.userId;
 
     const {
@@ -58,8 +54,15 @@ const saveProfile = (req, res) => {
     if (!blood_group)                       return res.json({ success: false, message: "Blood group is required." });
     if (height === null || weight === null) return res.json({ success: false, message: "Height and weight are required." });
 
+    // Validate reasonable ranges
+    if (height < 50 || height > 300)  return res.json({ success: false, message: "Height must be between 50–300 cm." });
+    if (weight < 10 || weight > 500)  return res.json({ success: false, message: "Weight must be between 10–500 kg." });
+
     db.query("UPDATE users SET name = ? WHERE id = ?", [name.trim(), user_id], (err) => {
-        if (err) return res.json({ success: false, message: "Failed to update name." });
+        if (err) {
+            console.error("Save profile name error:", err.message);
+            return res.json({ success: false, message: "Failed to save profile. Please try again." });
+        }
 
         const upsertSql = `
             INSERT INTO user_profiles
@@ -83,32 +86,26 @@ const saveProfile = (req, res) => {
             conditions ? conditions.trim() : "None",
             profile_image || null
         ], (err2) => {
-            if (err2) return res.json({ success: false, message: "Failed to save profile: " + (err2.sqlMessage || err2.message) });
+            if (err2) {
+                console.error("Save profile upsert error:", err2.message);
+                return res.json({ success: false, message: "Failed to save profile. Please try again." });
+            }
             res.json({ success: true, message: "Profile saved successfully." });
         });
     });
 };
 
-/* ── DELETE account ───────────────────────────────────────────────
-   CHANGED: requires the user's current password as extra confirmation.
-   This directly answers your question: "if a user wants to delete,
-   they must provide the password."
-   
-   Google-only accounts are exempt (they have no password).
-────────────────────────────────────────────────────────────────── */
+/* ── DELETE account ───────────────────────────────────────────── */
 const deleteAccount = async (req, res) => {
     const requestedId = parseInt(req.params.user_id);
 
-    // Only the account owner can delete their own account
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
 
-    // CHANGED: require password confirmation before deleting
     const { password } = req.body;
 
     try {
-        // Fetch the stored password hash for this user
         const [rows] = await db.promise().query(
             "SELECT password, provider FROM users WHERE id = ?",
             [requestedId]
@@ -120,7 +117,6 @@ const deleteAccount = async (req, res) => {
 
         const user = rows[0];
 
-        // Google-only accounts have no password — skip the check
         if (user.provider !== "google") {
             if (!password) {
                 return res.json({
@@ -139,13 +135,16 @@ const deleteAccount = async (req, res) => {
         }
 
         db.query("DELETE FROM users WHERE id = ?", [requestedId], (err) => {
-            if (err) return res.json({ success: false, message: "Failed to delete account." });
+            if (err) {
+                console.error("Delete account error:", err.message);
+                return res.json({ success: false, message: "Failed to delete account. Please try again." });
+            }
             res.json({ success: true, message: "Account deleted." });
         });
 
     } catch (err) {
-        console.error("Delete account error:", err);
-        return res.json({ success: false, message: "Server error." });
+        console.error("Delete account error:", err.message);
+        return res.json({ success: false, message: "Server error. Please try again." });
     }
 };
 
