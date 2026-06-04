@@ -1,11 +1,12 @@
 /**
- * DHAS — sw.js  (v5 — full offline support)
+ * DHAS — sw.js  (v6 — full offline + mobile support)
+ * Place this file at project ROOT (same level as server.js)
  */
 
-const CACHE_VERSION = "dhas-v5";
-const API_CACHE     = "dhas-api-v3";
-const FONT_CACHE    = "dhas-fonts-v3";
-const CDN_CACHE     = "dhas-cdn-v3";
+const CACHE_VERSION = "dhas-v6";
+const API_CACHE     = "dhas-api-v4";
+const FONT_CACHE    = "dhas-fonts-v4";
+const CDN_CACHE     = "dhas-cdn-v4";
 
 const CORE_ASSETS = [
   "/",
@@ -45,12 +46,13 @@ const CORE_ASSETS = [
 ];
 
 self.addEventListener("install", event => {
+  console.log("[SW] Installing v6...");
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache => {
-      // Cache assets one by one, ignoring failures for optional assets
-      return Promise.allSettled(
+    caches.open(CACHE_VERSION).then(async cache => {
+      // Cache assets individually, skip failures silently
+      const results = await Promise.allSettled(
         CORE_ASSETS.map(url =>
-          fetch(url).then(response => {
+          fetch(url, { cache: "no-cache" }).then(response => {
             if (response.ok) {
               return cache.put(url, response);
             }
@@ -59,10 +61,9 @@ self.addEventListener("install", event => {
           )
         )
       );
-    }).then(() => {
-      console.log("[SW] Core assets cached");
-      return self.skipWaiting();
-    })
+      const ok = results.filter(r => r.status === "fulfilled").length;
+      console.log(`[SW] Cached ${ok}/${CORE_ASSETS.length} assets`);
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -72,11 +73,14 @@ self.addEventListener("activate", event => {
     caches.keys()
       .then(keys => Promise.all(
         keys.filter(k => !validCaches.includes(k)).map(k => {
-          console.log("[SW] Deleting old cache:", k);
+          console.log("[SW] Removing old cache:", k);
           return caches.delete(k);
         })
       ))
-      .then(() => self.clients.claim())
+      .then(() => {
+        console.log("[SW] v6 activated");
+        return self.clients.claim();
+      })
   );
 });
 
@@ -84,7 +88,11 @@ self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Only handle GET
   if (request.method !== "GET") return;
+
+  // Skip chrome-extension and non-http requests
+  if (!url.protocol.startsWith("http")) return;
 
   // Google Fonts — stale while revalidate
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
@@ -92,7 +100,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // CDN assets — cache first
+  // CDN assets (icons, bootstrap, etc.) — cache first
   if (
     url.hostname.includes("cdn.jsdelivr.net") ||
     url.hostname.includes("cdnjs.cloudflare.com") ||
@@ -103,7 +111,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // API calls — network first
+  // API calls — network first (fresh data when online, cached when offline)
   if (
     url.pathname.startsWith("/profile") ||
     url.pathname.startsWith("/symptoms") ||
@@ -118,9 +126,11 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // All other requests (HTML, CSS, JS) — cache first
+  // Everything else (HTML, CSS, JS, images) — cache first
   event.respondWith(cacheFirst(request, CACHE_VERSION));
 });
+
+// ── Cache strategies ──────────────────────────────────────────
 
 async function cacheFirst(request, cacheName) {
   const cache  = await caches.open(cacheName);
@@ -133,7 +143,7 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    // Offline fallback for navigation requests
+    // Offline fallback for navigation
     if (request.mode === "navigate") {
       const fallback =
         (await cache.match("/404.html")) ||
@@ -142,7 +152,7 @@ async function cacheFirst(request, cacheName) {
       if (fallback) return fallback;
     }
     return new Response(
-      JSON.stringify({ success: false, message: "You are offline." }),
+      JSON.stringify({ success: false, message: "You are offline. Please check your connection." }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -173,14 +183,20 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await fetchPromise) || new Response("", { status: 204 });
 }
 
+// ── Messages from main thread ─────────────────────────────────
+
 self.addEventListener("message", event => {
   if (event.data?.type === "CHECK_ALARMS") {
     self.clients.matchAll().then(clients =>
       clients.forEach(c => c.postMessage({ type: "WAKE_CHECK" }))
     );
   }
-  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
+
+// ── Notification click ────────────────────────────────────────
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
@@ -188,12 +204,16 @@ self.addEventListener("notificationclick", event => {
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && "focus" in client) return client.focus();
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
       }
       return clients.openWindow(targetUrl);
     })
   );
 });
+
+// ── Push notifications ────────────────────────────────────────
 
 self.addEventListener("push", event => {
   if (!event.data) return;

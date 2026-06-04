@@ -1,7 +1,6 @@
 -- ============================================================
--- DHAS — schema.sql  (v2 — improved)
+-- DHAS — schema.sql  (v3 — fixed reminder_logs unique key)
 -- Safe to run on BOTH fresh and existing databases.
--- Every structural change uses IF NOT EXISTS / MODIFY safely.
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS dhas_db;
 USE dhas_db;
@@ -35,7 +34,6 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 -- ── symptoms ───────────────────────────────────────────────
--- P4.2: Use JSON column type for proper querying
 CREATE TABLE IF NOT EXISTS symptoms (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT         NOT NULL,
@@ -46,10 +44,33 @@ CREATE TABLE IF NOT EXISTS symptoms (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- P4.3: Index for fast user queries
-ALTER TABLE symptoms
-    ADD INDEX IF NOT EXISTS idx_symptoms_user_id (user_id),
-    ADD INDEX IF NOT EXISTS idx_symptoms_created_at (created_at);
+-- Add indexes if they don't exist
+-- (MySQL doesn't support IF NOT EXISTS for indexes directly, so we use stored procedure)
+DROP PROCEDURE IF EXISTS add_index_if_not_exists;
+DELIMITER //
+CREATE PROCEDURE add_index_if_not_exists(
+    IN p_table VARCHAR(64),
+    IN p_index VARCHAR(64),
+    IN p_cols  VARCHAR(200)
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name   = p_table
+          AND index_name   = p_index
+    ) THEN
+        SET @sql = CONCAT('ALTER TABLE `', p_table, '` ADD INDEX `', p_index, '` (', p_cols, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+
+CALL add_index_if_not_exists('symptoms', 'idx_symptoms_user_id',    'user_id');
+CALL add_index_if_not_exists('symptoms', 'idx_symptoms_created_at', 'created_at');
+
 
 -- ── reminders ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reminders (
@@ -71,13 +92,14 @@ CREATE TABLE IF NOT EXISTS reminders (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- P4.3: Index for fast user queries
-ALTER TABLE reminders
-    ADD INDEX IF NOT EXISTS idx_reminders_user_id (user_id),
-    ADD INDEX IF NOT EXISTS idx_reminders_start_date (start_date);
+CALL add_index_if_not_exists('reminders', 'idx_reminders_user_id',    'user_id');
+CALL add_index_if_not_exists('reminders', 'idx_reminders_start_date', 'start_date');
+
 
 -- ── reminder_logs ──────────────────────────────────────────
--- P4.4: Track when reminders were taken, missed, or snoozed
+-- Tracks when reminders were taken, missed, or snoozed
+-- IMPORTANT: The UNIQUE KEY on (reminder_id, scheduled_time) allows
+-- the upsert in ReminderLogController to work correctly
 CREATE TABLE IF NOT EXISTS reminder_logs (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     reminder_id    INT           NOT NULL,
@@ -85,15 +107,17 @@ CREATE TABLE IF NOT EXISTS reminder_logs (
     scheduled_time DATETIME      NOT NULL,
     status         ENUM('taken', 'missed', 'snoozed') NOT NULL DEFAULT 'taken',
     dose_label     VARCHAR(100)  NOT NULL DEFAULT '',
-    logged_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    logged_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- This UNIQUE key enables the ON DUPLICATE KEY UPDATE upsert in the controller
+    UNIQUE KEY uq_reminder_schedule (reminder_id, scheduled_time),
     FOREIGN KEY (reminder_id) REFERENCES reminders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id)     REFERENCES users(id)     ON DELETE CASCADE
 );
 
-ALTER TABLE reminder_logs
-    ADD INDEX IF NOT EXISTS idx_logs_reminder_id (reminder_id),
-    ADD INDEX IF NOT EXISTS idx_logs_user_id (user_id),
-    ADD INDEX IF NOT EXISTS idx_logs_scheduled_time (scheduled_time);
+CALL add_index_if_not_exists('reminder_logs', 'idx_logs_reminder_id',     'reminder_id');
+CALL add_index_if_not_exists('reminder_logs', 'idx_logs_user_id',         'user_id');
+CALL add_index_if_not_exists('reminder_logs', 'idx_logs_scheduled_time',  'scheduled_time');
+
 
 -- ── reports ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reports (
@@ -107,13 +131,11 @@ CREATE TABLE IF NOT EXISTS reports (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- P4.3: Index for fast user queries
-ALTER TABLE reports
-    ADD INDEX IF NOT EXISTS idx_reports_user_id (user_id),
-    ADD INDEX IF NOT EXISTS idx_reports_uploaded_at (uploaded_at);
+CALL add_index_if_not_exists('reports', 'idx_reports_user_id',    'user_id');
+CALL add_index_if_not_exists('reports', 'idx_reports_uploaded_at', 'uploaded_at');
+
 
 -- ── password_reset_tokens ──────────────────────────────────
--- P2.6: Support for password change / reset feature
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     user_id    INT          NOT NULL,
@@ -124,6 +146,8 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-ALTER TABLE password_reset_tokens
-    ADD INDEX IF NOT EXISTS idx_prt_token (token),
-    ADD INDEX IF NOT EXISTS idx_prt_user_id (user_id);
+CALL add_index_if_not_exists('password_reset_tokens', 'idx_prt_token',   'token');
+CALL add_index_if_not_exists('password_reset_tokens', 'idx_prt_user_id', 'user_id');
+
+-- Cleanup
+DROP PROCEDURE IF EXISTS add_index_if_not_exists;

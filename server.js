@@ -7,29 +7,41 @@ const rateLimit   = require("express-rate-limit");
 
 const app = express();
 
-// ── CORS — allow localhost and any local network IP (for mobile testing) ──
+// ── CORS — allow localhost AND any local network IP (for mobile testing) ──
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3006";
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (mobile apps, curl, Postman)
+        // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
         if (!origin) return callback(null, true);
         // Allow the configured origin
         if (origin === ALLOWED_ORIGIN) return callback(null, true);
-        // Allow local network IPs for mobile testing (192.168.x.x, 10.x.x.x)
+        // Allow local network IPs for mobile testing
         if (/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(origin)) {
+            return callback(null, true);
+        }
+        // Allow localhost on any port (for development)
+        if (/^http:\/\/localhost(:\d+)?$/.test(origin)) {
+            return callback(null, true);
+        }
+        // Allow 127.0.0.1 on any port
+        if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
             return callback(null, true);
         }
         callback(new Error("Not allowed by CORS"));
     },
-    methods:     ["GET", "POST", "PUT", "DELETE"],
+    methods:     ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
+
+// Handle preflight requests for all routes
+app.options("*", cors());
 
 // ── Rate limiting ────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max:      200,
+    max:      300,
     standardHeaders: true,
     legacyHeaders:   false,
     message: { success: false, message: "Too many requests. Please wait a few minutes." }
@@ -37,7 +49,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max:      10,
+    max:      15,
     standardHeaders: true,
     legacyHeaders:   false,
     message: { success: false, message: "Too many login attempts. Please wait 15 minutes." }
@@ -46,24 +58,26 @@ const authLimiter = rateLimit({
 app.use(globalLimiter);
 
 // ── Body parsers ──────────────────────────────────────────────────────────
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ limit: "1mb", extended: true }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ limit: "2mb", extended: true }));
 
 // ── Static files ──────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "frontend")));
+app.use(express.static(path.join(__dirname)));  // serve sw.js from root
+
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "frontend", "index.html"));
 });
 
 app.get("/test", (req, res) => {
-    res.send("✅ DHAS Backend is running...");
+    res.json({ success: true, message: "DHAS Backend is running", timestamp: new Date().toISOString() });
 });
 
 // ── API Routes ─────────────────────────────────────────────────────────────
 const authRoutes        = require("./Backend/routes/authRoutes");
 const symptomRoutes     = require("./Backend/routes/symptomRoutes");
 const reminderRoutes    = require("./Backend/routes/reminderRoutes");
-const reminderLogRoutes = require("./Backend/routes/reminderlogroutes");
+const reminderLogRoutes = require("./Backend/routes/reminderlogroutes");   // ← FIXED filename
 const reportRoutes      = require("./Backend/routes/reportRoutes");
 const profileRoutes     = require("./Backend/routes/profileRoutes");
 
@@ -105,7 +119,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-    console.log(`📱 For mobile testing use: http://<your-local-IP>:${PORT}`);
-    console.log(`   Find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)`);
+    console.log(`✅ DHAS Server running on http://localhost:${PORT}`);
+    console.log(`📱 For mobile: find your IP with "ipconfig" (Windows) or "ifconfig" (Mac/Linux)`);
+    console.log(`   Then open: http://<YOUR-LOCAL-IP>:${PORT} on your phone`);
+    console.log(`   Make sure phone and PC are on the same WiFi network`);
 });
