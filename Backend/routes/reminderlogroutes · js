@@ -1,7 +1,6 @@
-// Backend/routes/reminderLogRoutes.js
 const express = require("express");
 const router  = express.Router();
-const { logDose, getLogs, getAdherence } = require("../controllers/reminderlogcontroller");
+const { logDose, getLogs, getAdherence } = require("../controllers/Reminderlogcontroller");
 const { requireAuth } = require("../middleware/authMiddleware");
 
 router.post("/log",                requireAuth, logDose);

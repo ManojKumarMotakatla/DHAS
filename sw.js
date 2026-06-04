@@ -1,11 +1,11 @@
 /**
- * DHAS — sw.js  (v4 — full offline support)
+ * DHAS — sw.js  (v5 — full offline support)
  */
 
-const CACHE_VERSION = "dhas-v4";
-const API_CACHE     = "dhas-api-v2";
-const FONT_CACHE    = "dhas-fonts-v2";
-const CDN_CACHE     = "dhas-cdn-v2";
+const CACHE_VERSION = "dhas-v5";
+const API_CACHE     = "dhas-api-v3";
+const FONT_CACHE    = "dhas-fonts-v3";
+const CDN_CACHE     = "dhas-cdn-v3";
 
 const CORE_ASSETS = [
   "/",
@@ -41,22 +41,28 @@ const CORE_ASSETS = [
   "/js/severity.js",
   "/js/language.js",
   "/css/style.css",
-  "/manifest.json",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/manifest.json"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then(cache => {
+      // Cache assets one by one, ignoring failures for optional assets
       return Promise.allSettled(
         CORE_ASSETS.map(url =>
-          cache.add(url).catch(err =>
+          fetch(url).then(response => {
+            if (response.ok) {
+              return cache.put(url, response);
+            }
+          }).catch(err =>
             console.warn(`[SW] Could not cache ${url}:`, err.message)
           )
         )
       );
-    }).then(() => self.skipWaiting())
+    }).then(() => {
+      console.log("[SW] Core assets cached");
+      return self.skipWaiting();
+    })
   );
 });
 
@@ -65,7 +71,10 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => !validCaches.includes(k)).map(k => caches.delete(k))
+        keys.filter(k => !validCaches.includes(k)).map(k => {
+          console.log("[SW] Deleting old cache:", k);
+          return caches.delete(k);
+        })
       ))
       .then(() => self.clients.claim())
   );
@@ -77,11 +86,13 @@ self.addEventListener("fetch", event => {
 
   if (request.method !== "GET") return;
 
+  // Google Fonts — stale while revalidate
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
     event.respondWith(staleWhileRevalidate(request, FONT_CACHE));
     return;
   }
 
+  // CDN assets — cache first
   if (
     url.hostname.includes("cdn.jsdelivr.net") ||
     url.hostname.includes("cdnjs.cloudflare.com") ||
@@ -92,6 +103,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // API calls — network first
   if (
     url.pathname.startsWith("/profile") ||
     url.pathname.startsWith("/symptoms") ||
@@ -106,6 +118,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // All other requests (HTML, CSS, JS) — cache first
   event.respondWith(cacheFirst(request, CACHE_VERSION));
 });
 
@@ -120,6 +133,7 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
+    // Offline fallback for navigation requests
     if (request.mode === "navigate") {
       const fallback =
         (await cache.match("/404.html")) ||

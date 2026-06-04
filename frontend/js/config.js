@@ -1,58 +1,46 @@
 // ============================================================
 // DHAS — config.js
-// SINGLE SOURCE OF TRUTH for API base URL and auth helpers.
-//
-// FIX P1.5 — API URL was hardcoded as "http://localhost:3006"
-//             in 9+ files. Change it here once and it updates
-//             everywhere automatically.
-//
-// FIX P1.6 — getAuthHeaders() was copy-pasted into 8 files.
-//             It now lives here only and is exposed on window
-//             so every page can call window.getAuthHeaders().
-//
-// USAGE IN EVERY HTML PAGE:
-//   <!-- Load config BEFORE any other JS file -->
-//   <script src="js/config.js"></script>
-//   <script src="js/auth.js"></script>
-//   ... other scripts ...
-//
-// Then anywhere in JS:
-//   fetch(window.API_BASE + "/login", { headers: window.getAuthHeaders() })
+// Single source of truth for API base URL and auth helpers.
+// Auto-detects mobile access vs localhost.
 // ============================================================
 
 (function () {
   "use strict";
 
-  // ── Change this ONE line when deploying ───────────────────
-  // Development:  "http://localhost:3006"
-  // Production:   "https://your-real-domain.com"
-  var API_BASE = "http://localhost:3006";
+  // ── Auto-detect API base URL ──────────────────────────────
+  // If the page is served from localhost → use localhost
+  // If served from a local network IP (mobile) → use that same IP
+  // Change the port (3006) if your backend uses a different port.
+  var PORT = "3006";
 
-  // Expose globally so every script on every page can use it
+  var API_BASE;
+  var hostname = window.location.hostname;
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    API_BASE = "http://localhost:" + PORT;
+  } else {
+    // Mobile or other device on local network — use same host
+    API_BASE = "http://" + hostname + ":" + PORT;
+  }
+
+  // Override for production deployment — uncomment and set your domain:
+  // API_BASE = "https://your-production-domain.com";
+
   window.API_BASE = API_BASE;
 
   // ── Auth header builder ───────────────────────────────────
-  // Reads the JWT token from localStorage and builds the
-  // Authorization header. Returns a plain object you can
-  // spread into fetch options or pass directly.
-  //
-  // Example:
-  //   fetch(API_BASE + "/profile/1", { headers: getAuthHeaders() })
-  //
   function getAuthHeaders(extraHeaders) {
     var token = localStorage.getItem("dhas_token");
     var headers = { "Content-Type": "application/json" };
     if (token) {
       headers["Authorization"] = "Bearer " + token;
     }
-    // Merge any extra headers the caller wants (optional)
     if (extraHeaders && typeof extraHeaders === "object") {
       Object.assign(headers, extraHeaders);
     }
     return headers;
   }
 
-  // Expose on window — replaces ALL local copies across the app
   window.getAuthHeaders = getAuthHeaders;
 
   // ── Convenience: get the logged-in user object ────────────
