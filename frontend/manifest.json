@@ -60,6 +60,15 @@
       "purpose": "maskable any"
     }
   ],
+  "screenshots": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "DHAS Dashboard"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Check Symptoms",
@@ -73,6 +82,13 @@
       "short_name": "Reminders",
       "description": "View and manage reminders",
       "url": "/reminder.html",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Step Counter",
+      "short_name": "Steps",
+      "description": "Track your daily steps",
+      "url": "/steps.html",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]

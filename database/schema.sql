@@ -1,5 +1,5 @@
 -- ============================================================
--- DHAS — schema.sql
+-- DHAS — schema.sql  (v2 — improved)
 -- Safe to run on BOTH fresh and existing databases.
 -- Every structural change uses IF NOT EXISTS / MODIFY safely.
 -- ============================================================
@@ -35,18 +35,23 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 -- ── symptoms ───────────────────────────────────────────────
+-- P4.2: Use JSON column type for proper querying
 CREATE TABLE IF NOT EXISTS symptoms (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT         NOT NULL,
-    symptoms       TEXT        NOT NULL,
+    symptoms       JSON        NOT NULL,
     condition_name VARCHAR(100),
     severity       VARCHAR(20),
     created_at     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- P4.3: Index for fast user queries
+ALTER TABLE symptoms
+    ADD INDEX IF NOT EXISTS idx_symptoms_user_id (user_id),
+    ADD INDEX IF NOT EXISTS idx_symptoms_created_at (created_at);
+
 -- ── reminders ──────────────────────────────────────────────
--- Column name: medicine_name  (NOT 'medicine')
 CREATE TABLE IF NOT EXISTS reminders (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT           NOT NULL,
@@ -66,8 +71,31 @@ CREATE TABLE IF NOT EXISTS reminders (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- P4.3: Index for fast user queries
+ALTER TABLE reminders
+    ADD INDEX IF NOT EXISTS idx_reminders_user_id (user_id),
+    ADD INDEX IF NOT EXISTS idx_reminders_start_date (start_date);
+
+-- ── reminder_logs ──────────────────────────────────────────
+-- P4.4: Track when reminders were taken, missed, or snoozed
+CREATE TABLE IF NOT EXISTS reminder_logs (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    reminder_id    INT           NOT NULL,
+    user_id        INT           NOT NULL,
+    scheduled_time DATETIME      NOT NULL,
+    status         ENUM('taken', 'missed', 'snoozed') NOT NULL DEFAULT 'taken',
+    dose_label     VARCHAR(100)  NOT NULL DEFAULT '',
+    logged_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (reminder_id) REFERENCES reminders(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)     REFERENCES users(id)     ON DELETE CASCADE
+);
+
+ALTER TABLE reminder_logs
+    ADD INDEX IF NOT EXISTS idx_logs_reminder_id (reminder_id),
+    ADD INDEX IF NOT EXISTS idx_logs_user_id (user_id),
+    ADD INDEX IF NOT EXISTS idx_logs_scheduled_time (scheduled_time);
+
 -- ── reports ────────────────────────────────────────────────
--- Column name: file_name  (NOT 'filename')
 CREATE TABLE IF NOT EXISTS reports (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT          NOT NULL,
@@ -79,3 +107,23 @@ CREATE TABLE IF NOT EXISTS reports (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- P4.3: Index for fast user queries
+ALTER TABLE reports
+    ADD INDEX IF NOT EXISTS idx_reports_user_id (user_id),
+    ADD INDEX IF NOT EXISTS idx_reports_uploaded_at (uploaded_at);
+
+-- ── password_reset_tokens ──────────────────────────────────
+-- P2.6: Support for password change / reset feature
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT          NOT NULL,
+    token      VARCHAR(64)  NOT NULL UNIQUE,
+    expires_at DATETIME     NOT NULL,
+    used       TINYINT(1)   NOT NULL DEFAULT 0,
+    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+ALTER TABLE password_reset_tokens
+    ADD INDEX IF NOT EXISTS idx_prt_token (token),
+    ADD INDEX IF NOT EXISTS idx_prt_user_id (user_id);

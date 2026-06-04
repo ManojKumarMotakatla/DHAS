@@ -3,6 +3,9 @@
  * Run from your project root: node generate-icons.js
  * Creates frontend/icons/ folder with all required PWA icon sizes.
  * Requires: npm install canvas  (run once before executing)
+ *
+ * NOTE: Rename this file from generate_icons.json to generate_icons.js
+ * then run: node generate_icons.js
  */
 
 const { createCanvas } = require("canvas");
@@ -18,15 +21,16 @@ function drawIcon(size) {
   const canvas = createCanvas(size, size);
   const ctx    = canvas.getContext("2d");
 
-  const pad  = size * 0.12;
-  const r    = size * 0.22;         // corner radius for background
+  // ── Background: rounded rect with navy→blue gradient ─────
+  const pad  = size * 0.08;
+  const r    = size * 0.22;
   const s    = size - pad * 2;
 
-  // ── Background: navy→blue gradient ──────────────────────────
   const grad = ctx.createLinearGradient(pad, pad, pad + s, pad + s);
   grad.addColorStop(0, "#112057");
   grad.addColorStop(1, "#2a6cf6");
 
+  // Rounded rectangle background
   ctx.beginPath();
   ctx.moveTo(pad + r, pad);
   ctx.lineTo(pad + s - r, pad);
@@ -41,32 +45,45 @@ function drawIcon(size) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // ── Heart icon (white) ────────────────────────────────────
-  const cx   = size / 2;
-  const cy   = size / 2 + size * 0.02;
-  const hw   = size * 0.28;   // half-width of heart
+  // ── Heart icon (white) ─────────────────────────────────
+  const cx  = size / 2;
+  const cy  = size / 2 + size * 0.03;
+  const hw  = size * 0.26;
 
   ctx.save();
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle  = "#ffffff";
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 0;
+  ctx.lineWidth  = 0;
 
-  // Draw heart using bezier curves
   ctx.beginPath();
   ctx.moveTo(cx, cy + hw * 0.8);
-  // left arc
-  ctx.bezierCurveTo(cx - hw * 1.0, cy + hw * 0.3, cx - hw * 1.2, cy - hw * 0.5, cx - hw * 0.5, cy - hw * 0.5);
-  ctx.bezierCurveTo(cx - hw * 0.1, cy - hw * 0.5, cx, cy - hw * 0.1, cx, cy - hw * 0.1);
-  // right arc
-  ctx.bezierCurveTo(cx, cy - hw * 0.1, cx + hw * 0.1, cy - hw * 0.5, cx + hw * 0.5, cy - hw * 0.5);
-  ctx.bezierCurveTo(cx + hw * 1.2, cy - hw * 0.5, cx + hw * 1.0, cy + hw * 0.3, cx, cy + hw * 0.8);
+  ctx.bezierCurveTo(
+    cx - hw * 1.0, cy + hw * 0.3,
+    cx - hw * 1.2, cy - hw * 0.5,
+    cx - hw * 0.5, cy - hw * 0.5
+  );
+  ctx.bezierCurveTo(
+    cx - hw * 0.1, cy - hw * 0.5,
+    cx,             cy - hw * 0.1,
+    cx,             cy - hw * 0.1
+  );
+  ctx.bezierCurveTo(
+    cx,             cy - hw * 0.1,
+    cx + hw * 0.1, cy - hw * 0.5,
+    cx + hw * 0.5, cy - hw * 0.5
+  );
+  ctx.bezierCurveTo(
+    cx + hw * 1.2, cy - hw * 0.5,
+    cx + hw * 1.0, cy + hw * 0.3,
+    cx,             cy + hw * 0.8
+  );
   ctx.closePath();
   ctx.fill();
   ctx.restore();
 
-  // ── Subtle teal accent dot ────────────────────────────────
+  // ── Teal accent dot (top-right of heart) ──────────────
   ctx.beginPath();
-  ctx.arc(cx + hw * 0.55, cy - hw * 0.55, size * 0.05, 0, Math.PI * 2);
+  ctx.arc(cx + hw * 0.52, cy - hw * 0.52, size * 0.048, 0, Math.PI * 2);
   ctx.fillStyle = "#00c9b1";
   ctx.fill();
 
@@ -81,4 +98,4 @@ SIZES.forEach(size => {
 });
 
 console.log(`\n🎉 All ${SIZES.length} icons saved to frontend/icons/`);
-console.log("Now update frontend/manifest.json — already done if you used the new manifest.\n");
+console.log("Run this once, then icons will work for PWA installation.\n");
