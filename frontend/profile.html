@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Profile — DHAS</title>
-  <script src="theme.js"></script>
+  <script src="js/config.js"></script>
+<script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,600;0,700;1,300&display=swap" rel="stylesheet">
   <style>
@@ -381,7 +382,7 @@
 </button>
 
 <script>
-const BASE = "http://localhost:3006";
+const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user"));
 if (!user) window.location.href = "login.html";
 if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");
@@ -392,13 +393,7 @@ if (userId !== null && user.id === undefined) {
   localStorage.setItem("dhas_user", JSON.stringify(user));
 }
 
-// ── Auth headers ─────────────────────────────────────────────
-function authHeaders() {
-  const token = localStorage.getItem("dhas_token");
-  const h = { "Content-Type": "application/json" };
-  if (token) h["Authorization"] = "Bearer " + token;
-  return h;
-}
+
 
 // ── Toast system (replaces all alert() calls) ─────────────────
 let _toastTimer = null;
@@ -477,7 +472,7 @@ async function executeDelete() {
   try {
     const res = await fetch(`${BASE}/profile/${userId}`, {
       method:  "DELETE",
-      headers: authHeaders(),
+      headers: window.getAuthHeaders(),
       body:    JSON.stringify({ password })
     });
     const d = await res.json();
@@ -546,7 +541,7 @@ async function load() {
     showApiBanner("User ID missing — please log out and log in again.");
   } else {
     try {
-      const pd = await fetch(`${BASE}/profile/${userId}`, { headers: authHeaders() }).then(r => r.json());
+      const pd = await fetch(`${BASE}/profile/${userId}`, { headers:window.getAuthHeaders() }).then(r => r.json());
       if (pd.success && pd.profile) {
         p = pd.profile;
         if (p.profile_image !== user.profile_image) {
@@ -568,11 +563,11 @@ async function load() {
 
   let reminderCount = 0, reportCount = 0;
   try {
-    const r = await fetch(`${BASE}/reminders/${userId}`, { headers: authHeaders() }).then(r => r.json());
+    const r = await fetch(`${BASE}/reminders/${userId}`, { headers: window.getAuthHeaders()}).then(r => r.json());
     reminderCount = r.success ? (r.data || r.reminders || []).length : 0;
   } catch(_) {}
   try {
-    const r = await fetch(`${BASE}/reports/${userId}`, { headers: authHeaders() }).then(r => r.json());
+    const r = await fetch(`${BASE}/reports/${userId}`, { headers: window.getAuthHeaders() }).then(r => r.json());
     reportCount = r.success ? (r.data || r.reports || []).length : 0;
   } catch(_) {}
 

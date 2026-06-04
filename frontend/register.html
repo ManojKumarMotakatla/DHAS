@@ -504,11 +504,7 @@ function isPasswordValid(val) {
   return Object.values(RULES).every(fn => fn(val));
 }
 
-// ── SHA-256 ───────────────────────────────────────────────────
-async function sha256(plain) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
+
 
 // ── FORM SUBMIT ───────────────────────────────────────────────
 async function submitRegister() {
@@ -558,16 +554,14 @@ async function submitRegister() {
     return;
   }
 
-  const hashedPassword = await sha256(password);
-  handleRegister(name, email, hashedPassword);
+handleRegister(name, email, password);   // plain password
 }
-
 // ── GOOGLE AUTH CALLBACK ──────────────────────────────────────
 function handleCredentialResponse(response) {
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   handleGoogleAuth(payload.name, payload.email, payload.sub);
 }
 </script>
+<script src="js/config.js"></script>
 <script src="js/auth.js"></script>
-</body>
 </html>

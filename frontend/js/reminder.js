@@ -1,12 +1,6 @@
-const API = "http://localhost:3006/reminders";
-
+const API = (window.API_BASE || "http://localhost:3006") + "/reminders";
 // ── JWT auth helper ───────────────────────────────────────────
-function getAuthHeaders(extra) {
-    const token = localStorage.getItem("dhas_token");
-    const h = { "Content-Type": "application/json", ...extra };
-    if (token) h["Authorization"] = "Bearer " + token;
-    return h;
-}
+
 
 function getUserId() {
     const flatKeys = ["user_id","userId","uid","dhas_user_id","dhas_userId","id","user"];
@@ -559,7 +553,8 @@ async function loadRemindersFromServer() {
     if (!uid) { displayReminders(); return; }
     try {
         const res  = await fetch(`${API}/get/${uid}`, {
-            headers: getAuthHeaders()
+            headers: window.getAuthHeaders()
+
         });
         const data = await res.json();
         if (data.success) remindersCache = data.data || [];
@@ -630,7 +625,7 @@ window.addReminder = async function () {
     try {
         const res  = await fetch(`${API}/add`, {
             method:"POST",
-            headers: getAuthHeaders(),
+            headers: window.getAuthHeaders(),
             body:JSON.stringify(payload)
         });
         const data = await res.json();
@@ -665,7 +660,7 @@ window.deleteReminder = async function (id) {
         try {
             const res  = await fetch(`${API}/delete/${id}`, {
                 method:"DELETE",
-                headers: getAuthHeaders()
+                headers: window.getAuthHeaders()
             });
             const data = await res.json();
             if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
@@ -1012,7 +1007,7 @@ window.saveEditReminder = async function (id) {
     try {
         const delData = await (await fetch(`${API}/delete/${id}`, {
             method:"DELETE",
-            headers: getAuthHeaders()
+            headers: window.getAuthHeaders()
         })).json();
         if (!delData.success) { showPageMsg("Could not update reminder. Please try again.", "error"); return; }
 
@@ -1034,7 +1029,7 @@ window.saveEditReminder = async function (id) {
 
         const addData = await (await fetch(`${API}/add`, {
             method:"POST",
-            headers: getAuthHeaders(),
+            headers: window.getAuthHeaders(),
             body:JSON.stringify(payload)
         })).json();
 

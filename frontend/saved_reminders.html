@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saved Reminders — DHAS</title>
-  <script src="theme.js"></script>
+  <script src="js/config.js"></script>
+<script src="theme.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
@@ -308,7 +309,7 @@
 </main>
 
 <script>
-const BASE = "http://localhost:3006";
+const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
 if (!user || !user.id) window.location.href = "login.html";
 if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");
@@ -316,13 +317,6 @@ if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("
 let allReminders  = [];
 let currentFilter = "all";
 
-// ── Auth headers ───────────────────────────────────────────────
-function authHeaders() {
-  const token = localStorage.getItem("dhas_token");
-  const h = { "Content-Type": "application/json" };
-  if (token) h["Authorization"] = "Bearer " + token;
-  return h;
-}
 
 // ── Bottom-left toast ──────────────────────────────────────────
 let _msgTimer = null;
@@ -593,7 +587,7 @@ async function saveInlineEdit(id) {
     // ── FIXED: auth headers on delete ──
     const delData = await (await fetch(`${BASE}/reminders/delete/${id}`, {
       method:"DELETE",
-      headers: authHeaders()
+      headers: window.getAuthHeaders()
     })).json();
     if (!delData.success) { showMsg("Could not update reminder. Please try again.", "error"); return; }
 
@@ -616,7 +610,7 @@ async function saveInlineEdit(id) {
     // ── FIXED: auth headers on add ──
     const addData = await (await fetch(`${BASE}/reminders/add`, {
       method:"POST",
-      headers: authHeaders(),
+     headers: window.getAuthHeaders(),
       body: JSON.stringify(payload)
     })).json();
 
@@ -661,7 +655,7 @@ async function deleteReminder(id) {
     // ── FIXED: auth headers on delete ──
     const data = await (await fetch(`${BASE}/reminders/delete/${id}`, {
       method:"DELETE",
-      headers: authHeaders()
+      headers: window.getAuthHeaders()
     })).json();
     if (!data.success) { showMsg("Could not delete reminder. Please try again.", "error"); return; }
     allReminders = allReminders.filter(r => r.id !== id);
@@ -815,7 +809,7 @@ async function loadReminders() {
     // ── FIXED: auth headers on load ──
     const res  = await fetch(`${BASE}/reminders/${user.id}`, {
       method: "GET",
-      headers: authHeaders()
+     headers: window.getAuthHeaders()
     });
 
     if (!res.ok) {

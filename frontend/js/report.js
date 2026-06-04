@@ -3,19 +3,12 @@
 // Upload, view, and delete medical reports
 // ============================================
 
-const BASE_URL = "http://localhost:3006";
+const BASE_URL = window.API_BASE || "http://localhost:3006";
 
 function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));
 }
 
-// ── JWT auth helper ───────────────────────────────────────────
-function getAuthHeaders() {
-    const token = localStorage.getItem("dhas_token");
-    const h = { "Content-Type": "application/json" };
-    if (token) h["Authorization"] = "Bearer " + token;
-    return h;
-}
 
 // ── In-page toast ──────────────────────────────────────────────
 let _toastTimer = null;
@@ -67,7 +60,7 @@ async function showReportViewer(id) {
     try {
         const res = await fetch(`${BASE_URL}/reports/view/${id}`, {
             method: "GET",
-            headers: getAuthHeaders()
+           headers: window.getAuthHeaders()
         });
 
         if (!res.ok) {
@@ -198,7 +191,7 @@ function uploadReport() {
         try {
             const res = await fetch(`${BASE_URL}/reports/upload`, {
                 method: "POST",
-                headers: getAuthHeaders(),
+                headers: window.getAuthHeaders(),
                 body: JSON.stringify({
                     user_id:  user.id,
                     filename: file.name,
@@ -245,7 +238,7 @@ async function displayReports() {
     try {
         const res = await fetch(`${BASE_URL}/reports/${user.id}`, {
             method: "GET",
-            headers: getAuthHeaders()
+           headers: window.getAuthHeaders()
         });
 
         const data = await res.json();
@@ -308,7 +301,7 @@ async function deleteReport(id) {
     try {
         const res = await fetch(`${BASE_URL}/reports/${id}`, {
             method: "DELETE",
-            headers: getAuthHeaders()
+            headers: window.getAuthHeaders()
         });
         const data = await res.json();
 

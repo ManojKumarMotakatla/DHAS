@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Profile — DHAS</title>
-  <script src="theme.js"></script>
+  <script src="js/config.js"></script>
+<script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.min.css">
@@ -325,7 +326,7 @@
 </div>
 
 <script>
-const BASE = "http://localhost:3006";
+const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user"));
 if (!user) window.location.href = "login.html";
 if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");
@@ -336,13 +337,7 @@ if (userId !== null && user.id === undefined) {
   localStorage.setItem("dhas_user", JSON.stringify(user));
 }
 
-// ── Auth headers helper ──────────────────────────────────────
-function authHeaders(extraHeaders) {
-  const token = localStorage.getItem("dhas_token");
-  const h = { "Content-Type": "application/json", ...extraHeaders };
-  if (token) h["Authorization"] = "Bearer " + token;
-  return h;
-}
+
 
 let currentStep = 1;
 const TOTAL = 3;
@@ -464,7 +459,7 @@ function handlePhotoSelect(e) {
 async function prefill() {
   try {
     // ── FIX: send JWT token ──
-    const res  = await fetch(`${BASE}/profile/${userId}`, { headers: authHeaders() });
+    const res  = await fetch(`${BASE}/profile/${userId}`, {headers: window.getAuthHeaders() });
     const data = await res.json();
     const p    = (data.success && data.profile) ? data.profile : {};
 
@@ -576,7 +571,7 @@ async function saveProfile() {
     // ── FIX: send JWT token ──
     const res = await fetch(`${BASE}/profile/save`, {
       method:  "POST",
-      headers: authHeaders(),
+      headers: window.getAuthHeaders() ,
       body: JSON.stringify({
         user_id:       userId,
         name:          document.getElementById("fName").value.trim(),
@@ -596,7 +591,7 @@ async function saveProfile() {
       let updatedImage = user.profile_image || null;
       try {
         // ── FIX: send JWT token for refresh fetch ──
-        const fresh = await fetch(`${BASE}/profile/${userId}`, { headers: authHeaders() }).then(r=>r.json());
+        const fresh = await fetch(`${BASE}/profile/${userId}`, { headers: window.getAuthHeaders()}).then(r=>r.json());
         if (fresh.success && fresh.profile) updatedImage = fresh.profile.profile_image || null;
       } catch(_) {}
 

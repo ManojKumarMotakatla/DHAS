@@ -3,7 +3,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="theme.js"></script>
+<script src="js/config.js"></script>
+<script src="theme.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — DHAS</title>
@@ -455,14 +456,9 @@
 const storedUser = localStorage.getItem("dhas_user");
 if (!storedUser) { window.location.href = "login.html"; }
 const user = JSON.parse(storedUser || "{}");
-const BASE = "http://localhost:3006";
+const BASE = window.API_BASE;
 
-function authHeaders() {
-  const token = localStorage.getItem("dhas_token");
-  const h = { "Content-Type": "application/json" };
-  if (token) h["Authorization"] = "Bearer " + token;
-  return h;
-}
+
 
 const hour = new Date().getHours();
 document.getElementById("timeOfDay").textContent =
@@ -659,10 +655,10 @@ function renderSnapshot(p) {
 async function loadDashboard() {
   if (!user.id) { renderSnapshot({}); return; }
   try {
-    const [pd, rd, rpd] = await Promise.all([
-      fetch(`${BASE}/profile/${user.id}`,   { headers: authHeaders() }).then(r => r.json()),
-      fetch(`${BASE}/reminders/${user.id}`, { headers: authHeaders() }).then(r => r.json()),
-      fetch(`${BASE}/reports/${user.id}`,   { headers: authHeaders() }).then(r => r.json())
+   const [pd, rd, rpd] = await Promise.all([
+      fetch(`${BASE}/profile/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json()),
+      fetch(`${BASE}/reminders/${user.id}`, { headers: window.getAuthHeaders() }).then(r => r.json()),
+      fetch(`${BASE}/reports/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json())
     ]);
 
     const p = (pd.success && pd.profile) ? pd.profile : {};

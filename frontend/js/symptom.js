@@ -3,7 +3,7 @@
 // Symptom checker — saves to DB + localStorage
 // ============================================
 
-const BASE_URL = "http://localhost:3006";
+const BASE_URL = window.API_BASE || "http://localhost:3006";
 
 const LS_SYMPTOMS  = "dhas_symptoms";
 const LS_CONDITION = "dhas_symptom_condition";
@@ -12,13 +12,7 @@ function getUser() {
     try { return JSON.parse(localStorage.getItem("dhas_user")); } catch { return null; }
 }
 
-// ── Auth headers helper ────────────────────────────────────────
-function getAuthHeaders() {
-    const token = localStorage.getItem("dhas_token");
-    const h = { "Content-Type": "application/json" };
-    if (token) h["Authorization"] = "Bearer " + token;
-    return h;
-}
+
 
 // ── In-page toast (bottom-left, matches reminders page) ───────
 let _toastTimer = null;
@@ -220,7 +214,7 @@ async function submitSymptoms() {
 async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     const res = await fetch(`${BASE_URL}/symptoms/save`, {
         method:  "POST",
-        headers: getAuthHeaders(),          // ← was just { "Content-Type": "application/json" }
+        headers: window.getAuthHeaders(),
         body:    JSON.stringify({ user_id, symptoms, condition_name, severity })
     });
     const data = await res.json();
