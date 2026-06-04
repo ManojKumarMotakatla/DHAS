@@ -10,13 +10,10 @@ const db          = require("./Backend/config/db");
 const app = express();
 
 // ── P1.3 FIX: CORS restricted to your actual origin ─────────────────────
-// Change ALLOWED_ORIGIN to your production domain when deploying.
-// e.g. "https://dhas.yourdomain.com"
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3006";
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (curl, mobile apps, Postman)
         if (!origin) return callback(null, true);
         if (origin === ALLOWED_ORIGIN) return callback(null, true);
         callback(new Error("Not allowed by CORS"));
@@ -26,7 +23,6 @@ app.use(cors({
 }));
 
 // ── P5.1 FIX: Rate limiting ───────────────────────────────────────────────
-// Global limiter — 200 requests per 15 minutes per IP
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max:      200,
@@ -68,10 +64,11 @@ const reminderRoutes = require("./Backend/routes/reminderRoutes");
 const reportRoutes   = require("./Backend/routes/reportRoutes");
 const profileRoutes  = require("./Backend/routes/profileRoutes");
 
-// Auth routes get the strict rate limiter
-app.use("/login",     authLimiter);
-app.use("/register",  authLimiter);
-app.use("/",          authRoutes);
+// ── FIX: Apply auth rate limiter to ALL auth endpoints including Google ───
+app.use("/login",       authLimiter);
+app.use("/register",    authLimiter);
+app.use("/auth/google", authLimiter);   // ← ADDED: was missing before
+app.use("/",            authRoutes);
 
 app.use("/profile",   profileRoutes);
 app.use("/symptoms",  symptomRoutes);
@@ -82,10 +79,8 @@ app.use("/reports", express.json({ limit: "20mb" }), reportRoutes);
 
 // ── 404 handler — serve custom page ──────────────────────────────────────
 app.use((req, res, next) => {
-    // Only serve 404 page for browser navigation (not API calls)
     if (req.accepts("html") && !req.path.startsWith("/api")) {
         return res.status(404).sendFile(path.join(__dirname, "frontend", "404.html"), (err) => {
-            // If 404.html doesn't exist yet, send plain JSON
             if (err) res.status(404).json({ success: false, message: "Not found." });
         });
     }
@@ -100,7 +95,6 @@ app.use((err, req, res, next) => {
     if (err.message === "Not allowed by CORS") {
         return res.status(403).json({ success: false, message: "CORS policy blocked this request." });
     }
-    // P1.4 FIX: never leak internal error details to client
     console.error("Unhandled error:", err);
     res.status(500).json({ success: false, message: "Something went wrong. Please try again." });
 });

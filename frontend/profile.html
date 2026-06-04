@@ -328,6 +328,11 @@
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
       Settings
     </div>
+    <a href="symptom_history.html" class="arow">
+      <div class="iicon" style="background:#eff6ff;color:var(--blue);"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
+      <div class="acontent"><div class="albl">Symptom History</div><div class="adesc">View your past symptom checks</div></div>
+      <div class="achev"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+    </a>
     <a href="language.html" class="arow">
       <div class="iicon" style="background:#eff6ff;color:var(--blue);"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg></div>
       <div class="acontent"><div class="albl">Change Language</div><div class="adesc">English · Hindi · Telugu</div></div>
@@ -340,7 +345,7 @@
     </div>
   </div>
 
-  <!-- ── DELETE CONFIRMATION PANEL (replaces confirm + prompt popups) ── -->
+  <!-- DELETE CONFIRMATION PANEL -->
   <div id="deletePanel">
     <div class="del-title">
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -393,9 +398,7 @@ if (userId !== null && user.id === undefined) {
   localStorage.setItem("dhas_user", JSON.stringify(user));
 }
 
-
-
-// ── Toast system (replaces all alert() calls) ─────────────────
+// ── Toast system ──────────────────────────────────────────────
 let _toastTimer = null;
 function showToast(text, type = "success", duration = 4500) {
   const el = document.getElementById("dhasToast");
@@ -437,13 +440,19 @@ function toggleDelPw() {
   input.type  = hide ? "text" : "password";
   eye.innerHTML = hide
     ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
-    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+       <path stroke-linecap="round" stroke-linejoin="round"
+           d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+              -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
 }
 
 async function executeDelete() {
   const btn = document.getElementById("delConfirmBtn");
   document.getElementById("delError").classList.remove("show");
 
+  // ── FIX P1.1 equivalent for delete: send PLAIN password, not SHA-256 ──
+  // profileController.js uses bcrypt.compare(password, hash) which needs the
+  // original plain password — NOT a pre-hashed version.
   let password = null;
 
   if (!_isGoogleOnly) {
@@ -453,15 +462,13 @@ async function executeDelete() {
       document.getElementById("delPassword").focus();
       return;
     }
-    // Hash the password before sending
-    const buf  = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
-    password   = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    // Send plain password — bcrypt on the backend handles comparison
+    // (DO NOT hash here — that was the P1.1 bug)
   }
 
   btn.disabled = true;
   btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;animation:spin .7s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Deleting…`;
 
-  // Add spin keyframe if missing
   if (!document.getElementById("spinStyle")) {
     const s = document.createElement("style");
     s.id = "spinStyle";
@@ -473,7 +480,7 @@ async function executeDelete() {
     const res = await fetch(`${BASE}/profile/${userId}`, {
       method:  "DELETE",
       headers: window.getAuthHeaders(),
-      body:    JSON.stringify({ password })
+      body:    JSON.stringify({ password })   // ← plain password, no SHA-256
     });
     const d = await res.json();
 
@@ -497,12 +504,10 @@ async function executeDelete() {
   }
 }
 
-// ── Allow Enter key in password field ────────────────────────
 document.getElementById("delPassword").addEventListener("keydown", e => {
   if (e.key === "Enter") executeDelete();
 });
 
-// ── Profile helpers ───────────────────────────────────────────
 function showApiBanner(msg) {
   const b = document.getElementById("apiBanner");
   b.textContent = "⚠ " + msg; b.style.display = "block";
@@ -548,7 +553,6 @@ async function load() {
           showAvatar(p.profile_image || null);
           localStorage.setItem("dhas_user", JSON.stringify({ ...user, profile_image: p.profile_image || null }));
         }
-        // Set Google-only flag for delete panel
         _isGoogleOnly = (p.provider === "google" && !p.password);
         if (_isGoogleOnly) {
           document.getElementById("delPwSection").style.display = "none";
