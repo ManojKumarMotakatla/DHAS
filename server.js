@@ -36,7 +36,9 @@ app.use(cors({
 }));
 
 // Handle preflight requests for all routes
-app.options("*", cors());
+// FIX: Express 5 + path-to-regexp v8 does NOT support "*" wildcard.
+// Use "/{*splat}" syntax instead of "*"
+app.options("/{*splat}", cors());
 
 // ── Rate limiting ────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
@@ -77,7 +79,7 @@ app.get("/test", (req, res) => {
 const authRoutes        = require("./Backend/routes/authRoutes");
 const symptomRoutes     = require("./Backend/routes/symptomRoutes");
 const reminderRoutes    = require("./Backend/routes/reminderRoutes");
-const reminderLogRoutes = require("./Backend/routes/reminderlogroutes");   // ← FIXED filename
+const reminderLogRoutes = require("./Backend/routes/reminderlogroutes");
 const reportRoutes      = require("./Backend/routes/reportRoutes");
 const profileRoutes     = require("./Backend/routes/profileRoutes");
 
@@ -96,7 +98,8 @@ app.use("/reminder-logs",  reminderLogRoutes);
 app.use("/reports", express.json({ limit: "20mb" }), reportRoutes);
 
 // ── 404 handler ────────────────────────────────────────────────────────────
-app.use((req, res, next) => {
+// FIX: Use "/{*splat}" instead of "*" for Express 5 compatibility
+app.use("/{*splat}", (req, res) => {
     if (req.accepts("html") && !req.path.startsWith("/api")) {
         return res.status(404).sendFile(path.join(__dirname, "frontend", "404.html"), (err) => {
             if (err) res.status(404).json({ success: false, message: "Not found." });
