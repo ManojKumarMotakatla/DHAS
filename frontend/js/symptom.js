@@ -12,9 +12,7 @@ function getUser() {
     try { return JSON.parse(localStorage.getItem("dhas_user")); } catch { return null; }
 }
 
-
-
-// ── In-page toast (bottom-left, matches reminders page) ───────
+// ── In-page toast ──────────────────────────────────────────────
 let _toastTimer = null;
 function showToast(text, type = "success", duration = 4500) {
     let toast = document.getElementById("dhasPageToast");
@@ -66,14 +64,18 @@ function showToast(text, type = "success", duration = 4500) {
     _toastTimer = setTimeout(() => { toast.style.display = "none"; }, duration);
 }
 
+// ── Condition Map ──────────────────────────────────────────────
+// severityLabel uses ONLY "High", "Medium", "Low"
+// to match normaliseSeverity() in symptom_history.html
 const CONDITION_MAP = {
-    covid_like:  {
+    covid_like: {
         label: "COVID-19 Like Illness",
         icon: "ti-virus",
         iconBg: "rgba(239,68,68,0.15)",
         iconColor: "#ef4444",
         desc: "Your symptoms resemble a COVID-like viral illness.",
-        severity: "moderate", severityLabel: "Moderate"
+        severity: "severe",
+        severityLabel: "High"
     },
     flu: {
         label: "Flu (Influenza)",
@@ -81,7 +83,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(249,115,22,0.15)",
         iconColor: "#f97316",
         desc: "Your symptoms are consistent with seasonal flu.",
-        severity: "moderate", severityLabel: "Moderate"
+        severity: "moderate",
+        severityLabel: "High"
     },
     viral_fever: {
         label: "Viral Fever",
@@ -89,7 +92,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(234,179,8,0.15)",
         iconColor: "#eab308",
         desc: "You likely have a viral fever infection.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Medium"
     },
     common_cold: {
         label: "Common Cold",
@@ -97,7 +101,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(14,165,233,0.15)",
         iconColor: "#0ea5e9",
         desc: "Symptoms suggest a common cold.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Low"
     },
     gastro: {
         label: "Diarrhea / Gastro",
@@ -105,7 +110,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(20,184,166,0.15)",
         iconColor: "#14b8a6",
         desc: "You may have a gastrointestinal infection.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Medium"
     },
     headache: {
         label: "Headache / Migraine",
@@ -113,7 +119,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(139,92,246,0.15)",
         iconColor: "#8b5cf6",
         desc: "Your main issue appears to be headache or migraine.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Medium"
     },
     sore_throat: {
         label: "Sore Throat",
@@ -121,7 +128,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(236,72,153,0.15)",
         iconColor: "#ec4899",
         desc: "Your symptoms point to throat irritation or infection.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Low"
     },
     nausea: {
         label: "Nausea / Vomiting",
@@ -129,7 +137,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(16,185,129,0.15)",
         iconColor: "#10b981",
         desc: "You seem to be experiencing nausea or vomiting.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Low"
     },
     respiratory: {
         label: "Respiratory Distress",
@@ -137,7 +146,8 @@ const CONDITION_MAP = {
         iconBg: "rgba(239,68,68,0.2)",
         iconColor: "#dc2626",
         desc: "Chest pain and breathlessness can be serious. Seek immediate attention.",
-        severity: "severe", severityLabel: "High"
+        severity: "severe",
+        severityLabel: "High"
     },
     general: {
         label: "General Illness",
@@ -145,27 +155,46 @@ const CONDITION_MAP = {
         iconBg: "rgba(99,102,241,0.15)",
         iconColor: "#6366f1",
         desc: "Non-specific symptoms detected. Rest and stay hydrated.",
-        severity: "mild", severityLabel: "Mild"
+        severity: "mild",
+        severityLabel: "Low"
     },
 };
 
+// ── Diagnosis Logic ────────────────────────────────────────────
 function diagnose(symptoms) {
     const has = (...keys) => keys.every(k => symptoms.includes(k));
     const any = (...keys) => keys.some(k => symptoms.includes(k));
 
-    if (has("chest_pain") && any("breathlessness","cough"))              return "respiratory";
-    if (has("fever","cough","loss_of_taste"))                            return "covid_like";
-    if (has("fever","body_pain","cough") && any("headache","fatigue"))   return "flu";
-    if (has("fever") && any("cold","cough") && has("sore_throat"))       return "common_cold";
-    if (has("fever") && any("fatigue","body_pain") && !any("cough","cold")) return "viral_fever";
-    if (any("diarrhea","nausea") && any("fever","fatigue"))              return "gastro";
-    if (has("nausea") && !any("fever","cough"))                          return "nausea";
+    if (has("chest_pain") && any("breathlessness", "cough"))             return "respiratory";
+    if (has("fever", "cough", "loss_of_taste"))                          return "covid_like";
+    if (has("fever", "body_pain", "cough") && any("headache", "fatigue")) return "flu";
+    if (has("fever") && any("cold", "cough") && has("sore_throat"))      return "common_cold";
+    if (has("fever") && any("fatigue", "body_pain") && !any("cough", "cold")) return "viral_fever";
+    if (any("diarrhea", "nausea") && any("fever", "fatigue"))            return "gastro";
+    if (has("nausea") && !any("fever", "cough"))                         return "nausea";
     if (has("sore_throat") && !has("fever"))                             return "sore_throat";
-    if (has("headache") && !any("fever","cough","cold"))                 return "headache";
-    if (any("fever","cough","cold","fatigue"))                           return "viral_fever";
+    if (has("headache") && !any("fever", "cough", "cold"))               return "headache";
+    if (any("fever", "cough", "cold", "fatigue"))                        return "viral_fever";
     return "general";
 }
 
+// ── Symptom Labels ─────────────────────────────────────────────
+const SYMPTOM_LABELS = {
+    fever:          "Fever",
+    cold:           "Cold / Runny Nose",
+    headache:       "Headache",
+    cough:          "Cough",
+    fatigue:        "Fatigue",
+    body_pain:      "Body Pain",
+    sore_throat:    "Sore Throat",
+    nausea:         "Nausea / Vomiting",
+    diarrhea:       "Diarrhea",
+    loss_of_taste:  "Loss of Taste / Smell",
+    chest_pain:     "Chest Pain",
+    breathlessness: "Breathlessness"
+};
+
+// ── Toggle checkbox ────────────────────────────────────────────
 function toggleCheck(el, id) {
     const cb = document.getElementById(id);
     cb.checked = !cb.checked;
@@ -183,6 +212,7 @@ function updateCount() {
     }
 }
 
+// ── Submit Symptoms ────────────────────────────────────────────
 async function submitSymptoms() {
     const checked = [...document.querySelectorAll("#symptomList input[type=checkbox]:checked")]
         .map(cb => cb.value);
@@ -200,8 +230,6 @@ async function submitSymptoms() {
 
     const user = getUser();
     if (user) {
-        // FIX: saveSymptomsToDB now sends the JWT so requireAuth accepts it
-        // and the symptom_count on the dashboard updates correctly.
         saveSymptomsToDB(user.id, checked, condition.label, condition.severityLabel)
             .catch(err => console.warn("DB save failed (non-critical):", err));
     }
@@ -209,8 +237,7 @@ async function submitSymptoms() {
     showResult(condition, conditionKey, checked);
 }
 
-// FIX: added Authorization header so the backend's requireAuth middleware
-// accepts the request and the symptom_count in the profile query increments.
+// ── Save to DB ─────────────────────────────────────────────────
 async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     const res = await fetch(`${BASE_URL}/symptoms/save`, {
         method:  "POST",
@@ -222,30 +249,27 @@ async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     return data;
 }
 
+// ── Show Result Card ───────────────────────────────────────────
 function showResult(condition, key, symptoms) {
     document.getElementById("symptomList").style.display   = "none";
     document.getElementById("selectedCount").style.display = "none";
     document.querySelectorAll(".btn-dhas").forEach(b => b.style.display = "none");
 
-    const title = document.querySelector(".page-title");
+    const title   = document.querySelector(".page-title");
     const alertEl = document.querySelector(".dhas-alert");
-    if (title) title.style.display = "none";
+    if (title)   title.style.display   = "none";
     if (alertEl) alertEl.style.display = "none";
 
-    const sevColor = { mild: "#10b981", moderate: "#f59e0b", severe: "#ef4444" };
-    const color    = sevColor[condition.severity] || "#10b981";
+    const sevColor = {
+        High:   "#ef4444",
+        Medium: "#f59e0b",
+        Low:    "#10b981"
+    };
+    const color = sevColor[condition.severityLabel] || "#10b981";
 
     const wrap = document.querySelector(".page-wrap");
     const card = document.createElement("div");
     card.id = "resultPanel";
-
-    const SYMPTOM_LABELS = {
-        fever: "Fever", cold: "Cold / Runny Nose", headache: "Headache",
-        cough: "Cough", fatigue: "Fatigue", body_pain: "Body Pain",
-        sore_throat: "Sore Throat", nausea: "Nausea / Vomiting",
-        diarrhea: "Diarrhea", loss_of_taste: "Loss of Taste / Smell",
-        chest_pain: "Chest Pain", breathlessness: "Breathlessness"
-    };
 
     card.innerHTML = `
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
@@ -354,14 +378,17 @@ function showResult(condition, key, symptoms) {
     wrap.appendChild(card);
 }
 
+// ── Reset / Check Again ────────────────────────────────────────
 function resetSymptoms() {
-    document.getElementById("resultPanel").remove();
+    const panel = document.getElementById("resultPanel");
+    if (panel) panel.remove();
+
     document.getElementById("symptomList").style.display   = "block";
     document.getElementById("selectedCount").style.display = "block";
 
-    const title = document.querySelector(".page-title");
+    const title   = document.querySelector(".page-title");
     const alertEl = document.querySelector(".dhas-alert");
-    if (title) title.style.display = "";
+    if (title)   title.style.display   = "";
     if (alertEl) alertEl.style.display = "";
 
     document.querySelectorAll(".btn-dhas").forEach(b => b.style.display = "");

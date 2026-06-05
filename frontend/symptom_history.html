@@ -295,11 +295,14 @@ const SYMPTOM_LABELS = {
 // or mapped from the symptom checker (e.g. "Moderate" → medium).
 // ─────────────────────────────────────────────────────────────
 function normaliseSeverity(raw) {
-  if (!raw) return "low";
-  const s = String(raw).toLowerCase().trim();
-  if (s === "high")                    return "high";
-  if (s === "medium" || s === "moderate") return "medium";
-  return "low";  // "low", "mild", anything else
+    if (!raw) return "low";
+    const s = String(raw).toLowerCase().trim();
+    // High
+    if (s === "high" || s === "severe") return "high";
+    // Medium  
+    if (s === "medium" || s === "moderate") return "medium";
+    // Low
+    return "low";  // "low", "mild", anything else
 }
 
 function conditionKeyFromName(name) {
@@ -343,16 +346,16 @@ function daysAgoLabel(dateStr) {
 // instead of the raw days number.
 // ─────────────────────────────────────────────────────────────
 function updateStats(history) {
-  document.getElementById("statTotal").textContent = history.length;
-  document.getElementById("statHigh").textContent  =
-    history.filter(h => normaliseSeverity(h.severity) === "high").length;
+    document.getElementById("statTotal").textContent = history.length;
+    document.getElementById("statHigh").textContent  =
+        history.filter(h => normaliseSeverity(h.severity) === "high").length;
 
-  const latest = history[0];
-  if (latest && latest.created_at) {
-    document.getElementById("statLast").textContent = daysAgoLabel(latest.created_at);
-  } else {
-    document.getElementById("statLast").textContent = "—";
-  }
+    const latest = history[0];
+    if (latest && latest.created_at) {
+        document.getElementById("statLast").textContent = daysAgoLabel(latest.created_at);
+    } else {
+        document.getElementById("statLast").textContent = "—";
+    }
 }
 
 function severityBadgeClass(normalised) {
@@ -377,18 +380,18 @@ function parseSymptoms(raw) {
 // FIX: filter now uses normaliseSeverity so "Medium" stored in
 // DB (capital M) matches the filter button value "medium".
 // ─────────────────────────────────────────────────────────────
+
 function applyFilter(filter, btn) {
-  currentFilter = filter;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
+    currentFilter = filter;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
 
-  const filtered = filter === "all"
-    ? allHistory
-    : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
+    const filtered = filter === "all"
+        ? allHistory
+        : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
 
-  renderList(filtered);
+    renderList(filtered);
 }
-
 function renderList(history) {
   const list = document.getElementById("historyList");
 
