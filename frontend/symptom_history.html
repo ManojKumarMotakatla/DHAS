@@ -30,7 +30,6 @@
       min-height: 100vh; transition: background .35s, color .35s;
     }
 
-    /* TOPBAR */
     .topbar {
       position: sticky; top: 0; z-index: 100;
       height: 60px; display: flex; align-items: center;
@@ -55,7 +54,6 @@
 
     .page-wrap { max-width: 540px; margin: 0 auto; padding: 20px 16px 60px; }
 
-    /* HERO */
     .page-header {
       background: linear-gradient(135deg, #112057 0%, #2a6cf6 50%, #00c9b1 100%);
       border-radius: 20px; padding: 28px 20px 24px; margin-bottom: 20px;
@@ -73,13 +71,22 @@
     .page-title { font-family: 'Fraunces', serif; color: #fff; font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; position: relative; }
     .page-subtitle { color: rgba(255,255,255,.72); font-size: .85rem; font-weight: 500; position: relative; }
 
-    /* STATS ROW */
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 10px; text-align: center; box-shadow: var(--shadow); }
     .stat-val { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700; color: var(--blue); }
     .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
 
-    /* FILTER TABS */
+    /* ── LEGEND BADGE ── */
+    .sev-legend {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 14px;
+      padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; font-size: .75rem; color: var(--muted);
+    }
+    .sev-legend span { font-weight: 700; color: var(--text); margin-right: 2px; }
+    .leg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
     .tab-btn {
       padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
@@ -89,7 +96,6 @@
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
     .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
 
-    /* TIMELINE */
     .timeline { position: relative; }
     .timeline::before {
       content: ''; position: absolute; left: 20px; top: 8px;
@@ -162,7 +168,6 @@
     body.dark .action-link.diet   { background: rgba(37,99,235,.15); border-color: rgba(37,99,235,.3); color: #7aafff; }
     body.dark .action-link.remedy { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); color: #6ee7b7; }
 
-    /* EMPTY STATE */
     .empty-wrap {
       text-align: center; padding: 48px 20px;
       background: var(--surface); border: 1.5px dashed var(--border);
@@ -182,12 +187,10 @@
     .empty-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
     .empty-cta i { font-size: 16px; }
 
-    /* LOADING */
     .loading-wrap { text-align: center; padding: 48px 20px; color: var(--muted); }
     .spinner { width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 14px; border: 3px solid var(--border); border-top-color: var(--blue); animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* IN-PAGE TOAST */
     #dhasToast {
       position: fixed; bottom: 24px; left: 20px; z-index: 99999;
       max-width: 340px; min-width: 240px; padding: 13px 18px;
@@ -224,14 +227,21 @@
     <div class="page-subtitle">Your complete health check timeline</div>
   </div>
 
-  <!-- STATS -->
   <div class="stats-row" id="statsRow">
     <div class="stat-card"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total Checks</div></div>
     <div class="stat-card"><div class="stat-val" id="statHigh">—</div><div class="stat-lbl">High Severity</div></div>
     <div class="stat-card"><div class="stat-val" id="statLast">—</div><div class="stat-lbl">Last Check</div></div>
   </div>
 
-  <!-- FILTER TABS -->
+  <!-- Severity legend so users understand the mapping -->
+  <div class="sev-legend">
+    <i class="ti ti-info-circle" style="font-size:15px" aria-hidden="true"></i>
+    Severity levels:
+    <span><span class="leg-dot" style="background:#ef4444"></span>High</span> — severe/respiratory conditions &nbsp;
+    <span><span class="leg-dot" style="background:#f59e0b"></span>Medium</span> — moderate conditions &nbsp;
+    <span><span class="leg-dot" style="background:#10b981"></span>Low</span> — mild conditions
+  </div>
+
   <div class="filter-tabs">
     <button class="tab-btn active" onclick="applyFilter('all', this)">All</button>
     <button class="tab-btn" onclick="applyFilter('high', this)">High</button>
@@ -239,7 +249,6 @@
     <button class="tab-btn" onclick="applyFilter('low', this)">Low</button>
   </div>
 
-  <!-- HISTORY LIST -->
   <div class="timeline" id="historyList">
     <div class="loading-wrap">
       <div class="spinner"></div>
@@ -268,7 +277,7 @@ function showToast(text, type = "error") {
   _toastTimer = setTimeout(() => { t.style.display = "none"; }, 5000);
 }
 
-// ── Condition → colour / icon mappings ──────────────────────
+// ── Condition meta ─────────────────────────────────────────────
 const COND_META = {
   "covid_like":  { color: "#ef4444", bg: "#fee2e2", icon: "ti-virus" },
   "flu":         { color: "#f97316", bg: "#fff7ed", icon: "ti-thermometer" },
@@ -289,34 +298,57 @@ const SYMPTOM_LABELS = {
   loss_of_taste: "Loss of Taste", chest_pain: "Chest Pain", breathlessness: "Breathlessness"
 };
 
-// ─────────────────────────────────────────────────────────────
-// FIX: normalise severity to lowercase for reliable comparison.
-// DB may store "High", "Medium", "Low" or "high", "medium", "low"
-// or mapped from the symptom checker (e.g. "Moderate" → medium).
-// ─────────────────────────────────────────────────────────────
+/*
+ * normaliseSeverity — converts ANY severity string stored in DB to
+ * one of three canonical values: "high" | "medium" | "low"
+ *
+ * DB values seen in this project:
+ *   symptom.js stores: severityLabel from CONDITION_MAP
+ *     → "High"   (covid_like, flu, respiratory)
+ *     → "Medium" (viral_fever, gastro, headache)
+ *     → "Low"    (common_cold, sore_throat, nausea, general)
+ *
+ *   severity.js (old results page) stores raw severity from CONDITIONS:
+ *     → "High" | "Medium" | "Low"
+ *
+ *   Some older entries or edge cases may also store:
+ *     → "Moderate" (treat as Medium)
+ *     → "Mild"     (treat as Low)
+ *     → "Severe"   (treat as High)
+ *     → anything else → Low (safe fallback)
+ *
+ * The filter tabs use lowercase "high"/"medium"/"low" — this function
+ * ensures the comparison always works regardless of what was stored.
+ */
 function normaliseSeverity(raw) {
-    if (!raw) return "low";
-    const s = String(raw).toLowerCase().trim();
-    // High
-    if (s === "high" || s === "severe") return "high";
-    // Medium  
-    if (s === "medium" || s === "moderate") return "medium";
-    // Low
-    return "low";  // "low", "mild", anything else
+  if (!raw) return "low";
+  const s = String(raw).toLowerCase().trim();
+
+  // High family
+  if (s === "high" || s === "severe")               return "high";
+
+  // Medium family — "moderate" was the old symptom.js severityLabel
+  if (s === "medium" || s === "moderate")           return "medium";
+
+  // Low family — "mild" was another old label
+  if (s === "low" || s === "mild")                  return "low";
+
+  // Fallback — anything unrecognised is treated as low
+  return "low";
 }
 
 function conditionKeyFromName(name) {
   if (!name) return "general";
   const n = name.toLowerCase();
-  if (n.includes("covid"))                          return "covid_like";
-  if (n.includes("flu") || n.includes("influenza")) return "flu";
-  if (n.includes("viral"))                          return "viral_fever";
-  if (n.includes("cold"))                           return "common_cold";
-  if (n.includes("gastro"))                         return "gastro";
-  if (n.includes("headache") || n.includes("migraine")) return "headache";
-  if (n.includes("throat"))                         return "sore_throat";
-  if (n.includes("nausea"))                         return "nausea";
-  if (n.includes("respiratory"))                    return "respiratory";
+  if (n.includes("covid"))                               return "covid_like";
+  if (n.includes("flu") || n.includes("influenza"))      return "flu";
+  if (n.includes("viral"))                               return "viral_fever";
+  if (n.includes("cold"))                                return "common_cold";
+  if (n.includes("gastro") || n.includes("diarrhea"))    return "gastro";
+  if (n.includes("headache") || n.includes("migraine"))  return "headache";
+  if (n.includes("throat"))                              return "sore_throat";
+  if (n.includes("nausea"))                              return "nausea";
+  if (n.includes("respiratory") || n.includes("distress")) return "respiratory";
   return "general";
 }
 
@@ -328,34 +360,39 @@ function formatDate(dateStr) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// FIX: "days ago" was returning the raw number when days === 0.
-// Now returns "Today" / "Yesterday" / "X days ago".
-// ─────────────────────────────────────────────────────────────
+/*
+ * daysAgoLabel — human-readable label for the stat card "Last Check"
+ * Returns "Today" / "Yesterday" / "X days ago"
+ *
+ * Fix: previously returned the raw number (0, 1, 2 …) when days === 0
+ * because the caller was using: document.getElementById("statLast").textContent = days
+ * Now this function always returns a readable string.
+ */
 function daysAgoLabel(dateStr) {
   if (!dateStr) return "—";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  const now   = new Date();
+  const then  = new Date(dateStr);
+  // Compare calendar dates (not exact ms) so "today at 11pm" shows "Today"
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thenMidnight  = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+  const diffMs   = todayMidnight - thenMidnight;
+  const diffDays = Math.round(diffMs / 86400000);  // round to avoid DST drift
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 0)  return "Today";               // future timestamp (clock skew)
+  return `${diffDays}d ago`;
 }
 
-// ─────────────────────────────────────────────────────────────
-// FIX: stat card "Last Check" now shows a human-readable label
-// instead of the raw days number.
-// ─────────────────────────────────────────────────────────────
 function updateStats(history) {
-    document.getElementById("statTotal").textContent = history.length;
-    document.getElementById("statHigh").textContent  =
-        history.filter(h => normaliseSeverity(h.severity) === "high").length;
+  document.getElementById("statTotal").textContent = history.length;
+  document.getElementById("statHigh").textContent  =
+    history.filter(h => normaliseSeverity(h.severity) === "high").length;
 
-    const latest = history[0];
-    if (latest && latest.created_at) {
-        document.getElementById("statLast").textContent = daysAgoLabel(latest.created_at);
-    } else {
-        document.getElementById("statLast").textContent = "—";
-    }
+  const latest = history[0];
+  // FIX: always use daysAgoLabel — never show the raw number
+  document.getElementById("statLast").textContent =
+    (latest && latest.created_at) ? daysAgoLabel(latest.created_at) : "—";
 }
 
 function severityBadgeClass(normalised) {
@@ -376,22 +413,23 @@ function parseSymptoms(raw) {
   try { return JSON.parse(raw); } catch { return []; }
 }
 
-// ─────────────────────────────────────────────────────────────
-// FIX: filter now uses normaliseSeverity so "Medium" stored in
-// DB (capital M) matches the filter button value "medium".
-// ─────────────────────────────────────────────────────────────
-
+/*
+ * applyFilter — FIX: uses normaliseSeverity() for comparison
+ * so "Medium" stored in DB matches the "medium" filter button,
+ * and "Moderate"/"Mild" are also handled correctly.
+ */
 function applyFilter(filter, btn) {
-    currentFilter = filter;
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+  currentFilter = filter;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
 
-    const filtered = filter === "all"
-        ? allHistory
-        : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
+  const filtered = filter === "all"
+    ? allHistory
+    : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
 
-    renderList(filtered);
+  renderList(filtered);
 }
+
 function renderList(history) {
   const list = document.getElementById("historyList");
 
@@ -412,6 +450,9 @@ function renderList(history) {
     const symptoms   = parseSymptoms(item.symptoms);
     const condKey    = conditionKeyFromName(item.condition_name);
     const meta       = COND_META[condKey] || COND_META["general"];
+
+    // FIX: always normalise before using — the DB may have stored
+    // "High", "Medium", "Low", "Moderate", or "Mild"
     const sevNorm    = normaliseSeverity(item.severity);
 
     const monthYear = item.created_at
@@ -486,7 +527,7 @@ async function load() {
         <div class="empty-wrap">
           <i class="ti ti-alert-circle empty-icon" style="color:var(--rose)"></i>
           <div class="empty-title">Failed to load</div>
-          <div class="empty-sub">Could not reach the server. Make sure you're connected.</div>
+          <div class="empty-sub">Could not reach the server. Make sure you are connected.</div>
         </div>`;
       return;
     }

@@ -1,3 +1,4 @@
+
 // ============================================
 // DHAS - symptom.js
 // Symptom checker — saves to DB + localStorage
@@ -26,21 +27,11 @@ function showToast(text, type = "success", duration = 4500) {
         const style = document.createElement("style");
         style.textContent = `
             #dhasPageToast {
-                position: fixed;
-                bottom: 24px;
-                left: 20px;
-                z-index: 99999;
-                max-width: 340px;
-                min-width: 240px;
-                padding: 13px 18px;
-                border-radius: 14px;
-                font-size: 0.87rem;
-                font-weight: 600;
-                line-height: 1.5;
-                display: none;
-                align-items: flex-start;
-                gap: 10px;
-                box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+                position: fixed; bottom: 24px; left: 20px; z-index: 99999;
+                max-width: 340px; min-width: 240px; padding: 13px 18px;
+                border-radius: 14px; font-size: 0.87rem; font-weight: 600;
+                line-height: 1.5; display: none; align-items: flex-start;
+                gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,0.18);
                 font-family: 'DM Sans', sans-serif;
                 animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
             }
@@ -65,8 +56,9 @@ function showToast(text, type = "success", duration = 4500) {
 }
 
 // ── Condition Map ──────────────────────────────────────────────
-// severityLabel uses ONLY "High", "Medium", "Low"
-// to match normaliseSeverity() in symptom_history.html
+// severityLabel MUST be exactly "High", "Medium", or "Low"
+// These exact strings are saved to the DB and read back by symptom_history.html
+// DO NOT use "Moderate", "Mild", "Severe" — only these three values
 const CONDITION_MAP = {
     covid_like: {
         label: "COVID-19 Like Illness",
@@ -165,16 +157,16 @@ function diagnose(symptoms) {
     const has = (...keys) => keys.every(k => symptoms.includes(k));
     const any = (...keys) => keys.some(k => symptoms.includes(k));
 
-    if (has("chest_pain") && any("breathlessness", "cough"))             return "respiratory";
-    if (has("fever", "cough", "loss_of_taste"))                          return "covid_like";
+    if (has("chest_pain") && any("breathlessness", "cough"))              return "respiratory";
+    if (has("fever", "cough", "loss_of_taste"))                           return "covid_like";
     if (has("fever", "body_pain", "cough") && any("headache", "fatigue")) return "flu";
-    if (has("fever") && any("cold", "cough") && has("sore_throat"))      return "common_cold";
+    if (has("fever") && any("cold", "cough") && has("sore_throat"))       return "common_cold";
     if (has("fever") && any("fatigue", "body_pain") && !any("cough", "cold")) return "viral_fever";
-    if (any("diarrhea", "nausea") && any("fever", "fatigue"))            return "gastro";
-    if (has("nausea") && !any("fever", "cough"))                         return "nausea";
-    if (has("sore_throat") && !has("fever"))                             return "sore_throat";
-    if (has("headache") && !any("fever", "cough", "cold"))               return "headache";
-    if (any("fever", "cough", "cold", "fatigue"))                        return "viral_fever";
+    if (any("diarrhea", "nausea") && any("fever", "fatigue"))             return "gastro";
+    if (has("nausea") && !any("fever", "cough"))                          return "nausea";
+    if (has("sore_throat") && !has("fever"))                              return "sore_throat";
+    if (has("headache") && !any("fever", "cough", "cold"))                return "headache";
+    if (any("fever", "cough", "cold", "fatigue"))                         return "viral_fever";
     return "general";
 }
 
@@ -238,6 +230,8 @@ async function submitSymptoms() {
 }
 
 // ── Save to DB ─────────────────────────────────────────────────
+// Saves condition.label as condition_name and condition.severityLabel as severity
+// severityLabel is always exactly "High", "Medium", or "Low"
 async function saveSymptomsToDB(user_id, symptoms, condition_name, severity) {
     const res = await fetch(`${BASE_URL}/symptoms/save`, {
         method:  "POST",
@@ -290,8 +284,7 @@ function showResult(condition, key, symptoms) {
             .res-icon-wrap {
                 width: 72px; height: 72px; border-radius: 22px;
                 display: flex; align-items: center; justify-content: center;
-                margin: 0 auto 14px;
-                position: relative;
+                margin: 0 auto 14px; position: relative;
                 border: 2px solid rgba(255,255,255,0.15);
             }
             .res-icon-wrap i { font-size: 34px; }
