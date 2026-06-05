@@ -52,7 +52,6 @@
       font-family: 'Fraunces', serif; font-weight: 600;
       font-size: 1rem; color: var(--text); flex: 1; text-align: center;
     }
-    .topbar-spacer { width: 80px; }
 
     .page-wrap { max-width: 540px; margin: 0 auto; padding: 20px 16px 60px; }
 
@@ -229,15 +228,15 @@
   <div class="stats-row" id="statsRow">
     <div class="stat-card"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total Checks</div></div>
     <div class="stat-card"><div class="stat-val" id="statHigh">—</div><div class="stat-lbl">High Severity</div></div>
-    <div class="stat-card"><div class="stat-val" id="statLast">—</div><div class="stat-lbl">Days Ago</div></div>
+    <div class="stat-card"><div class="stat-val" id="statLast">—</div><div class="stat-lbl">Last Check</div></div>
   </div>
 
   <!-- FILTER TABS -->
   <div class="filter-tabs">
     <button class="tab-btn active" onclick="applyFilter('all', this)">All</button>
-    <button class="tab-btn" onclick="applyFilter('High', this)">High</button>
-    <button class="tab-btn" onclick="applyFilter('Medium', this)">Medium</button>
-    <button class="tab-btn" onclick="applyFilter('Low', this)">Low</button>
+    <button class="tab-btn" onclick="applyFilter('high', this)">High</button>
+    <button class="tab-btn" onclick="applyFilter('medium', this)">Medium</button>
+    <button class="tab-btn" onclick="applyFilter('low', this)">Low</button>
   </div>
 
   <!-- HISTORY LIST -->
@@ -255,7 +254,7 @@ const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
 if (!user || !user.id) window.location.href = "login.html";
 
-let allHistory = [];
+let allHistory    = [];
 let currentFilter = "all";
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -290,18 +289,31 @@ const SYMPTOM_LABELS = {
   loss_of_taste: "Loss of Taste", chest_pain: "Chest Pain", breathlessness: "Breathlessness"
 };
 
+// ─────────────────────────────────────────────────────────────
+// FIX: normalise severity to lowercase for reliable comparison.
+// DB may store "High", "Medium", "Low" or "high", "medium", "low"
+// or mapped from the symptom checker (e.g. "Moderate" → medium).
+// ─────────────────────────────────────────────────────────────
+function normaliseSeverity(raw) {
+  if (!raw) return "low";
+  const s = String(raw).toLowerCase().trim();
+  if (s === "high")                    return "high";
+  if (s === "medium" || s === "moderate") return "medium";
+  return "low";  // "low", "mild", anything else
+}
+
 function conditionKeyFromName(name) {
   if (!name) return "general";
   const n = name.toLowerCase();
-  if (n.includes("covid"))       return "covid_like";
+  if (n.includes("covid"))                          return "covid_like";
   if (n.includes("flu") || n.includes("influenza")) return "flu";
-  if (n.includes("viral"))       return "viral_fever";
-  if (n.includes("cold"))        return "common_cold";
-  if (n.includes("gastro"))      return "gastro";
+  if (n.includes("viral"))                          return "viral_fever";
+  if (n.includes("cold"))                           return "common_cold";
+  if (n.includes("gastro"))                         return "gastro";
   if (n.includes("headache") || n.includes("migraine")) return "headache";
-  if (n.includes("throat"))      return "sore_throat";
-  if (n.includes("nausea"))      return "nausea";
-  if (n.includes("respiratory")) return "respiratory";
+  if (n.includes("throat"))                         return "sore_throat";
+  if (n.includes("nausea"))                         return "nausea";
+  if (n.includes("respiratory"))                    return "respiratory";
   return "general";
 }
 
@@ -313,21 +325,46 @@ function formatDate(dateStr) {
   });
 }
 
-function daysAgo(dateStr) {
-  if (!dateStr) return null;
+// ─────────────────────────────────────────────────────────────
+// FIX: "days ago" was returning the raw number when days === 0.
+// Now returns "Today" / "Yesterday" / "X days ago".
+// ─────────────────────────────────────────────────────────────
+function daysAgoLabel(dateStr) {
+  if (!dateStr) return "—";
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
-  return `${days}d ago`;
+  return `${days} days ago`;
 }
 
-function severityClass(sev) {
-  if (!sev) return "sev-low";
-  const s = sev.toLowerCase();
-  if (s === "high") return "sev-high";
-  if (s === "medium" || s === "moderate") return "sev-medium";
+// ─────────────────────────────────────────────────────────────
+// FIX: stat card "Last Check" now shows a human-readable label
+// instead of the raw days number.
+// ─────────────────────────────────────────────────────────────
+function updateStats(history) {
+  document.getElementById("statTotal").textContent = history.length;
+  document.getElementById("statHigh").textContent  =
+    history.filter(h => normaliseSeverity(h.severity) === "high").length;
+
+  const latest = history[0];
+  if (latest && latest.created_at) {
+    document.getElementById("statLast").textContent = daysAgoLabel(latest.created_at);
+  } else {
+    document.getElementById("statLast").textContent = "—";
+  }
+}
+
+function severityBadgeClass(normalised) {
+  if (normalised === "high")   return "sev-high";
+  if (normalised === "medium") return "sev-medium";
   return "sev-low";
+}
+
+function severityLabel(normalised) {
+  if (normalised === "high")   return "High";
+  if (normalised === "medium") return "Medium";
+  return "Low";
 }
 
 function parseSymptoms(raw) {
@@ -336,20 +373,22 @@ function parseSymptoms(raw) {
   try { return JSON.parse(raw); } catch { return []; }
 }
 
-// ── Update stats ──────────────────────────────────────────────
-function updateStats(history) {
-  document.getElementById("statTotal").textContent = history.length;
-  document.getElementById("statHigh").textContent  = history.filter(h => (h.severity || "").toLowerCase() === "high").length;
-  const latest = history[0];
-  if (latest && latest.created_at) {
-    const days = Math.floor((Date.now() - new Date(latest.created_at)) / 86400000);
-    document.getElementById("statLast").textContent = days === 0 ? "Today" : days;
-  } else {
-    document.getElementById("statLast").textContent = "—";
-  }
+// ─────────────────────────────────────────────────────────────
+// FIX: filter now uses normaliseSeverity so "Medium" stored in
+// DB (capital M) matches the filter button value "medium".
+// ─────────────────────────────────────────────────────────────
+function applyFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  const filtered = filter === "all"
+    ? allHistory
+    : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
+
+  renderList(filtered);
 }
 
-// ── Render list ───────────────────────────────────────────────
 function renderList(history) {
   const list = document.getElementById("historyList");
 
@@ -365,13 +404,14 @@ function renderList(history) {
     return;
   }
 
-  // Group by month for timeline headers
   let lastMonth = null;
   list.innerHTML = history.map((item, idx) => {
     const symptoms   = parseSymptoms(item.symptoms);
     const condKey    = conditionKeyFromName(item.condition_name);
     const meta       = COND_META[condKey] || COND_META["general"];
-    const monthYear  = item.created_at
+    const sevNorm    = normaliseSeverity(item.severity);
+
+    const monthYear = item.created_at
       ? new Date(item.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
       : "Unknown";
 
@@ -384,8 +424,6 @@ function renderList(history) {
     const symTags = symptoms.slice(0, 5).map(s =>
       `<span class="sym-tag"><i class="ti ti-point-filled" aria-hidden="true"></i>${SYMPTOM_LABELS[s] || s.replace(/_/g," ")}</span>`
     ).join("") + (symptoms.length > 5 ? `<span class="sym-tag" style="opacity:.6;">+${symptoms.length - 5} more</span>` : "");
-
-    const sev = item.severity || "Low";
 
     return `
       ${monthHeader}
@@ -401,21 +439,23 @@ function renderList(history) {
                 <i class="ti ti-calendar" aria-hidden="true"></i>
                 ${formatDate(item.created_at)}
                 <span style="opacity:.5;">·</span>
-                ${daysAgo(item.created_at)}
+                ${daysAgoLabel(item.created_at)}
               </div>
             </div>
-            <span class="severity-badge ${severityClass(sev)}">
+            <span class="severity-badge ${severityBadgeClass(sevNorm)}">
               <i class="ti ti-point-filled" aria-hidden="true"></i>
-              ${sev}
+              ${severityLabel(sevNorm)}
             </span>
           </div>
           ${symTags ? `<div class="symptom-tags">${symTags}</div>` : ""}
           <div class="hc-actions">
-            <a href="symptom_diet.html" class="action-link diet" onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
+            <a href="symptom_diet.html" class="action-link diet"
+               onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
               <i class="ti ti-salad" aria-hidden="true"></i>
               Diet Plan
             </a>
-            <a href="symptom_remedies.html" class="action-link remedy" onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
+            <a href="symptom_remedies.html" class="action-link remedy"
+               onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
               <i class="ti ti-plant" aria-hidden="true"></i>
               Remedies
             </a>
@@ -425,21 +465,9 @@ function renderList(history) {
   }).join("");
 }
 
-// ── Filter ────────────────────────────────────────────────────
-function applyFilter(filter, btn) {
-  currentFilter = filter;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  const filtered = filter === "all"
-    ? allHistory
-    : allHistory.filter(h => (h.severity || "Low").toLowerCase() === filter.toLowerCase());
-  renderList(filtered);
-}
-
-// ── Load data ─────────────────────────────────────────────────
 async function load() {
   try {
-    const res  = await fetch(`${BASE}/symptoms/history/${user.id}`, {
+    const res = await fetch(`${BASE}/symptoms/history/${user.id}`, {
       headers: window.getAuthHeaders()
     });
 
@@ -451,7 +479,12 @@ async function load() {
         return;
       }
       showToast(err.message || "Failed to load symptom history.", "error");
-      document.getElementById("historyList").innerHTML = `<div class="empty-wrap"><i class="ti ti-alert-circle empty-icon" style="color:var(--rose)"></i><div class="empty-title">Failed to load</div><div class="empty-sub">Could not reach the server. Make sure you're connected.</div></div>`;
+      document.getElementById("historyList").innerHTML = `
+        <div class="empty-wrap">
+          <i class="ti ti-alert-circle empty-icon" style="color:var(--rose)"></i>
+          <div class="empty-title">Failed to load</div>
+          <div class="empty-sub">Could not reach the server. Make sure you're connected.</div>
+        </div>`;
       return;
     }
 
@@ -466,7 +499,12 @@ async function load() {
   } catch (e) {
     console.error("Load history error:", e);
     showToast("Cannot connect to server.", "error");
-    document.getElementById("historyList").innerHTML = `<div class="empty-wrap"><i class="ti ti-wifi-off empty-icon" style="color:var(--muted)"></i><div class="empty-title">Connection Error</div><div class="empty-sub">Make sure the backend server is running on ${BASE}</div></div>`;
+    document.getElementById("historyList").innerHTML = `
+      <div class="empty-wrap">
+        <i class="ti ti-wifi-off empty-icon" style="color:var(--muted)"></i>
+        <div class="empty-title">Connection Error</div>
+        <div class="empty-sub">Make sure the backend server is running on ${BASE}</div>
+      </div>`;
   }
 }
 

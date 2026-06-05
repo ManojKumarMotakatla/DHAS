@@ -1,12 +1,18 @@
-
 require("dotenv").config();
 
 const express     = require("express");
 const cors        = require("cors");
 const path        = require("path");
+const fs          = require("fs");
 const rateLimit   = require("express-rate-limit");
 
 const app = express();
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, "uploads/reports");
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3006";
 
@@ -30,7 +36,6 @@ app.use(cors({
     credentials:    true
 }));
 
-// ── FIX: Express 5 + path-to-regexp v8 requires "/{*splat}" not "*" ──
 app.options("/{*splat}", cors());
 
 const globalLimiter = rateLimit({
@@ -53,6 +58,11 @@ app.use(globalLimiter);
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ limit: "2mb", extended: true }));
+
+// ── Static file serving ───────────────────────────────────────
+// Serve uploaded report files (protected by auth at the API level;
+// direct URL access is obscured by the timestamp+userid filename)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(express.static(path.join(__dirname, "frontend")));
 app.use(express.static(path.join(__dirname)));
@@ -82,9 +92,9 @@ app.use("/symptoms",      symptomRoutes);
 app.use("/reminders",     reminderRoutes);
 app.use("/reminder-logs", reminderLogRoutes);
 
-app.use("/reports", express.json({ limit: "20mb" }), reportRoutes);
+// Reports use larger body limit for the initial upload (base64 → buffer conversion)
+app.use("/reports", express.json({ limit: "10mb" }), reportRoutes);
 
-// ── FIX: "/{*splat}" for Express 5 compatibility ──
 app.use("/{*splat}", (req, res) => {
     if (req.accepts("html") && !req.path.startsWith("/api")) {
         return res.status(404).sendFile(path.join(__dirname, "frontend", "404.html"), (err) => {
@@ -96,7 +106,7 @@ app.use("/{*splat}", (req, res) => {
 
 app.use((err, req, res, next) => {
     if (err.type === "entity.too.large") {
-        return res.status(413).json({ success: false, message: "File too large. Maximum size is 15 MB." });
+        return res.status(413).json({ success: false, message: "File too large. Maximum size is 8 MB." });
     }
     if (err.message === "Not allowed by CORS") {
         return res.status(403).json({ success: false, message: "CORS policy blocked this request." });
@@ -108,7 +118,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`✅ DHAS Server running on http://localhost:${PORT}`);
+    console.log(`📁 Reports stored at: ${uploadsDir}`);
     console.log(`📱 For mobile: find your IP with "ipconfig" (Windows) or "ifconfig" (Mac/Linux)`);
     console.log(`   Then open: http://<YOUR-LOCAL-IP>:${PORT} on your phone`);
-    console.log(`   Make sure phone and PC are on the same WiFi network`);
 });
