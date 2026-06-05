@@ -1,7 +1,5 @@
-
-// ── reportController.js ──────────────────────────────────────
-// Stores files as base64 in the `dataurl` column (matches schema.sql).
-// No file system needed. No `file_path` column needed.
+// ── reportController.js (FIXED) ──────────────────────────────
+// Uses `filename` (no underscore) matching the schema.sql column name.
 // ─────────────────────────────────────────────────────────────
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
@@ -25,7 +23,7 @@ const uploadReport = (req, res) => {
     }
 
     db.query(
-        `INSERT INTO reports (user_id, file_name, filesize, filetype, dataurl, uploaded_at)
+        `INSERT INTO reports (user_id, filename, filesize, filetype, dataurl, uploaded_at)
          VALUES (?, ?, ?, ?, ?, NOW())`,
         [user_id, String(filename).trim(), filesize || "", filetype || "", dataurl],
         (err) => {
@@ -47,7 +45,7 @@ const getReports = (req, res) => {
     }
 
     db.query(
-        `SELECT id, file_name AS filename, filesize, filetype, uploaded_at
+        `SELECT id, filename, filesize, filetype, uploaded_at
          FROM reports WHERE user_id = ? ORDER BY uploaded_at DESC`,
         [requestedId],
         (err, result) => {
@@ -65,7 +63,7 @@ const viewReport = (req, res) => {
     const { id } = req.params;
 
     db.query(
-        `SELECT id, user_id, file_name, filetype, dataurl FROM reports WHERE id = ?`,
+        `SELECT id, user_id, filename, filetype, dataurl FROM reports WHERE id = ?`,
         [id],
         (err, rows) => {
             if (err) {
@@ -83,7 +81,7 @@ const viewReport = (req, res) => {
 
             res.json({
                 success:  true,
-                filename: r.file_name,
+                filename: r.filename,
                 filetype: r.filetype,
                 dataurl:  r.dataurl
             });

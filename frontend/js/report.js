@@ -1,6 +1,7 @@
 // ============================================
-// DHAS - report.js (fixed auth headers)
-// Upload, view, and delete medical reports
+// DHAS - report.js (FIXED)
+// Upload, view, and delete medical reports.
+// Uses `filename` (no underscore) matching DB schema.
 // ============================================
 
 const BASE_URL = window.API_BASE || "http://localhost:3006";
@@ -8,7 +9,6 @@ const BASE_URL = window.API_BASE || "http://localhost:3006";
 function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));
 }
-
 
 // ── In-page toast ──────────────────────────────────────────────
 let _toastTimer = null;
@@ -60,7 +60,7 @@ async function showReportViewer(id) {
     try {
         const res = await fetch(`${BASE_URL}/reports/view/${id}`, {
             method: "GET",
-           headers: window.getAuthHeaders()
+            headers: window.getAuthHeaders()
         });
 
         if (!res.ok) {
@@ -194,7 +194,7 @@ function uploadReport() {
                 headers: window.getAuthHeaders(),
                 body: JSON.stringify({
                     user_id:  user.id,
-                    filename: file.name,
+                    filename: file.name,         // matches DB column `filename`
                     filesize: formatSize(file.size),
                     filetype: file.type,
                     dataurl:  dataUrl
@@ -238,12 +238,12 @@ async function displayReports() {
     try {
         const res = await fetch(`${BASE_URL}/reports/${user.id}`, {
             method: "GET",
-           headers: window.getAuthHeaders()
+            headers: window.getAuthHeaders()
         });
 
         const data = await res.json();
 
-        if (!data.success || data.data.length === 0) {
+        if (!data.success || !data.data || data.data.length === 0) {
             list.innerHTML = `
                 <div class="empty-state">
                     <i class="ti ti-notes big" aria-hidden="true"></i>
@@ -253,6 +253,8 @@ async function displayReports() {
         }
 
         list.innerHTML = data.data.map(r => {
+            // DB column is `filename` (no underscore) — use r.filename
+            const fname = r.filename || r.file_name || "Unknown file";
             const { iconEl } = fileIconEl(r.filetype);
             const dateStr = new Date(r.uploaded_at).toLocaleDateString("en-IN");
             return `
@@ -260,11 +262,11 @@ async function displayReports() {
                 <div style="flex:1;min-width:0;">
                     <div class="report-name">
                       <i class="ti ${iconEl}" aria-hidden="true"></i>
-                      ${r.filename}
+                      ${fname}
                     </div>
                     <div class="report-date">
                       <i class="ti ti-calendar" aria-hidden="true"></i>
-                      ${dateStr} &nbsp;|&nbsp; ${r.filesize}
+                      ${dateStr} &nbsp;|&nbsp; ${r.filesize || ""}
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">

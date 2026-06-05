@@ -56,14 +56,14 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ limit: "2mb", extended: true }));
+// ── IMPORTANT: Global body limit must be large enough for report uploads (base64 images/PDFs).
+// A 4 MB file becomes ~5.3 MB in base64. We set 12 MB globally so the route-level limit
+// is never silently bypassed by a too-small global parser.
+app.use(express.json({ limit: "12mb" }));
+app.use(express.urlencoded({ limit: "12mb", extended: true }));
 
 // ── Static file serving ───────────────────────────────────────
-// Serve uploaded report files (protected by auth at the API level;
-// direct URL access is obscured by the timestamp+userid filename)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 app.use(express.static(path.join(__dirname, "frontend")));
 app.use(express.static(path.join(__dirname)));
 
@@ -91,9 +91,7 @@ app.use("/profile",       profileRoutes);
 app.use("/symptoms",      symptomRoutes);
 app.use("/reminders",     reminderRoutes);
 app.use("/reminder-logs", reminderLogRoutes);
-
-// Reports use larger body limit for the initial upload (base64 → buffer conversion)
-app.use("/reports", express.json({ limit: "10mb" }), reportRoutes);
+app.use("/reports",       reportRoutes);   // No extra json() here — global limit covers it
 
 app.use("/{*splat}", (req, res) => {
     if (req.accepts("html") && !req.path.startsWith("/api")) {
@@ -106,7 +104,7 @@ app.use("/{*splat}", (req, res) => {
 
 app.use((err, req, res, next) => {
     if (err.type === "entity.too.large") {
-        return res.status(413).json({ success: false, message: "File too large. Maximum size is 8 MB." });
+        return res.status(413).json({ success: false, message: "File too large. Maximum size is 10 MB." });
     }
     if (err.message === "Not allowed by CORS") {
         return res.status(403).json({ success: false, message: "CORS policy blocked this request." });

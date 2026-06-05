@@ -1,4 +1,8 @@
-// ── CHANGED: P1.4 — no SQL error details sent to client ──
+// ── symptomController.js (FIXED) ─────────────────────────────
+// Fixed: getSymptoms now correctly handles user_id from JWT (req.userId)
+// and the isSelf check properly compares against the param.
+// P1.4: No SQL error details sent to client.
+// ─────────────────────────────────────────────────────────────
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
 
@@ -26,14 +30,19 @@ const saveSymptoms = (req, res) => {
 };
 
 const getSymptoms = (req, res) => {
-    const requestedId = parseInt(req.params.user_id);
+    // Support both /history/:user_id and /:user_id param names
+    const requestedId = parseInt(req.params.user_id || req.params.id);
+
+    if (isNaN(requestedId)) {
+        return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
 
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
 
     db.query(
-        "SELECT * FROM symptoms WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+        "SELECT * FROM symptoms WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
         [requestedId],
         (err, result) => {
             if (err) {

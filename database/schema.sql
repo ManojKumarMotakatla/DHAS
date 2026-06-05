@@ -1,12 +1,13 @@
 -- ============================================================
--- DHAS — schema.sql  (v3 — fixed reminder_logs unique key)
+-- DHAS — schema.sql  (v5 — definitive, all column names fixed)
 -- Safe to run on BOTH fresh and existing databases.
+-- Automatically migrates old `file_name` column to `filename`.
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS dhas_db;
 USE dhas_db;
 
 
--- ── users ──────────────────────────────────────────────────
+-- ── users ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     name       VARCHAR(100)        NOT NULL,
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
 );
 
--- ── user_profiles ──────────────────────────────────────────
+-- ── user_profiles ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_profiles (
     user_id           INT         PRIMARY KEY,
     phone             VARCHAR(20),
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ── symptoms ───────────────────────────────────────────────
+-- ── symptoms ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS symptoms (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT         NOT NULL,
@@ -44,11 +45,10 @@ CREATE TABLE IF NOT EXISTS symptoms (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Add indexes if they don't exist
--- (MySQL doesn't support IF NOT EXISTS for indexes directly, so we use stored procedure)
-DROP PROCEDURE IF EXISTS add_index_if_not_exists;
+-- ── Helper procedure for safe index creation ────────────────────
+DROP PROCEDURE IF EXISTS dhas_add_index;
 DELIMITER //
-CREATE PROCEDURE add_index_if_not_exists(
+CREATE PROCEDURE dhas_add_index(
     IN p_table VARCHAR(64),
     IN p_index VARCHAR(64),
     IN p_cols  VARCHAR(200)
@@ -68,11 +68,11 @@ BEGIN
 END //
 DELIMITER ;
 
-CALL add_index_if_not_exists('symptoms', 'idx_symptoms_user_id',    'user_id');
-CALL add_index_if_not_exists('symptoms', 'idx_symptoms_created_at', 'created_at');
+CALL dhas_add_index('symptoms', 'idx_symptoms_user_id',    'user_id');
+CALL dhas_add_index('symptoms', 'idx_symptoms_created_at', 'created_at');
 
 
--- ── reminders ──────────────────────────────────────────────
+-- ── reminders ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reminders (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT           NOT NULL,
@@ -92,14 +92,11 @@ CREATE TABLE IF NOT EXISTS reminders (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CALL add_index_if_not_exists('reminders', 'idx_reminders_user_id',    'user_id');
-CALL add_index_if_not_exists('reminders', 'idx_reminders_start_date', 'start_date');
+CALL dhas_add_index('reminders', 'idx_reminders_user_id',    'user_id');
+CALL dhas_add_index('reminders', 'idx_reminders_start_date', 'start_date');
 
 
--- ── reminder_logs ──────────────────────────────────────────
--- Tracks when reminders were taken, missed, or snoozed
--- IMPORTANT: The UNIQUE KEY on (reminder_id, scheduled_time) allows
--- the upsert in ReminderLogController to work correctly
+-- ── reminder_logs ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reminder_logs (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     reminder_id    INT           NOT NULL,
@@ -108,34 +105,70 @@ CREATE TABLE IF NOT EXISTS reminder_logs (
     status         ENUM('taken', 'missed', 'snoozed') NOT NULL DEFAULT 'taken',
     dose_label     VARCHAR(100)  NOT NULL DEFAULT '',
     logged_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    -- This UNIQUE key enables the ON DUPLICATE KEY UPDATE upsert in the controller
     UNIQUE KEY uq_reminder_schedule (reminder_id, scheduled_time),
     FOREIGN KEY (reminder_id) REFERENCES reminders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id)     REFERENCES users(id)     ON DELETE CASCADE
 );
 
-CALL add_index_if_not_exists('reminder_logs', 'idx_logs_reminder_id',     'reminder_id');
-CALL add_index_if_not_exists('reminder_logs', 'idx_logs_user_id',         'user_id');
-CALL add_index_if_not_exists('reminder_logs', 'idx_logs_scheduled_time',  'scheduled_time');
+CALL dhas_add_index('reminder_logs', 'idx_logs_reminder_id',    'reminder_id');
+CALL dhas_add_index('reminder_logs', 'idx_logs_user_id',        'user_id');
+CALL dhas_add_index('reminder_logs', 'idx_logs_scheduled_time', 'scheduled_time');
 
 
--- ── reports ────────────────────────────────────────────────
+-- ── reports ─────────────────────────────────────────────────────
+-- Column name is `filename` (NO underscore).
+-- This block creates the table fresh OR migrates old `file_name` column.
 CREATE TABLE IF NOT EXISTS reports (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT          NOT NULL,
-    file_name   VARCHAR(255) NOT NULL,
-    filesize    VARCHAR(20),
-    filetype    VARCHAR(50),
+    filename    VARCHAR(255) NOT NULL,
+    filesize    VARCHAR(20)  DEFAULT '',
+    filetype    VARCHAR(50)  DEFAULT '',
     dataurl     LONGTEXT,
     uploaded_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CALL add_index_if_not_exists('reports', 'idx_reports_user_id',    'user_id');
-CALL add_index_if_not_exists('reports', 'idx_reports_uploaded_at', 'uploaded_at');
+-- Migration: rename file_name → filename on existing tables
+DROP PROCEDURE IF EXISTS dhas_fix_reports_col;
+DELIMITER //
+CREATE PROCEDURE dhas_fix_reports_col()
+BEGIN
+    -- If old `file_name` column exists and new `filename` does NOT exist, rename it
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'reports'
+          AND column_name  = 'file_name'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'reports'
+          AND column_name  = 'filename'
+    ) THEN
+        ALTER TABLE reports CHANGE `file_name` `filename` VARCHAR(255) NOT NULL DEFAULT '';
+    END IF;
+
+    -- Also ensure filesize and filetype have defaults (older schemas may not)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'reports'
+          AND column_name  = 'filesize'
+          AND is_nullable  = 'YES'
+    ) THEN
+        ALTER TABLE reports MODIFY filesize VARCHAR(20) DEFAULT '';
+    END IF;
+END //
+DELIMITER ;
+CALL dhas_fix_reports_col();
+DROP PROCEDURE IF EXISTS dhas_fix_reports_col;
+
+CALL dhas_add_index('reports', 'idx_reports_user_id',     'user_id');
+CALL dhas_add_index('reports', 'idx_reports_uploaded_at', 'uploaded_at');
 
 
--- ── password_reset_tokens ──────────────────────────────────
+-- ── password_reset_tokens ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     user_id    INT          NOT NULL,
@@ -146,8 +179,8 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CALL add_index_if_not_exists('password_reset_tokens', 'idx_prt_token',   'token');
-CALL add_index_if_not_exists('password_reset_tokens', 'idx_prt_user_id', 'user_id');
+CALL dhas_add_index('password_reset_tokens', 'idx_prt_token',   'token');
+CALL dhas_add_index('password_reset_tokens', 'idx_prt_user_id', 'user_id');
 
--- Cleanup
-DROP PROCEDURE IF EXISTS add_index_if_not_exists;
+-- Cleanup helper procedure
+DROP PROCEDURE IF EXISTS dhas_add_index;
