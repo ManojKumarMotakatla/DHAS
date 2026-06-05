@@ -94,8 +94,6 @@
     }
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
     .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
-
-    /* Tab-specific active colours */
     .tab-btn[data-filter="high"].active   { background: #ef4444; border-color: #ef4444; }
     .tab-btn[data-filter="medium"].active { background: #f59e0b; border-color: #f59e0b; }
     .tab-btn[data-filter="low"].active    { background: #10b981; border-color: #10b981; }
@@ -211,7 +209,9 @@
       font-family: 'DM Sans', sans-serif;
     }
     #dhasToast.error { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
     body.dark #dhasToast.error { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
     .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: .6; font-size: 14px; padding: 0 0 0 8px; }
   </style>
 </head>
@@ -256,7 +256,7 @@
     <button class="tab-btn active" data-filter="all"    onclick="applyFilter('all', this)">All</button>
     <button class="tab-btn"        data-filter="high"   onclick="applyFilter('high', this)">High</button>
     <button class="tab-btn"        data-filter="medium" onclick="applyFilter('medium', this)">Medium</button>
-    <button class="tab-btn"        data-filter="low"    onclick="applyFilter('low', this)">Low</button>
+    <button class="tab-btn"        data-filter="low"    onclick="applyFilter('low', this)">Low / Mild</button>
   </div>
 
   <div class="timeline" id="historyList">
@@ -289,32 +289,21 @@ function showToast(text, type = "error") {
 
 // ── SINGLE SOURCE OF TRUTH for severity normalisation ─────────
 //
-// symptom.js stores: "High", "Medium", "Low"  (from CONDITION_MAP.severityLabel)
-// severity.js (old results page) stores: "High", "Medium", "Low"
-// Some very old DB rows may have: "Moderate", "Mild", "Severe"
-//
-// This function maps ALL variants → "high" | "medium" | "low"
-// Filter buttons and badge classes both use these lowercase strings.
+// The backend now normalises to 'High'/'Medium'/'Low' before storing.
+// But old DB records may still have 'mild', 'moderate', 'severe', etc.
+// This function handles ALL variants robustly.
 //
 function normaliseSeverity(raw) {
-  if (!raw) return "low";
-  switch (String(raw).toLowerCase().trim()) {
-    case "high":
-    case "severe":
-      return "high";
-    case "medium":
-    case "moderate":
-      return "medium";
-    case "low":
-    case "mild":
-      return "low";
-    default:
-      return "low";
-  }
+  if (raw === null || raw === undefined || raw === "") return "low";
+  const s = String(raw).toLowerCase().trim();
+  if (s === "high"   || s === "severe")           return "high";
+  if (s === "medium" || s === "moderate")         return "medium";
+  if (s === "low"    || s === "mild")             return "low";
+  // Any unrecognised value defaults to low
+  return "low";
 }
 
 // ── Condition icon / colour map ───────────────────────────────
-// Keys match CONDITION_MAP keys in symptom.js exactly
 const COND_META = {
   covid_like:  { color: "#ef4444", bg: "#fee2e2", icon: "ti-virus"        },
   flu:         { color: "#f97316", bg: "#fff7ed", icon: "ti-thermometer"  },
@@ -328,7 +317,7 @@ const COND_META = {
   general:     { color: "#6366f1", bg: "#eef2ff", icon: "ti-stethoscope"  },
 };
 
-// ── Symptom display labels — same as symptom.js ───────────────
+// ── Symptom display labels ─────────────────────────────────────
 const SYMPTOM_LABELS = {
   fever:          "Fever",
   cold:           "Cold / Runny Nose",
@@ -345,19 +334,18 @@ const SYMPTOM_LABELS = {
 };
 
 // ── Condition name → key mapping ─────────────────────────────
-// condition_name in DB matches CONDITION_MAP.label from symptom.js
 function conditionKeyFromName(name) {
   if (!name) return "general";
   const n = name.toLowerCase();
-  if (n.includes("covid"))                                return "covid_like";
-  if (n.includes("flu") || n.includes("influenza"))       return "flu";
-  if (n.includes("viral"))                                return "viral_fever";
-  if (n.includes("cold"))                                 return "common_cold";
-  if (n.includes("gastro") || n.includes("diarrhea"))     return "gastro";
-  if (n.includes("headache") || n.includes("migraine"))   return "headache";
-  if (n.includes("throat"))                               return "sore_throat";
-  if (n.includes("nausea"))                               return "nausea";
-  if (n.includes("respiratory") || n.includes("distress")) return "respiratory";
+  if (n.includes("covid"))                                  return "covid_like";
+  if (n.includes("flu") || n.includes("influenza"))         return "flu";
+  if (n.includes("viral"))                                  return "viral_fever";
+  if (n.includes("cold"))                                   return "common_cold";
+  if (n.includes("gastro") || n.includes("diarrhea"))       return "gastro";
+  if (n.includes("headache") || n.includes("migraine"))     return "headache";
+  if (n.includes("throat"))                                 return "sore_throat";
+  if (n.includes("nausea"))                                 return "nausea";
+  if (n.includes("respiratory") || n.includes("distress"))  return "respiratory";
   return "general";
 }
 
@@ -396,15 +384,16 @@ function updateStats(history) {
 function severityBadgeClass(norm) {
   if (norm === "high")   return "sev-high";
   if (norm === "medium") return "sev-medium";
-  return "sev-low";
+  return "sev-low"; // low and anything else
 }
+
 function severityDisplayLabel(norm) {
   if (norm === "high")   return "High";
   if (norm === "medium") return "Medium";
-  return "Low";
+  return "Low / Mild";
 }
 
-// ── Parse symptoms (stored as JSON string or array) ───────────
+// ── Parse symptoms ─────────────────────────────────────────────
 function parseSymptoms(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -412,12 +401,16 @@ function parseSymptoms(raw) {
 }
 
 // ── Filter ────────────────────────────────────────────────────
+// FIX: The filter compares normaliseSeverity(h.severity) to the filter string.
+// 'Low' severity from DB -> normaliseSeverity('Low') -> 'low' -> matches 'low'.
+// 'Mild' (old data) -> normaliseSeverity('Mild') -> 'low' -> matches 'low'.
+// This is correct. The bug was that old data might have been stored as 'mild'
+// and the backend was NOT normalising on read - now it does.
 function applyFilter(filter, btn) {
   currentFilter = filter;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
+  if (btn) btn.classList.add("active");
 
-  // normaliseSeverity ensures "High" in DB matches "high" filter
   const filtered = filter === "all"
     ? allHistory
     : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
@@ -435,7 +428,9 @@ function renderList(history) {
       <div class="empty-wrap">
         <i class="ti ti-notes-off empty-icon" aria-hidden="true"></i>
         <div class="empty-title">${isFiltered ? "No results for this filter" : "No symptom checks yet"}</div>
-        <div class="empty-sub">${isFiltered ? "Try a different severity filter above." : "Check your symptoms to start building your health history."}</div>
+        <div class="empty-sub">${isFiltered
+          ? `No records with <strong>${currentFilter === "low" ? "Low / Mild" : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}</strong> severity found.`
+          : "Check your symptoms to start building your health history."}</div>
         ${!isFiltered ? `<a href="symptom.html" class="empty-cta"><i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms Now</a>` : ""}
       </div>`;
     return;
@@ -448,8 +443,6 @@ function renderList(history) {
     const symptoms = parseSymptoms(item.symptoms);
     const condKey  = conditionKeyFromName(item.condition_name);
     const meta     = COND_META[condKey] || COND_META["general"];
-
-    // Always normalise — this is the only place severity is interpreted
     const sevNorm  = normaliseSeverity(item.severity);
 
     const monthYear = item.created_at
@@ -527,7 +520,7 @@ async function load() {
         <div class="empty-wrap">
           <i class="ti ti-alert-circle empty-icon" style="color:var(--rose)"></i>
           <div class="empty-title">Failed to load</div>
-          <div class="empty-sub">Could not reach the server. Make sure you are connected.</div>
+          <div class="empty-sub">Could not reach the server. Make sure you are connected and the backend is running.</div>
         </div>`;
       return;
     }
@@ -539,6 +532,13 @@ async function load() {
       renderList(allHistory);
     } else {
       showToast(data.message || "Could not load history.", "error");
+      document.getElementById("historyList").innerHTML = `
+        <div class="empty-wrap">
+          <i class="ti ti-notes-off empty-icon"></i>
+          <div class="empty-title">No history yet</div>
+          <div class="empty-sub">Start by checking your symptoms — your history will appear here.</div>
+          <a href="symptom.html" class="empty-cta" style="margin-top:12px;"><i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms</a>
+        </div>`;
     }
   } catch (e) {
     console.error("Load history error:", e);

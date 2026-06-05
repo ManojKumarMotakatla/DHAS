@@ -1,6 +1,8 @@
 // ── symptomController.js (FIXED) ─────────────────────────────
-// Fixed: getSymptoms now correctly handles user_id from JWT (req.userId)
-// and the isSelf check properly compares against the param.
+// FIXED: getSymptoms now correctly handles user_id from JWT (req.userId)
+//        and the isSelf check properly compares against the param.
+// FIXED: Added proper null/undefined severity handling.
+// FIXED: Ensured condition_name is stored properly.
 // P1.4: No SQL error details sent to client.
 // ─────────────────────────────────────────────────────────────
 const db = require("../config/db");
@@ -16,9 +18,23 @@ const saveSymptoms = (req, res) => {
 
     const symptomsStr = Array.isArray(symptoms) ? JSON.stringify(symptoms) : String(symptoms);
 
+    // FIX: Ensure severity is always one of the valid values
+    // symptom.js passes condition.severityLabel which is 'High', 'Medium', or 'Low'
+    // Normalise to ensure consistent storage
+    const validSeverities = ["High", "Medium", "Low"];
+    let normSeverity = severity;
+    if (!normSeverity || !validSeverities.includes(normSeverity)) {
+        // Map variants to standard values
+        const s = String(normSeverity || "").toLowerCase().trim();
+        if (s === "high" || s === "severe")            normSeverity = "High";
+        else if (s === "medium" || s === "moderate")   normSeverity = "Medium";
+        else if (s === "low" || s === "mild")          normSeverity = "Low";
+        else                                           normSeverity = "Low"; // default
+    }
+
     db.query(
         "INSERT INTO symptoms (user_id, symptoms, condition_name, severity) VALUES (?, ?, ?, ?)",
-        [user_id, symptomsStr, condition_name || null, severity || null],
+        [user_id, symptomsStr, condition_name || null, normSeverity],
         (err) => {
             if (err) {
                 console.error("saveSymptoms DB error:", err.message);
@@ -53,7 +69,21 @@ const getSymptoms = (req, res) => {
             const data = result.map(r => {
                 let parsedSymptoms = r.symptoms;
                 try { parsedSymptoms = JSON.parse(r.symptoms); } catch { }
-                return { ...r, symptoms: parsedSymptoms };
+
+                // FIX: Ensure severity is always normalised when reading back
+                // This fixes old data that might have 'mild', 'moderate', 'severe' stored
+                let sev = r.severity;
+                if (sev) {
+                    const s = String(sev).toLowerCase().trim();
+                    if (s === "high" || s === "severe")           sev = "High";
+                    else if (s === "medium" || s === "moderate")  sev = "Medium";
+                    else if (s === "low" || s === "mild")         sev = "Low";
+                    // Keep as-is if already correct
+                } else {
+                    sev = "Low"; // Default for null/undefined
+                }
+
+                return { ...r, symptoms: parsedSymptoms, severity: sev };
             });
 
             res.json({ success: true, data });

@@ -1,5 +1,6 @@
 // ── reportController.js (FIXED) ──────────────────────────────
 // Uses `filename` (no underscore) matching the schema.sql column name.
+// FIXED: Better error handling for large file uploads / packet size errors.
 // ─────────────────────────────────────────────────────────────
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
@@ -17,28 +18,60 @@ const uploadReport = (req, res) => {
     }
 
     // Rough size check — base64 is ~33% larger than binary
-    const estimatedBytes = (dataurl.length * 3) / 4;
-    if (estimatedBytes > 5 * 1024 * 1024) {
-        return res.json({ success: false, message: "File exceeds 4 MB limit." });
+    // Allow up to 10 MB base64 string (≈7.5 MB file)
+    const maxBase64Bytes = 10 * 1024 * 1024; // 10 MB
+    if (dataurl.length > maxBase64Bytes) {
+        return res.json({
+            success: false,
+            message: "File is too large. Maximum size is approximately 7 MB."
+        });
     }
 
-    db.query(
-        `INSERT INTO reports (user_id, filename, filesize, filetype, dataurl, uploaded_at)
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [user_id, String(filename).trim(), filesize || "", filetype || "", dataurl],
-        (err) => {
-            if (err) {
-                console.error("uploadReport DB error:", err.message);
-                return res.json({ success: false, message: "Failed to save report. Please try again." });
-            }
-            res.json({ success: true, message: "Report uploaded successfully." });
+    // FIX: Set max_allowed_packet for this specific query connection
+    db.getConnection((connErr, connection) => {
+        if (connErr) {
+            console.error("uploadReport connection error:", connErr.message);
+            return res.json({ success: false, message: "Database connection failed. Please try again." });
         }
-    );
+
+        // First set the packet size, then insert
+        connection.query("SET SESSION max_allowed_packet = 67108864", (setErr) => {
+            if (setErr) {
+                console.warn("uploadReport: could not set max_allowed_packet:", setErr.message);
+                // Continue anyway — may still work
+            }
+
+            connection.query(
+                `INSERT INTO reports (user_id, filename, filesize, filetype, dataurl, uploaded_at)
+                 VALUES (?, ?, ?, ?, ?, NOW())`,
+                [user_id, String(filename).trim(), filesize || "", filetype || "", dataurl],
+                (err) => {
+                    connection.release();
+                    if (err) {
+                        console.error("uploadReport DB error:", err.message, "| Code:", err.code);
+                        // Give a helpful message for packet size errors
+                        if (err.code === "ER_NET_PACKET_TOO_LARGE" || err.message.includes("too large") || err.message.includes("max_allowed_packet")) {
+                            return res.json({
+                                success: false,
+                                message: "File too large for database. Please try a smaller file (under 4 MB)."
+                            });
+                        }
+                        return res.json({ success: false, message: "Failed to save report. Please try again." });
+                    }
+                    res.json({ success: true, message: "Report uploaded successfully." });
+                }
+            );
+        });
+    });
 };
 
 /* ── GET LIST ────────────────────────────────────────────────── */
 const getReports = (req, res) => {
     const requestedId = parseInt(req.params.user_id);
+
+    if (!requestedId || isNaN(requestedId)) {
+        return res.status(400).json({ success: false, message: "Invalid user ID." });
+    }
 
     if (!isSelf(req, requestedId)) {
         return res.status(403).json({ success: false, message: "Access denied." });
