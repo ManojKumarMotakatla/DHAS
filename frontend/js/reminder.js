@@ -1,6 +1,4 @@
 const API = (window.API_BASE || "http://localhost:3006") + "/reminders";
-// ── JWT auth helper ───────────────────────────────────────────
-
 
 function getUserId() {
     const flatKeys = ["user_id","userId","uid","dhas_user_id","dhas_userId","id","user"];
@@ -54,7 +52,6 @@ function getReminders() { return remindersCache; }
             color:inherit; opacity:0.6; font-size:14px; padding:0 0 0 8px; flex-shrink:0;
         }
         #dhasPageToast .toast-dismiss:hover { opacity:1; }
-        /* FIX-2: discard-changes bar style */
         .edit-discard-bar {
             display: flex; align-items: center; gap: 10px;
             background: #fff8ec; border: 1.5px solid #f4a035;
@@ -77,7 +74,6 @@ function getReminders() { return remindersCache; }
             font-weight: 700; cursor: pointer; color: inherit;
             font-family: 'DM Sans', sans-serif;
         }
-        /* FIX-3: multi-alarm container */
         #dhasAlarmContainer {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
             z-index: 99999; display: flex; flex-direction: column;
@@ -107,7 +103,6 @@ function getReminders() { return remindersCache; }
     toast.setAttribute("aria-live", "polite");
     document.body.appendChild(toast);
 
-    // FIX-3: single container holds all concurrent alarm cards
     const alarmContainer = document.createElement("div");
     alarmContainer.id = "dhasAlarmContainer";
     alarmContainer.setAttribute("aria-live", "assertive");
@@ -245,8 +240,6 @@ function checkAlarms() {
 
 function triggerAlarm(reminder, timeSlot) {
     playSound(reminder.sound || "bell");
-    // FIX-3: use showAlarmCard (appends a new card) instead of showAlarmToast
-    // (which replaced the existing toast, losing any concurrent alarm)
     showAlarmCard(reminder, timeSlot);
     if (Notification.permission === "granted") {
         navigator.serviceWorker.ready.then(reg =>
@@ -260,9 +253,6 @@ function triggerAlarm(reminder, timeSlot) {
     }
 }
 
-// ── FIX-3: showAlarmCard — APPENDS a card instead of replacing ─
-// Each medicine gets its own card stacked in #dhasAlarmContainer.
-// No medicine alarm can overwrite another's.
 function showAlarmCard(reminder, timeSlot) {
     const container = document.getElementById("dhasAlarmContainer");
     if (!container) return;
@@ -271,7 +261,6 @@ function showAlarmCard(reminder, timeSlot) {
     const sound = reminder.sound || "bell";
     const cardId = `alarmCard_${rid}_${timeSlot.label || "dose"}`.replace(/\s+/g,"_");
 
-    // Don't stack duplicates for the exact same reminder+slot
     if (document.getElementById(cardId)) return;
 
     const card = document.createElement("div");
@@ -304,7 +293,6 @@ function showAlarmCard(reminder, timeSlot) {
         snoozeReminder(rid, sound, card);
     });
 
-    // Auto-dismiss after 40 seconds if user doesn't interact
     setTimeout(() => card.remove(), 40000);
 }
 
@@ -554,7 +542,6 @@ async function loadRemindersFromServer() {
     try {
         const res  = await fetch(`${API}/get/${uid}`, {
             headers: window.getAuthHeaders()
-
         });
         const data = await res.json();
         if (data.success) remindersCache = data.data || [];
@@ -563,6 +550,8 @@ async function loadRemindersFromServer() {
 }
 
 // ── Save reminder ─────────────────────────────────────────────
+// FIX: Removed the aggressive "filter past times" logic that blocked saving.
+// Now we save ALL selected times and let the alarm engine decide what fires.
 window.addReminder = async function () {
     const medicineInput = document.getElementById("medicine");
     const medicine      = medicineInput.value.trim();
@@ -585,26 +574,17 @@ window.addReminder = async function () {
     const startDate  = document.getElementById("startDate").value || new Date().toISOString().split("T")[0];
     const days       = getSelectedDays();
     const monthDay   = parseInt(document.getElementById("monthDay").value) || 1;
-    const times      = collectTimes();
+    const times      = collectTimes();  // FIX: save all times, no filtering
+
+    if (!times || times.length === 0) {
+        showPageMsg("No times configured. Please set at least one time.", "error");
+        return;
+    }
 
     if (sched === "weekly"     && days.length !== 1) { showPageMsg("Please select 1 day for weekly schedule.", "error"); return; }
     if (sched === "twice_week" && days.length !== 2) { showPageMsg("Please select exactly 2 days.", "error"); return; }
     if (sched === "three_week" && days.length !== 3) { showPageMsg("Please select exactly 3 days.", "error"); return; }
     if (sched === "custom"     && days.length === 0) { showPageMsg("Please select at least 1 day.", "error"); return; }
-
-    const todayStr = new Date().toISOString().split("T")[0];
-    const effectiveTimes = (startDate === todayStr)
-        ? times.filter(t => {
-              const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
-              const now = new Date();
-              return alarmH > now.getHours() || (alarmH === now.getHours() && alarmM > now.getMinutes());
-          })
-        : times;
-
-    if (effectiveTimes.length === 0) {
-        showPageMsg("All selected times have already passed for today. Please pick a future time or a start date from tomorrow onward.", "error", 6000);
-        return;
-    }
 
     const payload = {
         user_id:       uid,
@@ -613,7 +593,7 @@ window.addReminder = async function () {
         scheduleLabel: buildScheduleLabel(sched, days, monthDay),
         doseCount:     parseInt(doseCount),
         dosesLabel:    doseLabel(doseCount),
-        times:         effectiveTimes,
+        times,
         days,
         monthDay,
         duration,
@@ -621,6 +601,11 @@ window.addReminder = async function () {
         startDate,
         altBase: sched === "alternate" ? new Date().toISOString() : null
     };
+
+    // Show loading state
+    const saveBtn = document.querySelector('.btn-dhas.primary[onclick="addReminder()"]');
+    const origText = saveBtn ? saveBtn.textContent : null;
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
 
     try {
         const res  = await fetch(`${API}/add`, {
@@ -631,11 +616,12 @@ window.addReminder = async function () {
         const data = await res.json();
         if (!data.success) {
             showPageMsg(data.message || "Failed to save reminder. Please try again.", "error");
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = origText; }
             return;
         }
 
         await loadRemindersFromServer();
-        showPageMsg(`Reminder for "${medicine}" saved at ${effectiveTimes[0]?.display}.`, "success", 5000);
+        showPageMsg(`✅ Reminder for "${medicine}" saved successfully at ${times[0]?.display}.`, "success", 5000);
 
         document.getElementById("medicine").value     = "";
         document.getElementById("scheduleType").value = "daily";
@@ -647,6 +633,8 @@ window.addReminder = async function () {
     } catch (err) {
         console.error("addReminder error:", err);
         showPageMsg("Network error — could not save reminder. Is the server running?", "error");
+    } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = origText; }
     }
 };
 
@@ -678,8 +666,7 @@ window.deleteReminder = async function (id) {
     setTimeout(() => card?.removeAttribute("data-pending-delete"), 4000);
 };
 
-// ── FIX-2: hasUnsavedChanges — detects if the edit form was modified
-// Compares current form values against the original reminder data
+// ── FIX-2: hasUnsavedChanges ──────────────────────────────────
 function hasUnsavedChanges(id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return false;
@@ -687,24 +674,19 @@ function hasUnsavedChanges(id) {
     const container = document.getElementById(`editContainer_${id}`);
     if (!container || !container.innerHTML.trim()) return false;
 
-    // Check schedule
     const schedEl = container.querySelector(`#edit_sched_${id}`);
     if (schedEl && schedEl.value !== (r.sched || "daily")) return true;
 
-    // Check duration
     const durEl = container.querySelector(`#edit_duration_${id}`);
     if (durEl && durEl.value !== (r.duration || "forever")) return true;
 
-    // Check sound
     const soundEl = container.querySelector(`#edit_sound_${id}`);
     if (soundEl && soundEl.value !== (r.sound || "bell")) return true;
 
-    // Check dose count
     const doseEl = container.querySelector(`#edit_doseCount_${id}`);
     const originalDose = String(r.doseCount || r.dose_count || 1);
     if (doseEl && doseEl.value !== originalDose) return true;
 
-    // Check time slots (compare each slot)
     const slots = DOSE_DEFAULTS[doseEl ? doseEl.value : originalDose] || DOSE_DEFAULTS["1"];
     const originalTimes = r.times || [];
     for (let i = 0; i < slots.length; i++) {
@@ -717,7 +699,6 @@ function hasUnsavedChanges(id) {
         if (apEl && apEl.value !== String(orig.ampm || slots[i].ampm)) return true;
     }
 
-    // Check selected days
     const activeDayTiles = container.querySelectorAll(".day-tile.active");
     const currentDays    = Array.from(activeDayTiles).map(t => parseInt(t.id.replace(`editDayTile_${id}_`, "")));
     const originalDays   = r.days || [];
@@ -727,13 +708,10 @@ function hasUnsavedChanges(id) {
     return false;
 }
 
-// ── FIX-2: showDiscardBar — prompts user before closing edit panel
-// Replaces the silent close-and-lose-changes behaviour.
 function showDiscardBar(id, onConfirm) {
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) { onConfirm(); return; }
 
-    // Remove any existing discard bar first
     container.querySelector(".edit-discard-bar")?.remove();
 
     const bar = document.createElement("div");
@@ -763,28 +741,20 @@ window.openEditReminder = function(id) {
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) return;
 
-    // FIX-2: if already open, check for unsaved changes before closing
     if (container.innerHTML.trim() !== "") {
         if (hasUnsavedChanges(id)) {
-            showDiscardBar(id, () => {
-                container.innerHTML = "";
-            });
+            showDiscardBar(id, () => { container.innerHTML = ""; });
         } else {
             container.innerHTML = "";
         }
         return;
     }
 
-    // Close any other open edit panels before opening this one
     document.querySelectorAll(".edit-panel").forEach(el => {
         const otherIdMatch = el.closest("[id^='editContainer_']")?.id?.replace("editContainer_", "");
         if (otherIdMatch && otherIdMatch !== String(id)) {
             const otherId = parseInt(otherIdMatch);
-            if (hasUnsavedChanges(otherId)) {
-                // Don't silently close another panel with unsaved changes — just leave it
-                return;
-            }
-            el.innerHTML = "";
+            if (!hasUnsavedChanges(otherId)) el.innerHTML = "";
         }
     });
 
@@ -913,7 +883,6 @@ window.openEditReminder = function(id) {
     container.scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 
-// ── FIX-2: closeEditReminderSafe — checks for unsaved changes before closing
 window.closeEditReminderSafe = function(id) {
     if (hasUnsavedChanges(id)) {
         showDiscardBar(id, () => {
@@ -926,7 +895,6 @@ window.closeEditReminderSafe = function(id) {
     }
 };
 
-// Keep the old closeEditReminder for backward compatibility (no change check)
 window.closeEditReminder = function(id) {
     const container = document.getElementById(`editContainer_${id}`);
     if (container) container.innerHTML = "";
@@ -1035,7 +1003,6 @@ window.saveEditReminder = async function (id) {
 
         if (!addData.success) { showPageMsg(addData.message || "Failed to save changes.", "error"); return; }
 
-        // Close panel without change-guard (we just saved successfully)
         const container = document.getElementById(`editContainer_${id}`);
         if (container) container.innerHTML = "";
 
