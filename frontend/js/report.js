@@ -1,7 +1,7 @@
 // ============================================
-// DHAS - report.js (FIXED)
+// DHAS - report.js (FIXED v2)
 // Upload, view, and delete medical reports.
-// Uses `filename` (no underscore) matching DB schema.
+// FIXED: Handles both `file_name` and `filename` DB column variants.
 // ============================================
 
 const BASE_URL = window.API_BASE || "http://localhost:3006";
@@ -194,7 +194,7 @@ function uploadReport() {
                 headers: window.getAuthHeaders(),
                 body: JSON.stringify({
                     user_id:  user.id,
-                    filename: file.name,         // matches DB column `filename`
+                    filename: file.name,
                     filesize: formatSize(file.size),
                     filetype: file.type,
                     dataurl:  dataUrl
@@ -253,7 +253,7 @@ async function displayReports() {
         }
 
         list.innerHTML = data.data.map(r => {
-            // DB column is `filename` (no underscore) — use r.filename
+            // Handle both `filename` and `file_name` column variants from DB
             const fname = r.filename || r.file_name || "Unknown file";
             const { iconEl } = fileIconEl(r.filetype);
             const dateStr = new Date(r.uploaded_at).toLocaleDateString("en-IN");
