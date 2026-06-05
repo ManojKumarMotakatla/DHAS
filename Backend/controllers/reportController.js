@@ -1,6 +1,10 @@
-// ── reportController.js (FIXED) ──────────────────────────────
-// Uses `filename` (no underscore) matching the schema.sql column name.
-// FIXED: Better error handling for large file uploads / packet size errors.
+// ── reportController.js (FIXED v2) ───────────────────────────
+// FIXES:
+//   1. Removed SET SESSION max_allowed_packet — read-only in MySQL 8+
+//      (was causing the upload to never call the INSERT query)
+//   2. Switched back to direct db.query() — no getConnection() needed
+//      since the pool handles packet size via the express body limit.
+//   3. Uses `filename` (no underscore) matching schema.sql column name.
 // ─────────────────────────────────────────────────────────────
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
@@ -27,42 +31,30 @@ const uploadReport = (req, res) => {
         });
     }
 
-    // FIX: Set max_allowed_packet for this specific query connection
-    db.getConnection((connErr, connection) => {
-        if (connErr) {
-            console.error("uploadReport connection error:", connErr.message);
-            return res.json({ success: false, message: "Database connection failed. Please try again." });
-        }
-
-        // First set the packet size, then insert
-        connection.query("SET SESSION max_allowed_packet = 67108864", (setErr) => {
-            if (setErr) {
-                console.warn("uploadReport: could not set max_allowed_packet:", setErr.message);
-                // Continue anyway — may still work
-            }
-
-            connection.query(
-                `INSERT INTO reports (user_id, filename, filesize, filetype, dataurl, uploaded_at)
-                 VALUES (?, ?, ?, ?, ?, NOW())`,
-                [user_id, String(filename).trim(), filesize || "", filetype || "", dataurl],
-                (err) => {
-                    connection.release();
-                    if (err) {
-                        console.error("uploadReport DB error:", err.message, "| Code:", err.code);
-                        // Give a helpful message for packet size errors
-                        if (err.code === "ER_NET_PACKET_TOO_LARGE" || err.message.includes("too large") || err.message.includes("max_allowed_packet")) {
-                            return res.json({
-                                success: false,
-                                message: "File too large for database. Please try a smaller file (under 4 MB)."
-                            });
-                        }
-                        return res.json({ success: false, message: "Failed to save report. Please try again." });
-                    }
-                    res.json({ success: true, message: "Report uploaded successfully." });
+    // Direct insert — no SESSION SET needed.
+    // Large packet support is handled by the express body-parser limit (12mb in server.js).
+    db.query(
+        `INSERT INTO reports (user_id, filename, filesize, filetype, dataurl, uploaded_at)
+         VALUES (?, ?, ?, ?, ?, NOW())`,
+        [user_id, String(filename).trim(), filesize || "", filetype || "", dataurl],
+        (err) => {
+            if (err) {
+                console.error("uploadReport DB error:", err.message, "| Code:", err.code);
+                if (
+                    err.code === "ER_NET_PACKET_TOO_LARGE" ||
+                    err.message.includes("too large") ||
+                    err.message.includes("max_allowed_packet")
+                ) {
+                    return res.json({
+                        success: false,
+                        message: "File too large for database. Please try a smaller file (under 4 MB). Your MySQL server may need `max_allowed_packet` increased globally."
+                    });
                 }
-            );
-        });
-    });
+                return res.json({ success: false, message: "Failed to save report. Please try again." });
+            }
+            res.json({ success: true, message: "Report uploaded successfully." });
+        }
+    );
 };
 
 /* ── GET LIST ────────────────────────────────────────────────── */

@@ -86,6 +86,7 @@
     .sev-legend span { font-weight: 700; color: var(--text); margin-right: 2px; }
     .leg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
 
+    /* ── FILTER TABS ── */
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
     .tab-btn {
       padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
@@ -94,9 +95,10 @@
     }
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
     .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
-    .tab-btn[data-filter="high"].active   { background: #ef4444; border-color: #ef4444; }
-    .tab-btn[data-filter="medium"].active { background: #f59e0b; border-color: #f59e0b; }
-    .tab-btn[data-filter="low"].active    { background: #10b981; border-color: #10b981; }
+    /* Per-severity active colours */
+    .tab-btn[data-sev="high"].active   { background: #ef4444; border-color: #ef4444; }
+    .tab-btn[data-sev="medium"].active { background: #f59e0b; border-color: #f59e0b; }
+    .tab-btn[data-sev="low"].active    { background: #10b981; border-color: #10b981; }
 
     .timeline { position: relative; }
     .timeline::before {
@@ -132,18 +134,20 @@
     .hc-date { font-size: .72rem; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .hc-date i { font-size: 12px; }
 
+    /* ── SEVERITY BADGES ── */
     .severity-badge {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 3px 10px; border-radius: 20px;
       font-size: .72rem; font-weight: 700; flex-shrink: 0;
     }
     .severity-badge i { font-size: 10px; }
-    .sev-high   { background: #fee2e2; color: #991b1b; }
-    .sev-medium { background: #fef3c7; color: #92400e; }
-    .sev-low    { background: #d1fae5; color: #065f46; }
-    body.dark .sev-high   { background: rgba(239,68,68,.15);  color: #fca5a5; }
-    body.dark .sev-medium { background: rgba(244,160,53,.15); color: #fcd34d; }
-    body.dark .sev-low    { background: rgba(34,208,122,.15); color: #6ee7b7; }
+    /* Use data-level attribute for styling — avoids class name conflicts */
+    .severity-badge[data-level="high"]   { background: #fee2e2; color: #991b1b; }
+    .severity-badge[data-level="medium"] { background: #fef3c7; color: #92400e; }
+    .severity-badge[data-level="low"]    { background: #d1fae5; color: #065f46; }
+    body.dark .severity-badge[data-level="high"]   { background: rgba(239,68,68,.15);  color: #fca5a5; }
+    body.dark .severity-badge[data-level="medium"] { background: rgba(244,160,53,.15); color: #fcd34d; }
+    body.dark .severity-badge[data-level="low"]    { background: rgba(34,208,122,.15); color: #6ee7b7; }
 
     .symptom-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
     .sym-tag {
@@ -252,11 +256,12 @@
     <span><span class="leg-dot" style="background:#10b981"></span>Low</span> — mild
   </div>
 
+  <!-- Filter tabs use data-sev attribute for correct CSS targeting -->
   <div class="filter-tabs">
-    <button class="tab-btn active" data-filter="all"    onclick="applyFilter('all', this)">All</button>
-    <button class="tab-btn"        data-filter="high"   onclick="applyFilter('high', this)">High</button>
-    <button class="tab-btn"        data-filter="medium" onclick="applyFilter('medium', this)">Medium</button>
-    <button class="tab-btn"        data-filter="low"    onclick="applyFilter('low', this)">Low / Mild</button>
+    <button class="tab-btn active" data-sev="all"    onclick="applyFilter('all', this)">All</button>
+    <button class="tab-btn"        data-sev="high"   onclick="applyFilter('high', this)">High</button>
+    <button class="tab-btn"        data-sev="medium" onclick="applyFilter('medium', this)">Medium</button>
+    <button class="tab-btn"        data-sev="low"    onclick="applyFilter('low', this)">Low / Mild</button>
   </div>
 
   <div class="timeline" id="historyList">
@@ -287,20 +292,27 @@ function showToast(text, type = "error") {
   _toastTimer = setTimeout(() => { t.style.display = "none"; }, 5000);
 }
 
-// ── SINGLE SOURCE OF TRUTH for severity normalisation ─────────
-//
-// The backend now normalises to 'High'/'Medium'/'Low' before storing.
-// But old DB records may still have 'mild', 'moderate', 'severe', etc.
-// This function handles ALL variants robustly.
-//
+// ── CANONICAL SEVERITY NORMALISATION ─────────────────────────
+// Returns one of exactly three lowercase strings: "high" | "medium" | "low"
+// Handles every variant stored in DB: High/Medium/Low/mild/moderate/severe
 function normaliseSeverity(raw) {
-  if (raw === null || raw === undefined || raw === "") return "low";
-  const s = String(raw).toLowerCase().trim();
-  if (s === "high"   || s === "severe")           return "high";
-  if (s === "medium" || s === "moderate")         return "medium";
-  if (s === "low"    || s === "mild")             return "low";
-  // Any unrecognised value defaults to low
-  return "low";
+  if (!raw) return "low";
+  switch (String(raw).toLowerCase().trim()) {
+    case "high":     case "severe":                    return "high";
+    case "medium":   case "moderate":                  return "medium";
+    case "low":      case "mild":      case "none":    return "low";
+    default:                                           return "low";
+  }
+}
+
+// Human-readable label for each canonical level
+function severityLabel(level) {
+  switch (level) {
+    case "high":   return "High";
+    case "medium": return "Medium";
+    case "low":    return "Low / Mild";
+    default:       return "Low / Mild";
+  }
 }
 
 // ── Condition icon / colour map ───────────────────────────────
@@ -317,23 +329,14 @@ const COND_META = {
   general:     { color: "#6366f1", bg: "#eef2ff", icon: "ti-stethoscope"  },
 };
 
-// ── Symptom display labels ─────────────────────────────────────
 const SYMPTOM_LABELS = {
-  fever:          "Fever",
-  cold:           "Cold / Runny Nose",
-  headache:       "Headache",
-  cough:          "Cough",
-  fatigue:        "Fatigue",
-  body_pain:      "Body Pain",
-  sore_throat:    "Sore Throat",
-  nausea:         "Nausea / Vomiting",
-  diarrhea:       "Diarrhea",
-  loss_of_taste:  "Loss of Taste / Smell",
-  chest_pain:     "Chest Pain",
-  breathlessness: "Breathlessness"
+  fever: "Fever", cold: "Cold / Runny Nose", headache: "Headache",
+  cough: "Cough", fatigue: "Fatigue", body_pain: "Body Pain",
+  sore_throat: "Sore Throat", nausea: "Nausea / Vomiting",
+  diarrhea: "Diarrhea", loss_of_taste: "Loss of Taste / Smell",
+  chest_pain: "Chest Pain", breathlessness: "Breathlessness"
 };
 
-// ── Condition name → key mapping ─────────────────────────────
 function conditionKeyFromName(name) {
   if (!name) return "general";
   const n = name.toLowerCase();
@@ -349,7 +352,6 @@ function conditionKeyFromName(name) {
   return "general";
 }
 
-// ── Date helpers ──────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return "Unknown date";
   return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -360,19 +362,18 @@ function formatDate(dateStr) {
 
 function daysAgoLabel(dateStr) {
   if (!dateStr) return "—";
-  const todayMidnight = new Date();
-  todayMidnight.setHours(0, 0, 0, 0);
-  const thenMidnight = new Date(dateStr);
-  thenMidnight.setHours(0, 0, 0, 0);
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+  const thenMidnight  = new Date(dateStr); thenMidnight.setHours(0,0,0,0);
   const diffDays = Math.round((todayMidnight - thenMidnight) / 86400000);
-  if (diffDays <= 0) return "Today";
+  if (diffDays <= 0)  return "Today";
   if (diffDays === 1) return "Yesterday";
   return diffDays + "d ago";
 }
 
-// ── Stats ─────────────────────────────────────────────────────
+// ── Stats (always from full history, not filtered view) ───────
 function updateStats(history) {
   document.getElementById("statTotal").textContent = history.length;
+  // Count HIGH severity records using the same normaliser
   document.getElementById("statHigh").textContent  =
     history.filter(h => normaliseSeverity(h.severity) === "high").length;
   const latest = history[0];
@@ -380,32 +381,13 @@ function updateStats(history) {
     (latest && latest.created_at) ? daysAgoLabel(latest.created_at) : "—";
 }
 
-// ── Badge helpers ─────────────────────────────────────────────
-function severityBadgeClass(norm) {
-  if (norm === "high")   return "sev-high";
-  if (norm === "medium") return "sev-medium";
-  return "sev-low"; // low and anything else
-}
-
-function severityDisplayLabel(norm) {
-  if (norm === "high")   return "High";
-  if (norm === "medium") return "Medium";
-  return "Low / Mild";
-}
-
-// ── Parse symptoms ─────────────────────────────────────────────
 function parseSymptoms(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
   try { return JSON.parse(raw); } catch { return []; }
 }
 
-// ── Filter ────────────────────────────────────────────────────
-// FIX: The filter compares normaliseSeverity(h.severity) to the filter string.
-// 'Low' severity from DB -> normaliseSeverity('Low') -> 'low' -> matches 'low'.
-// 'Mild' (old data) -> normaliseSeverity('Mild') -> 'low' -> matches 'low'.
-// This is correct. The bug was that old data might have been stored as 'mild'
-// and the backend was NOT normalising on read - now it does.
+// ── Filter — uses normaliseSeverity for consistent matching ───
 function applyFilter(filter, btn) {
   currentFilter = filter;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -424,14 +406,17 @@ function renderList(history) {
 
   if (!history.length) {
     const isFiltered = currentFilter !== "all";
+    const filterName = currentFilter === "low" ? "Low / Mild"
+                     : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1);
     list.innerHTML = `
       <div class="empty-wrap">
         <i class="ti ti-notes-off empty-icon" aria-hidden="true"></i>
         <div class="empty-title">${isFiltered ? "No results for this filter" : "No symptom checks yet"}</div>
         <div class="empty-sub">${isFiltered
-          ? `No records with <strong>${currentFilter === "low" ? "Low / Mild" : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)}</strong> severity found.`
+          ? `No records with <strong>${filterName}</strong> severity found.`
           : "Check your symptoms to start building your health history."}</div>
-        ${!isFiltered ? `<a href="symptom.html" class="empty-cta"><i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms Now</a>` : ""}
+        ${!isFiltered ? `<a href="symptom.html" class="empty-cta">
+          <i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms Now</a>` : ""}
       </div>`;
     return;
   }
@@ -443,7 +428,10 @@ function renderList(history) {
     const symptoms = parseSymptoms(item.symptoms);
     const condKey  = conditionKeyFromName(item.condition_name);
     const meta     = COND_META[condKey] || COND_META["general"];
-    const sevNorm  = normaliseSeverity(item.severity);
+
+    // Canonical level — drives BOTH the badge and the filter
+    const level    = normaliseSeverity(item.severity);
+    const label    = severityLabel(level);
 
     const monthYear = item.created_at
       ? new Date(item.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
@@ -476,9 +464,10 @@ function renderList(history) {
                 ${daysAgoLabel(item.created_at)}
               </div>
             </div>
-            <span class="severity-badge ${severityBadgeClass(sevNorm)}">
+            <!-- data-level drives the badge colour — no class conflict -->
+            <span class="severity-badge" data-level="${level}">
               <i class="ti ti-point-filled" aria-hidden="true"></i>
-              ${severityDisplayLabel(sevNorm)}
+              ${label}
             </span>
           </div>
           ${symTags ? `<div class="symptom-tags">${symTags}</div>` : ""}
@@ -529,7 +518,7 @@ async function load() {
     if (data.success) {
       allHistory = data.data || [];
       updateStats(allHistory);
-      renderList(allHistory);
+      renderList(allHistory);   // show "all" by default
     } else {
       showToast(data.message || "Could not load history.", "error");
       document.getElementById("historyList").innerHTML = `
@@ -537,7 +526,8 @@ async function load() {
           <i class="ti ti-notes-off empty-icon"></i>
           <div class="empty-title">No history yet</div>
           <div class="empty-sub">Start by checking your symptoms — your history will appear here.</div>
-          <a href="symptom.html" class="empty-cta" style="margin-top:12px;"><i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms</a>
+          <a href="symptom.html" class="empty-cta" style="margin-top:12px;">
+            <i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms</a>
         </div>`;
     }
   } catch (e) {
