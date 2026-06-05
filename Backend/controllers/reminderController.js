@@ -1,7 +1,9 @@
-// ── reminderController.js — SIMPLIFIED: removed getReminderCols() detection.
-//    Schema now uses fixed column names: medicine_name, schedule_type,
-//    schedule_label, dose_count, doses_label, start_date, alt_base.
-//    P1.4: No SQL error details sent to client.
+// ── reminderController.js (FINAL FIX) ────────────────────────
+// After running fix_reminders_hard_reset.sql, the table uses
+// the correct column names. This controller matches exactly.
+// P1.4: No SQL error details sent to client.
+// ─────────────────────────────────────────────────────────────
+
 const db = require("../config/db");
 const { isSelf } = require("../middleware/authMiddleware");
 
@@ -14,7 +16,7 @@ function safeJSON(val, fallback) {
 function resolveDate(val) {
     if (val && /^\d{4}-\d{2}-\d{2}$/.test(String(val))) return val;
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 /* ── ADD ──────────────────────────────────────────────────────── */
@@ -25,16 +27,18 @@ const addReminder = (req, res) => {
         times, days, monthDay, duration, sound, startDate, altBase
     } = req.body;
 
-    if (!medicine || !String(medicine).trim())
+    if (!medicine || !String(medicine).trim()) {
         return res.status(400).json({ success: false, message: "Medicine name is required." });
-    if (!times || (Array.isArray(times) && times.length === 0))
+    }
+    if (!times || (Array.isArray(times) && times.length === 0)) {
         return res.status(400).json({ success: false, message: "At least one time is required." });
+    }
 
     const resolvedStart = resolveDate(startDate);
     let resolvedAlt = null;
     if (altBase) {
         const d = new Date(altBase);
-        if (!isNaN(d)) resolvedAlt = d.toISOString().slice(0,19).replace('T',' ');
+        if (!isNaN(d)) resolvedAlt = d.toISOString().slice(0, 19).replace("T", " ");
     }
 
     const timesJSON = JSON.stringify(Array.isArray(times) ? times : []);
@@ -51,15 +55,15 @@ const addReminder = (req, res) => {
     db.query(sql, [
         user_id,
         String(medicine).trim(),
-        sched        || "daily",
+        sched         || "daily",
         scheduleLabel || "",
         parseInt(doseCount) || 1,
-        dosesLabel   || "",
+        dosesLabel    || "",
         timesJSON,
         daysJSON,
         parseInt(monthDay) || 1,
-        duration     || "forever",
-        sound        || "bell",
+        duration      || "forever",
+        sound         || "bell",
         resolvedStart,
         resolvedAlt
     ], (err, result) => {
@@ -95,21 +99,21 @@ const getReminders = (req, res) => {
                         ? rawStart.toISOString().split("T")[0]
                         : String(rawStart).split("T")[0])
                     : null;
-                const rawAlt = r.alt_base;
+
                 return {
                     id:            r.id,
-                    medicine:      r.medicine_name,
-                    sched:         r.schedule_type,
-                    scheduleLabel: r.schedule_label,
-                    doseCount:     String(r.dose_count),
-                    dosesLabel:    r.doses_label,
+                    medicine:      r.medicine_name || "",
+                    sched:         r.schedule_type  || "daily",
+                    scheduleLabel: r.schedule_label || "",
+                    doseCount:     String(r.dose_count || 1),
+                    dosesLabel:    r.doses_label    || "",
                     times:         safeJSON(r.times, []),
                     days:          safeJSON(r.days,  []),
-                    monthDay:      r.month_day,
-                    duration:      r.duration,
-                    sound:         r.sound,
+                    monthDay:      r.month_day || 1,
+                    duration:      r.duration  || "forever",
+                    sound:         r.sound     || "bell",
                     startDate:     startStr,
-                    altBase:       rawAlt ? new Date(rawAlt).toISOString() : null,
+                    altBase:       r.alt_base ? new Date(r.alt_base).toISOString() : null,
                     createdAt:     r.created_at ? new Date(r.created_at).toISOString() : null
                 };
             });
