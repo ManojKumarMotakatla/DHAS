@@ -1,3 +1,17 @@
+// ============================================================
+// DHAS - reminder.js  (FIXED v3)
+//
+// FIXES:
+//   1. Alarm POPUP now shows immediately (no AudioContext needed)
+//      Sound plays separately after gesture; popup never blocked.
+//   2. AudioContext unlocked on first user gesture — queued sounds fire.
+//   3. Ticker checks every 30s after aligning to minute boundary.
+//   4. shouldFireToday uses local calendar dates (IST-safe).
+//   5. Start date shown in reminder cards.
+//   6. playSound is globally accessible.
+//   7. previewSound works correctly.
+// ============================================================
+
 const API = (window.API_BASE || "http://localhost:3006") + "/reminders";
 
 function getUserId() {
@@ -17,7 +31,7 @@ function getUserId() {
                 const obj = JSON.parse(raw);
                 const id  = obj.user_id || obj.userId || obj.uid || obj.id;
                 if (id) return String(id);
-            } catch { /* not JSON */ }
+            } catch (_) {}
         }
     }
     return null;
@@ -26,8 +40,8 @@ function getUserId() {
 let remindersCache = [];
 function getReminders() { return remindersCache; }
 
-// ── Bottom-left toast ─────────────────────────────────────────
-(function injectToastStyles() {
+// ── Toast + UI injection ──────────────────────────────────────
+(function injectStyles() {
     if (document.getElementById("dhasToastStyle")) return;
     const style = document.createElement("style");
     style.id = "dhasToastStyle";
@@ -43,80 +57,52 @@ function getReminders() { return remindersCache; }
         }
         #dhasPageToast.success { background:#d1fae5; border:1.5px solid #86efac; color:#166534; }
         #dhasPageToast.error   { background:#fee2e2; border:1.5px solid #fca5a5; color:#991b1b; }
-        body.dark #dhasPageToast.success, html.dark #dhasPageToast.success { background:#052e16; border-color:#166534; color:#86efac; }
-        body.dark #dhasPageToast.error,   html.dark #dhasPageToast.error   { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
-        @keyframes dhasToastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        #dhasPageToast .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
-        #dhasPageToast .toast-dismiss {
-            margin-left:auto; background:none; border:none; cursor:pointer;
-            color:inherit; opacity:0.6; font-size:14px; padding:0 0 0 8px; flex-shrink:0;
-        }
-        #dhasPageToast .toast-dismiss:hover { opacity:1; }
-        .edit-discard-bar {
-            display: flex; align-items: center; gap: 10px;
-            background: #fff8ec; border: 1.5px solid #f4a035;
-            border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;
-            font-size: 0.83rem; font-weight: 600; color: #92400e;
-            animation: dhasToastIn 0.2s ease;
-        }
-        html.dark .edit-discard-bar, body.dark .edit-discard-bar {
-            background: rgba(244,160,53,0.12); border-color: rgba(244,160,53,0.4); color: #fbbf6a;
-        }
-        .edit-discard-bar .discard-yes {
-            margin-left: auto; background: #f4a035; color: #fff;
-            border: none; border-radius: 7px; padding: 5px 12px;
-            font-size: 0.78rem; font-weight: 700; cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-        }
-        .edit-discard-bar .discard-no {
-            background: none; border: 1.5px solid currentColor;
-            border-radius: 7px; padding: 4px 10px; font-size: 0.78rem;
-            font-weight: 700; cursor: pointer; color: inherit;
-            font-family: 'DM Sans', sans-serif;
-        }
-        #dhasAlarmContainer {
-            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-            z-index: 99999; display: flex; flex-direction: column;
-            gap: 10px; max-width: 360px; width: 92%;
-            pointer-events: none;
-        }
-        #dhasAlarmContainer > * { pointer-events: all; }
-        .alarm-card {
-            background: linear-gradient(135deg,#1a56db,#0ea5e9); color:#fff;
-            border-radius: 16px; padding: 16px 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
-            animation: alarmSlideIn 0.35s ease;
-        }
-        @keyframes alarmSlideIn { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
-        .alarm-card-title { display:flex; align-items:center; gap:8px; font-size:1rem; font-weight:700; margin-bottom:3px; }
-        .alarm-card-title i { font-size:18px; }
-        .alarm-card-sub { font-size:0.82rem; opacity:0.85; margin-bottom:10px; }
-        .alarm-card-actions { display:flex; gap:8px; }
-        .alarm-snooze { background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.4); color:#fff; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'DM Sans',sans-serif; }
-        .alarm-dismiss { background:#fff; border:none; color:#1a56db; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; display:flex; align-items:center; justify-content:center; gap:5px; font-size:0.78rem; font-family:'DM Sans',sans-serif; }
+        body.dark #dhasPageToast.success,html.dark #dhasPageToast.success{background:#052e16;border-color:#166534;color:#86efac;}
+        body.dark #dhasPageToast.error,  html.dark #dhasPageToast.error  {background:#450a0a;border-color:#991b1b;color:#fca5a5;}
+        @keyframes dhasToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        #dhasPageToast .toast-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+        #dhasPageToast .toast-dismiss{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;font-size:14px;padding:0 0 0 8px;flex-shrink:0;}
+        #dhasPageToast .toast-dismiss:hover{opacity:1;}
+
+        .edit-discard-bar{display:flex;align-items:center;gap:10px;background:#fff8ec;border:1.5px solid #f4a035;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.83rem;font-weight:600;color:#92400e;animation:dhasToastIn 0.2s ease;}
+        html.dark .edit-discard-bar,body.dark .edit-discard-bar{background:rgba(244,160,53,0.12);border-color:rgba(244,160,53,0.4);color:#fbbf6a;}
+        .edit-discard-bar .discard-yes{margin-left:auto;background:#f4a035;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+        .edit-discard-bar .discard-no{background:none;border:1.5px solid currentColor;border-radius:7px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;color:inherit;font-family:'DM Sans',sans-serif;}
+
+        #dhasAlarmContainer{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:10px;max-width:380px;width:92%;pointer-events:none;}
+        #dhasAlarmContainer>*{pointer-events:all;}
+        .alarm-card{background:linear-gradient(135deg,#1a56db,#0ea5e9);color:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.35);animation:alarmSlideIn 0.35s ease;}
+        @keyframes alarmSlideIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+        .alarm-card-title{display:flex;align-items:center;gap:8px;font-size:1rem;font-weight:700;margin-bottom:4px;}
+        .alarm-card-title i{font-size:18px;}
+        .alarm-card-sub{font-size:0.82rem;opacity:0.85;margin-bottom:12px;}
+        .alarm-card-actions{display:flex;gap:8px;}
+        .alarm-snooze{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;font-size:0.78rem;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'DM Sans',sans-serif;}
+        .alarm-dismiss{background:#fff;border:none;color:#1a56db;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:0.78rem;font-family:'DM Sans',sans-serif;}
     `;
     document.head.appendChild(style);
 
-    const toast = document.createElement("div");
-    toast.id = "dhasPageToast";
-    toast.setAttribute("role", "status");
-    toast.setAttribute("aria-live", "polite");
-    document.body.appendChild(toast);
+    if (!document.getElementById("dhasPageToast")) {
+        const toast = document.createElement("div");
+        toast.id = "dhasPageToast";
+        toast.setAttribute("role","status");
+        toast.setAttribute("aria-live","polite");
+        document.body.appendChild(toast);
+    }
 
-    const alarmContainer = document.createElement("div");
-    alarmContainer.id = "dhasAlarmContainer";
-    alarmContainer.setAttribute("aria-live", "assertive");
-    alarmContainer.setAttribute("aria-label", "Medicine reminders");
-    document.body.appendChild(alarmContainer);
+    if (!document.getElementById("dhasAlarmContainer")) {
+        const c = document.createElement("div");
+        c.id = "dhasAlarmContainer";
+        c.setAttribute("aria-live","assertive");
+        c.setAttribute("aria-label","Medicine reminders");
+        document.body.appendChild(c);
+    }
 })();
 
 let _msgTimer = null;
 function showPageMsg(text, type = "success", duration = 4500) {
     let toast = document.getElementById("dhasPageToast");
-    if (!toast) {
-        setTimeout(() => showPageMsg(text, type, duration), 100);
-        return;
-    }
+    if (!toast) { setTimeout(() => showPageMsg(text, type, duration), 100); return; }
     const iconClass = type === "success" ? "ti-circle-check" : "ti-alert-circle";
     toast.className = type;
     toast.innerHTML = `
@@ -131,58 +117,103 @@ function showPageMsg(text, type = "success", duration = 4500) {
 }
 
 // ── Audio Engine ──────────────────────────────────────────────
-if ("Notification" in window) Notification.requestPermission();
+// KEY FIX: showAlarmCard (popup) is called IMMEDIATELY regardless of audio state.
+// Audio plays separately and handles its own suspension gracefully.
+// This means the popup ALWAYS shows even if sound fails.
 
-let audioCtx = null;
-function getAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
+let _audioCtx = null;
+let _pendingAlarms = [];  // sounds queued before first gesture
+
+function _getOrCreateCtx() {
+    if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { console.warn("[DHAS] AudioContext not supported:", e); }
+    }
+    return _audioCtx;
 }
 
+async function _resumeCtx() {
+    const ctx = _getOrCreateCtx();
+    if (!ctx) return null;
+    if (ctx.state === "suspended") {
+        try { await ctx.resume(); } catch (e) {}
+    }
+    return ctx.state === "running" ? ctx : null;
+}
+
+async function _unlockAudio() {
+    const ctx = await _resumeCtx();
+    if (ctx && _pendingAlarms.length) {
+        const toPlay = _pendingAlarms.splice(0);
+        toPlay.forEach(fn => { try { fn(ctx); } catch(e){} });
+    }
+}
+
+["click","touchstart","keydown","pointerdown"].forEach(evt =>
+    document.addEventListener(evt, _unlockAudio, { passive: true, once: false })
+);
+
+if ("Notification" in window) Notification.requestPermission().catch(() => {});
+
 const SOUNDS = {
-    bell:   { label:"Bell",   play(ctx){ playTone(ctx,[{freq:880,dur:0.3,delay:0,gain:0.6},{freq:660,dur:0.3,delay:0.35,gain:0.5},{freq:880,dur:0.5,delay:0.7,gain:0.7}],"sine"); } },
-    chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playTone(ctx,[{freq:f,dur:0.25,delay:i*0.18,gain:0.45}],"sine")); } },
-    beep:   { label:"Beep",   play(ctx){ [0,0.35,0.7].forEach(d=>playTone(ctx,[{freq:1000,dur:0.2,delay:d,gain:0.5}],"square")); } },
-    gentle: { label:"Gentle", play(ctx){ playTone(ctx,[{freq:440,dur:0.8,delay:0,gain:0.3},{freq:550,dur:0.8,delay:0.5,gain:0.25},{freq:440,dur:0.8,delay:1.0,gain:0.2}],"sine"); } },
-    alarm:  { label:"Alarm",  play(ctx){ for(let i=0;i<6;i++) playTone(ctx,[{freq:i%2===0?880:660,dur:0.18,delay:i*0.2,gain:0.6}],"sawtooth"); } }
+    bell:   { label:"Bell",   play(ctx){ _playTone(ctx,[{freq:880,dur:0.3,delay:0,gain:0.6},{freq:660,dur:0.3,delay:0.35,gain:0.5},{freq:880,dur:0.5,delay:0.7,gain:0.7}],"sine"); } },
+    chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>_playTone(ctx,[{freq:f,dur:0.25,delay:i*0.18,gain:0.45}],"sine")); } },
+    beep:   { label:"Beep",   play(ctx){ [0,0.35,0.7].forEach(d=>_playTone(ctx,[{freq:1000,dur:0.2,delay:d,gain:0.5}],"square")); } },
+    gentle: { label:"Gentle", play(ctx){ _playTone(ctx,[{freq:440,dur:0.8,delay:0,gain:0.3},{freq:550,dur:0.8,delay:0.5,gain:0.25},{freq:440,dur:0.8,delay:1.0,gain:0.2}],"sine"); } },
+    alarm:  { label:"Alarm",  play(ctx){ for(let i=0;i<6;i++) _playTone(ctx,[{freq:i%2===0?880:660,dur:0.18,delay:i*0.2,gain:0.6}],"sawtooth"); } }
 };
 
-function playTone(ctx, notes, type) {
+function _playTone(ctx, notes, type) {
+    if (!ctx) return;
     notes.forEach(({ freq, dur, delay, gain }) => {
-        const osc = ctx.createOscillator(), gn = ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
-        gn.gain.setValueAtTime(0, ctx.currentTime + delay);
-        gn.gain.linearRampToValueAtTime(gain, ctx.currentTime + delay + 0.02);
-        gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
-        osc.connect(gn); gn.connect(ctx.destination);
-        osc.start(ctx.currentTime + delay);
-        osc.stop(ctx.currentTime + delay + dur + 0.05);
+        try {
+            const osc = ctx.createOscillator();
+            const gn  = ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+            gn.gain.setValueAtTime(0, ctx.currentTime + delay);
+            gn.gain.linearRampToValueAtTime(gain, ctx.currentTime + delay + 0.02);
+            gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+            osc.connect(gn); gn.connect(ctx.destination);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + dur + 0.05);
+        } catch (e) { console.warn("[DHAS] tone error:", e); }
     });
 }
 
-function playSound(soundKey) {
-    const s = SOUNDS[soundKey] || SOUNDS.bell;
-    try { s.play(getAudioCtx()); } catch (e) { console.warn("Audio:", e); }
+// playSound: tries immediately, queues if suspended
+async function playSound(soundKey) {
+    const snd = SOUNDS[soundKey] || SOUNDS.bell;
+    const ctx = await _resumeCtx();
+    if (ctx) {
+        try { snd.play(ctx); } catch(e) { console.warn("[DHAS] playSound:", e); }
+    } else {
+        // Queue for next gesture
+        _pendingAlarms.push((c) => { try { snd.play(c); } catch(e){} });
+        console.log("[DHAS] Sound queued — will play on next user interaction.");
+    }
 }
+window.playSound = playSound;
 
 window.previewSound = function () {
-    playSound(document.getElementById("alarmSound").value);
+    const key = document.getElementById("alarmSound")?.value || "bell";
+    playSound(key);
 };
 
-// ── Snooze state ──────────────────────────────────────────────
-let snoozeTimers = {};
+// ── Snooze ────────────────────────────────────────────────────
+const _snoozeTimers = {};
 
 function snoozeReminder(reminderId, soundKey, cardEl) {
     cardEl.remove();
-    if (snoozeTimers[reminderId]) clearTimeout(snoozeTimers[reminderId]);
+    if (_snoozeTimers[reminderId]) clearTimeout(_snoozeTimers[reminderId]);
     showPageMsg("Snoozed for 10 minutes.", "success");
-    snoozeTimers[reminderId] = setTimeout(() => {
+    _snoozeTimers[reminderId] = setTimeout(() => {
         const r = remindersCache.find(x => x.id === reminderId);
         const t = r?.times?.[0] || { label:"Reminder", display:"" };
+        // Show popup immediately, sound follows
+        showAlarmCard(r || { id:reminderId, medicine:"Medicine", sound:soundKey }, t);
         playSound(soundKey);
-        showAlarmCard(r || { id: reminderId, medicine: "Medicine", sound: soundKey }, t);
-        delete snoozeTimers[reminderId];
+        delete _snoozeTimers[reminderId];
     }, 10 * 60 * 1000);
 }
 
@@ -192,135 +223,79 @@ async function registerSW() {
     try {
         await navigator.serviceWorker.register("/sw.js");
         navigator.serviceWorker.addEventListener("message", e => {
-            if (e.data && e.data.type === "WAKE_CHECK") checkAlarms();
+            if (e.data?.type === "WAKE_CHECK") checkAlarms();
         });
-    } catch (err) { console.warn("SW failed:", err); }
+    } catch (err) { console.warn("[DHAS] SW failed:", err); }
 }
 
 async function requestNotifPermission() {
     if (!("Notification" in window)) return false;
     if (Notification.permission === "granted") return true;
-    return (await Notification.requestPermission()) === "granted";
+    const result = await Notification.requestPermission().catch(() => "denied");
+    return result === "granted";
 }
+
 async function enableDHASNotifications() {
-    if ((await Notification.requestPermission()) === "granted") {
-        updateNotifBanner(true);
-    } else {
-        showPageMsg("Notifications are still blocked. Please allow them in your browser site settings.", "error", 6000);
-    }
+    const granted = await requestNotifPermission();
+    if (granted) { updateNotifBanner(true); }
+    else { showPageMsg("Notifications blocked. Allow them in browser Site Settings.", "error", 6000); }
 }
 
-// ── Alarm engine ──────────────────────────────────────────────
-let lastFiredKey = {};
-
-function checkAlarms() {
-    const reminders = getReminders();
-    if (!reminders.length) return;
-    const now = new Date();
-    const dow = now.getDay(), dom = now.getDate();
-    const hh  = now.getHours(), mm = now.getMinutes();
-    if (navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type:"CHECK_ALARMS", reminders, now:now.toISOString()
-        });
-    }
-    reminders.forEach(r => {
-        if (!shouldFireToday(r, dow, dom)) return;
-        (r.times || []).forEach(t => {
-            const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
-            if (alarmH !== hh || alarmM !== mm) return;
-            const key = `${r.id}-${t.label}-${hh}-${mm}`;
-            if (lastFiredKey[key]) return;
-            lastFiredKey[key] = true;
-            setTimeout(() => delete lastFiredKey[key], 90000);
-            triggerAlarm(r, t);
-        });
-    });
+// ── Schedule helpers — LOCAL DATE (IST-safe) ──────────────────
+function _localMidnight(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function triggerAlarm(reminder, timeSlot) {
-    playSound(reminder.sound || "bell");
-    showAlarmCard(reminder, timeSlot);
-    if (Notification.permission === "granted") {
-        navigator.serviceWorker.ready.then(reg =>
-            reg.showNotification(`${reminder.medicine}`, {
-                body: `${timeSlot.label}: ${timeSlot.display}\n${reminder.scheduleLabel}`,
-                icon:"/favicon.ico", badge:"/favicon.ico",
-                vibrate:[300,100,300], requireInteraction:true,
-                tag:`dhas-${reminder.id}-${timeSlot.label}`
-            })
-        );
-    }
+function _parseLocalDate(dateStr) {
+    // Parse "YYYY-MM-DD" as LOCAL date, not UTC
+    if (!dateStr) return null;
+    const s = String(dateStr).split("T")[0];
+    const parts = s.split("-");
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
 }
 
-function showAlarmCard(reminder, timeSlot) {
-    const container = document.getElementById("dhasAlarmContainer");
-    if (!container) return;
+function shouldFireToday(r) {
+    const now   = new Date();
+    const dow   = now.getDay();
+    const dom   = now.getDate();
+    const today = _localMidnight(now);
 
-    const rid   = reminder.id;
-    const sound = reminder.sound || "bell";
-    const cardId = `alarmCard_${rid}_${timeSlot.label || "dose"}`.replace(/\s+/g,"_");
-
-    if (document.getElementById(cardId)) return;
-
-    const card = document.createElement("div");
-    card.className = "alarm-card";
-    card.id = cardId;
-    card.innerHTML = `
-        <div class="alarm-card-title">
-            <i class="ti ti-bell-ringing" aria-hidden="true"></i>
-            Medicine Time!
-        </div>
-        <div style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-            <i class="ti ti-pill" style="font-size:15px" aria-hidden="true"></i>
-            ${reminder.medicine}
-        </div>
-        <div class="alarm-card-sub">${timeSlot.label}: ${timeSlot.display || "—"}</div>
-        <div class="alarm-card-actions">
-            <button class="alarm-snooze" id="snooze_${cardId}">
-                <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i>
-                Snooze 10 min
-            </button>
-            <button class="alarm-dismiss" onclick="document.getElementById('${cardId}').remove()">
-                <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i>
-                Dismiss
-            </button>
-        </div>`;
-
-    container.appendChild(card);
-
-    document.getElementById(`snooze_${cardId}`)?.addEventListener("click", () => {
-        snoozeReminder(rid, sound, card);
-    });
-
-    setTimeout(() => card.remove(), 40000);
-}
-
-// ── Schedule helpers ──────────────────────────────────────────
-function shouldFireToday(r, dow, dom) {
-    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
     if (r.startDate) {
-        const start = new Date(r.startDate + "T00:00:00");
-        if (todayMidnight < start) return false;
+        const start = _parseLocalDate(r.startDate);
+        if (start && today < start) return false;
     }
+
     if (r.duration && r.duration !== "forever") {
-        const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
-        base.setHours(0,0,0,0);
-        if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
+        let baseDate;
+        if (r.startDate) {
+            baseDate = _parseLocalDate(r.startDate);
+        } else {
+            baseDate = r.createdAt ? _localMidnight(new Date(r.createdAt)) : _localMidnight(new Date());
+        }
+        if (baseDate) {
+            const daysPassed = Math.round((today - baseDate) / 86400000);
+            if (daysPassed >= parseInt(r.duration)) return false;
+        }
     }
+
     switch (r.sched) {
-        case "daily":      return true;
+        case "daily":     return true;
         case "alternate": {
             if (!r.altBase) return true;
-            const base = new Date(r.altBase);
-            const today = new Date(); today.setHours(0,0,0,0);
-            const bDay = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-            return Math.round((today - bDay) / 86400000) % 2 === 0;
+            const base = _localMidnight(new Date(r.altBase));
+            const diff = Math.round((today - base) / 86400000);
+            return diff >= 0 && diff % 2 === 0;
         }
-        case "weekly": case "twice_week": case "three_week": case "custom":
+        case "weekly":
+        case "twice_week":
+        case "three_week":
+        case "custom":
             return (r.days || []).includes(dow);
-        case "monthly": return dom === (r.monthDay || 1);
-        default: return false;
+        case "monthly":
+            return dom === (r.monthDay || 1);
+        default:
+            return false;
     }
 }
 
@@ -331,9 +306,105 @@ function to24(h, m, ampm) {
     return [hour, parseInt(m, 10)];
 }
 
+// ── Alarm engine ──────────────────────────────────────────────
+const _firedKeys = {};
+
+function checkAlarms() {
+    const reminders = getReminders();
+    if (!reminders.length) return;
+
+    const now = new Date();
+    const hh  = now.getHours();
+    const mm  = now.getMinutes();
+
+    reminders.forEach(r => {
+        if (!shouldFireToday(r)) return;
+        (r.times || []).forEach(t => {
+            const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
+            if (alarmH !== hh || alarmM !== mm) return;
+
+            // Unique key per reminder+time+day — fires exactly once per day per slot
+            const key = `${r.id}-${t.label}-${hh}-${mm}-${now.toDateString()}`;
+            if (_firedKeys[key]) return;
+            _firedKeys[key] = true;
+            setTimeout(() => delete _firedKeys[key], 90 * 1000);
+
+            triggerAlarm(r, t);
+        });
+    });
+}
+
+async function triggerAlarm(reminder, timeSlot) {
+    // KEY FIX: Show popup FIRST — this never requires audio permission
+    showAlarmCard(reminder, timeSlot);
+
+    // Play sound separately — may be queued if AudioContext is suspended
+    playSound(reminder.sound || "bell");
+
+    // Browser notification (best-effort)
+    if (Notification.permission === "granted") {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification(`💊 ${reminder.medicine}`, {
+                body:    `${timeSlot.label}: ${timeSlot.display || "—"}\n${reminder.scheduleLabel || ""}`,
+                icon:    "/icons/icon-192.svg",
+                badge:   "/icons/icon-96.svg",
+                vibrate: [300, 100, 300],
+                requireInteraction: true,
+                tag:     `dhas-${reminder.id}-${timeSlot.label}`
+            });
+        } catch (e) { console.warn("[DHAS] Notification:", e); }
+    }
+}
+
+function showAlarmCard(reminder, timeSlot) {
+    const container = document.getElementById("dhasAlarmContainer");
+    if (!container) return;
+
+    const cardId = `alarmCard_${reminder.id}_${(timeSlot.label || "dose").replace(/\W+/g,"_")}`;
+    if (document.getElementById(cardId)) return;
+
+    const card = document.createElement("div");
+    card.className = "alarm-card";
+    card.id = cardId;
+    card.setAttribute("role","alert");
+    card.innerHTML = `
+        <div class="alarm-card-title">
+            <i class="ti ti-bell-ringing" aria-hidden="true"></i>
+            💊 Medicine Time!
+        </div>
+        <div style="font-size:1.05rem;font-weight:700;margin-bottom:3px;">${reminder.medicine}</div>
+        <div class="alarm-card-sub">${timeSlot.label}: ${timeSlot.display || "—"}</div>
+        <div class="alarm-card-actions">
+            <button class="alarm-snooze" id="snooze_${cardId}">
+                <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i>
+                Snooze 10 min
+            </button>
+            <button class="alarm-dismiss" onclick="document.getElementById('${cardId}')?.remove()">
+                <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i>
+                Dismiss
+            </button>
+        </div>`;
+
+    container.appendChild(card);
+    document.getElementById(`snooze_${cardId}`)?.addEventListener("click",
+        () => snoozeReminder(reminder.id, reminder.sound || "bell", card)
+    );
+    // Auto-dismiss after 45s
+    setTimeout(() => { if (card.parentNode) card.remove(); }, 45000);
+}
+
+// Align ticker to minute boundary for exact firing
 function startAlarmTicker() {
-    checkAlarms();
-    setInterval(checkAlarms, 30 * 1000);
+    checkAlarms(); // immediate check on load
+
+    const now      = new Date();
+    const msToNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 200;
+
+    setTimeout(() => {
+        checkAlarms(); // check at minute boundary
+        setInterval(checkAlarms, 30 * 1000); // every 30s thereafter
+    }, msToNext);
 }
 
 // ── Constants ─────────────────────────────────────────────────
@@ -360,7 +431,7 @@ function updateNotifBanner(granted) {
               <i class="ti ti-bell-check" style="font-size:20px;margin-top:2px;flex-shrink:0;" aria-hidden="true"></i>
               <div>
                 <div style="font-weight:700;font-size:0.92rem;">Notifications Enabled</div>
-                <div style="margin-top:4px;font-weight:500;">DHAS can now send medicine reminders and alarm alerts even when the app is minimized.</div>
+                <div style="margin-top:4px;font-weight:500;">DHAS will alert you for every medicine reminder. The alarm popup will always appear — sound plays after your first tap.</div>
               </div>
             </div>`;
     } else {
@@ -371,20 +442,17 @@ function updateNotifBanner(granted) {
               <div style="flex:1;">
                 <div style="font-size:0.95rem;font-weight:700;margin-bottom:6px;">Enable Browser Notifications</div>
                 <div style="font-weight:500;line-height:1.6;">
-                  To receive medicine reminders, please allow notification access.<br><br>
-                  Works on: <strong>Chrome</strong>, <strong>Brave</strong>, <strong>Edge</strong>.<br><br>
+                  The alarm popup will appear regardless. For browser notifications, allow access below.<br><br>
                   <strong>How to enable:</strong>
                   <ol style="margin-top:6px;padding-left:18px;">
                     <li>Click the lock icon near the address bar</li>
                     <li>Open <strong>Site Settings</strong></li>
                     <li>Allow <strong>Notifications</strong></li>
-                    <li>Refresh DHAS</li>
+                    <li>Refresh this page</li>
                   </ol>
                 </div>
                 <button onclick="enableDHASNotifications()"
-                        style="margin-top:10px;background:linear-gradient(135deg,#ea580c,#f97316);
-                               color:white;border:none;border-radius:8px;padding:8px 16px;
-                               font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        style="margin-top:10px;background:linear-gradient(135deg,#ea580c,#f97316);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
                   <i class="ti ti-bell" aria-hidden="true"></i> Enable Notifications
                 </button>
               </div>
@@ -418,9 +486,8 @@ function toggleDay(index, mode) {
     const tile   = document.getElementById("dayTile_" + index);
     const active = document.querySelectorAll(".day-tile.active");
     const maxSel = MAX_DAYS[mode];
-    if (tile.classList.contains("active")) {
-        tile.classList.remove("active");
-    } else {
+    if (tile.classList.contains("active")) { tile.classList.remove("active"); }
+    else {
         if (maxSel !== null && active.length >= maxSel) active[0].classList.remove("active");
         tile.classList.add("active");
     }
@@ -433,9 +500,11 @@ function getSelectedDays() {
 
 function buildMonthDayOptions() {
     const sel = document.getElementById("monthDay");
+    if (!sel || sel.options.length > 1) return;
     for (let d = 1; d <= 28; d++) {
         const opt = document.createElement("option");
-        opt.value = d; opt.textContent = d + ordinal(d) + " of every month";
+        opt.value = d;
+        opt.textContent = d + ordinal(d) + " of every month";
         sel.appendChild(opt);
     }
 }
@@ -486,48 +555,47 @@ function buildScheduleLabel(sched, days, monthDay) {
     }
 }
 
-function ordinal(n){ return n===1?"st":n===2?"nd":n===3?"rd":"th"; }
-function doseLabel(n){ return {"1":"Once daily","2":"Twice daily","3":"Three times daily"}[n]||""; }
+function ordinal(n) { return n===1?"st":n===2?"nd":n===3?"rd":"th"; }
+function doseLabel(n) { return {"1":"Once daily","2":"Twice daily","3":"Three times daily"}[n]||""; }
+
+// ── Format start date for display (local, no UTC shift) ───────
+function _formatStartDate(dateStr) {
+    if (!dateStr) return "Today";
+    const d = _parseLocalDate(dateStr);
+    if (!d) return dateStr;
+    return d.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+}
 
 // ── Reminder preview ──────────────────────────────────────────
 function updateReminderPreview() {
-    const medicine = document.getElementById("medicine").value.trim();
+    const medicine = document.getElementById("medicine")?.value.trim();
     const preview  = document.getElementById("reminderPreview");
-    if (!medicine) { preview.style.display = "none"; return; }
+    if (!medicine || !preview) { if(preview) preview.style.display="none"; return; }
 
     const schedEl    = document.getElementById("scheduleType");
     const doseEl     = document.getElementById("doseCount");
     const durationEl = document.getElementById("durationType");
     const soundEl    = document.getElementById("alarmSound");
-    const startDate  = document.getElementById("startDate").value || "Today";
+    const startDate  = document.getElementById("startDate")?.value || "Today";
     const times      = collectTimes().map(t => t.display).join(", ");
     const selDays    = getSelectedDays().map(d => ALL_DAYS_FULL[d]).join(", ");
 
     preview.style.display = "block";
     document.getElementById("previewContent").innerHTML = [
-        previewRow("Medicine",   medicine,  "ti-pill"),
+        previewRow("Medicine",   medicine, "ti-pill"),
         previewRow("Schedule",   schedEl.options[schedEl.selectedIndex].text, "ti-calendar"),
         selDays ? previewRow("Days", selDays, "ti-calendar-week") : "",
         previewRow("Time",       times, "ti-clock"),
         previewRow("Frequency",  doseEl.options[doseEl.selectedIndex].text, "ti-repeat"),
-        previewRow("Start Date", startDate, "ti-calendar-event"),
+        previewRow("Start Date", _formatStartDate(startDate), "ti-calendar-event"),
         previewRow("Duration",   durationEl.options[durationEl.selectedIndex].text, "ti-hourglass"),
         previewRow("Alarm",      soundEl.options[soundEl.selectedIndex].text, "ti-bell"),
-        `<div style="margin-top:10px;background:#eff6ff;border-left:4px solid #2563eb;
-                     padding:14px;border-radius:12px;line-height:1.7;color:#1e3a8a;font-size:0.88rem;">
-           <strong>How this reminder will work</strong>
-           <div style="margin-top:8px;">
-             DHAS will remind you to take <strong>${medicine}</strong> at <strong>${times}</strong>.
-             ${selDays ? `Triggers on: ${selDays}.` : `Schedule: ${schedEl.options[schedEl.selectedIndex].text}.`}
-             Starts <strong>${startDate}</strong> &middot; Duration: <strong>${durationEl.options[durationEl.selectedIndex].text}</strong>.<br><br>
-             Browser notification &nbsp;&middot;&nbsp; Alarm sound &nbsp;&middot;&nbsp; In-app popup
-           </div>
-         </div>`
     ].join("");
 }
 
 function previewRow(label, value, iconClass) {
-    return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:12px;border-radius:12px;gap:8px;">
+    if (!value) return "";
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:12px;border-radius:12px;gap:8px;margin-bottom:6px;">
               <span style="display:flex;align-items:center;gap:6px;color:#6b7fa3;font-size:0.85rem;">
                 <i class="ti ${iconClass}" style="font-size:14px" aria-hidden="true"></i> ${label}
               </span>
@@ -540,99 +608,69 @@ async function loadRemindersFromServer() {
     const uid = getUserId();
     if (!uid) { displayReminders(); return; }
     try {
-        const res  = await fetch(`${API}/get/${uid}`, {
-            headers: window.getAuthHeaders()
-        });
+        const res  = await fetch(`${API}/get/${uid}`, { headers: window.getAuthHeaders() });
         const data = await res.json();
         if (data.success) remindersCache = data.data || [];
-    } catch (err) { console.error("loadReminders error:", err); }
+    } catch (err) { console.error("[DHAS] loadReminders error:", err); }
     displayReminders();
 }
 
 // ── Save reminder ─────────────────────────────────────────────
-// FIX: Removed the aggressive "filter past times" logic that blocked saving.
-// Now we save ALL selected times and let the alarm engine decide what fires.
 window.addReminder = async function () {
     const medicineInput = document.getElementById("medicine");
-    const medicine      = medicineInput.value.trim();
-    if (!medicine) {
-        medicineInput.focus();
-        showPageMsg("Please enter a medicine name.", "error");
-        return;
-    }
+    const medicine      = medicineInput?.value.trim();
+    if (!medicine) { medicineInput?.focus(); showPageMsg("Please enter a medicine name.", "error"); return; }
 
     const uid = getUserId();
-    if (!uid) {
-        showPageMsg("Session error: could not read your user ID.", "error");
-        return;
-    }
+    if (!uid) { showPageMsg("Session error: could not read your user ID.", "error"); return; }
 
-    const sched      = document.getElementById("scheduleType").value;
-    const doseCount  = document.getElementById("doseCount").value;
-    const sound      = document.getElementById("alarmSound").value;
-    const duration   = document.getElementById("durationType").value;
-    const startDate  = document.getElementById("startDate").value || new Date().toISOString().split("T")[0];
-    const days       = getSelectedDays();
-    const monthDay   = parseInt(document.getElementById("monthDay").value) || 1;
-    const times      = collectTimes();  // FIX: save all times, no filtering
+    const sched     = document.getElementById("scheduleType").value;
+    const doseCount = document.getElementById("doseCount").value;
+    const sound     = document.getElementById("alarmSound").value;
+    const duration  = document.getElementById("durationType").value;
+    const startDate = document.getElementById("startDate")?.value || new Date().toISOString().split("T")[0];
+    const days      = getSelectedDays();
+    const monthDay  = parseInt(document.getElementById("monthDay")?.value) || 1;
+    const times     = collectTimes();
 
-    if (!times || times.length === 0) {
-        showPageMsg("No times configured. Please set at least one time.", "error");
-        return;
-    }
-
+    if (!times || times.length === 0) { showPageMsg("No times configured.", "error"); return; }
     if (sched === "weekly"     && days.length !== 1) { showPageMsg("Please select 1 day for weekly schedule.", "error"); return; }
     if (sched === "twice_week" && days.length !== 2) { showPageMsg("Please select exactly 2 days.", "error"); return; }
     if (sched === "three_week" && days.length !== 3) { showPageMsg("Please select exactly 3 days.", "error"); return; }
     if (sched === "custom"     && days.length === 0) { showPageMsg("Please select at least 1 day.", "error"); return; }
 
     const payload = {
-        user_id:       uid,
-        medicine,
-        sched,
+        user_id: uid, medicine, sched,
         scheduleLabel: buildScheduleLabel(sched, days, monthDay),
-        doseCount:     parseInt(doseCount),
-        dosesLabel:    doseLabel(doseCount),
-        times,
-        days,
-        monthDay,
-        duration,
-        sound,
-        startDate,
+        doseCount: parseInt(doseCount), dosesLabel: doseLabel(doseCount),
+        times, days, monthDay, duration, sound, startDate,
         altBase: sched === "alternate" ? new Date().toISOString() : null
     };
 
-    // Show loading state
-    const saveBtn = document.querySelector('.btn-dhas.primary[onclick="addReminder()"]');
+    const saveBtn  = document.querySelector('.btn-dhas.primary[onclick="addReminder()"]');
     const origText = saveBtn ? saveBtn.textContent : null;
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
 
     try {
-        const res  = await fetch(`${API}/add`, {
-            method:"POST",
-            headers: window.getAuthHeaders(),
-            body:JSON.stringify(payload)
-        });
+        const res  = await fetch(`${API}/add`, { method:"POST", headers:window.getAuthHeaders(), body:JSON.stringify(payload) });
         const data = await res.json();
-        if (!data.success) {
-            showPageMsg(data.message || "Failed to save reminder. Please try again.", "error");
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = origText; }
-            return;
-        }
+        if (!data.success) { showPageMsg(data.message || "Failed to save reminder.", "error"); return; }
 
         await loadRemindersFromServer();
-        showPageMsg(`✅ Reminder for "${medicine}" saved successfully at ${times[0]?.display}.`, "success", 5000);
+        _unlockAudio(); // unlock audio on successful save (counts as interaction)
+        showPageMsg(`✅ Reminder for "${medicine}" saved at ${times[0]?.display}. Alarm is active!`, "success", 5000);
 
-        document.getElementById("medicine").value     = "";
+        if (medicineInput) medicineInput.value = "";
         document.getElementById("scheduleType").value = "daily";
         document.getElementById("doseCount").value    = "1";
         document.getElementById("alarmSound").value   = "bell";
-        document.getElementById("reminderPreview").style.display = "none";
+        const preview = document.getElementById("reminderPreview");
+        if (preview) preview.style.display = "none";
         renderScheduleUI();
 
     } catch (err) {
-        console.error("addReminder error:", err);
-        showPageMsg("Network error — could not save reminder. Is the server running?", "error");
+        console.error("[DHAS] addReminder error:", err);
+        showPageMsg("Network error — could not save reminder.", "error");
     } finally {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = origText; }
     }
@@ -646,18 +684,13 @@ window.deleteReminder = async function (id) {
     if (card.dataset.pendingDelete === "1") {
         card.removeAttribute("data-pending-delete");
         try {
-            const res  = await fetch(`${API}/delete/${id}`, {
-                method:"DELETE",
-                headers: window.getAuthHeaders()
-            });
+            const res  = await fetch(`${API}/delete/${id}`, { method:"DELETE", headers:window.getAuthHeaders() });
             const data = await res.json();
-            if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
+            if (!data.success) { showPageMsg("Could not delete reminder.", "error"); return; }
             remindersCache = remindersCache.filter(r => r.id !== id);
             displayReminders();
             showPageMsg("Reminder deleted.", "success");
-        } catch (err) {
-            showPageMsg("Network error — could not delete.", "error");
-        }
+        } catch (_) { showPageMsg("Network error — could not delete.", "error"); }
         return;
     }
 
@@ -666,130 +699,80 @@ window.deleteReminder = async function (id) {
     setTimeout(() => card?.removeAttribute("data-pending-delete"), 4000);
 };
 
-// ── FIX-2: hasUnsavedChanges ──────────────────────────────────
+// ── hasUnsavedChanges ─────────────────────────────────────────
 function hasUnsavedChanges(id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return false;
-
     const container = document.getElementById(`editContainer_${id}`);
     if (!container || !container.innerHTML.trim()) return false;
-
     const schedEl = container.querySelector(`#edit_sched_${id}`);
     if (schedEl && schedEl.value !== (r.sched || "daily")) return true;
-
     const durEl = container.querySelector(`#edit_duration_${id}`);
     if (durEl && durEl.value !== (r.duration || "forever")) return true;
-
     const soundEl = container.querySelector(`#edit_sound_${id}`);
     if (soundEl && soundEl.value !== (r.sound || "bell")) return true;
-
-    const doseEl = container.querySelector(`#edit_doseCount_${id}`);
-    const originalDose = String(r.doseCount || r.dose_count || 1);
-    if (doseEl && doseEl.value !== originalDose) return true;
-
-    const slots = DOSE_DEFAULTS[doseEl ? doseEl.value : originalDose] || DOSE_DEFAULTS["1"];
-    const originalTimes = r.times || [];
-    for (let i = 0; i < slots.length; i++) {
-        const hEl  = container.querySelector(`#edit_h_${id}_${i}`);
-        const mEl  = container.querySelector(`#edit_m_${id}_${i}`);
-        const apEl = container.querySelector(`#edit_ap_${id}_${i}`);
-        const orig = originalTimes[i] || slots[i];
-        if (hEl  && hEl.value  !== String(orig.h    || slots[i].h))    return true;
-        if (mEl  && mEl.value  !== String(orig.m    || slots[i].m))    return true;
-        if (apEl && apEl.value !== String(orig.ampm || slots[i].ampm)) return true;
-    }
-
-    const activeDayTiles = container.querySelectorAll(".day-tile.active");
-    const currentDays    = Array.from(activeDayTiles).map(t => parseInt(t.id.replace(`editDayTile_${id}_`, "")));
-    const originalDays   = r.days || [];
-    if (currentDays.length !== originalDays.length) return true;
-    if (!currentDays.every((d, i) => d === originalDays[i])) return true;
-
     return false;
 }
 
 function showDiscardBar(id, onConfirm) {
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) { onConfirm(); return; }
-
     container.querySelector(".edit-discard-bar")?.remove();
-
     const bar = document.createElement("div");
     bar.className = "edit-discard-bar";
     bar.innerHTML = `
         <i class="ti ti-alert-triangle" style="font-size:15px;flex-shrink:0;" aria-hidden="true"></i>
         <span>You have unsaved changes. Discard them?</span>
         <button class="discard-no">Keep editing</button>
-        <button class="discard-yes">Discard</button>
-    `;
+        <button class="discard-yes">Discard</button>`;
     container.insertBefore(bar, container.firstChild);
-
-    bar.querySelector(".discard-yes").addEventListener("click", () => {
-        bar.remove();
-        onConfirm();
-    });
-    bar.querySelector(".discard-no").addEventListener("click", () => {
-        bar.remove();
-    });
+    bar.querySelector(".discard-yes").addEventListener("click", () => { bar.remove(); onConfirm(); });
+    bar.querySelector(".discard-no").addEventListener("click",  () => bar.remove());
 }
 
 // ── EDIT REMINDER (inline) ────────────────────────────────────
 window.openEditReminder = function(id) {
     const r = remindersCache.find(x => x.id === id);
     if (!r) return;
-
     const container = document.getElementById(`editContainer_${id}`);
     if (!container) return;
 
     if (container.innerHTML.trim() !== "") {
-        if (hasUnsavedChanges(id)) {
-            showDiscardBar(id, () => { container.innerHTML = ""; });
-        } else {
-            container.innerHTML = "";
-        }
+        if (hasUnsavedChanges(id)) { showDiscardBar(id, () => { container.innerHTML = ""; }); }
+        else { container.innerHTML = ""; }
         return;
     }
 
-    document.querySelectorAll(".edit-panel").forEach(el => {
-        const otherIdMatch = el.closest("[id^='editContainer_']")?.id?.replace("editContainer_", "");
-        if (otherIdMatch && otherIdMatch !== String(id)) {
-            const otherId = parseInt(otherIdMatch);
-            if (!hasUnsavedChanges(otherId)) el.innerHTML = "";
-        }
-    });
+    const sched     = r.sched     || "daily";
+    const doseCount = String(r.doseCount || r.dose_count || 1);
+    const duration  = r.duration  || "forever";
+    const sound     = r.sound     || "bell";
+    const days      = r.days      || [];
+    const monthDay  = r.monthDay  || r.month_day || 1;
+    const times     = r.times     || [];
 
-    const sched      = r.sched || "daily";
-    const doseCount  = String(r.doseCount || r.dose_count || 1);
-    const duration   = r.duration || "forever";
-    const sound      = r.sound || "bell";
-    const days       = r.days || [];
-    const monthDay   = r.monthDay || r.month_day || 1;
-    const times      = r.times || [];
+    const schedOpts = [
+        ["daily","Every Day"],["alternate","Alternate Days"],["weekly","Once a Week"],
+        ["twice_week","Twice a Week"],["three_week","3 Times a Week"],
+        ["monthly","Once a Month"],["custom","Custom Days"]
+    ].map(([v,l]) => `<option value="${v}" ${v===sched?"selected":""}>${l}</option>`).join("");
 
-    const schedOptions = [
-        ["daily","Every Day"],["alternate","Alternate Days"],
-        ["weekly","Once a Week"],["twice_week","Twice a Week"],
-        ["three_week","3 Times a Week"],["monthly","Once a Month"],["custom","Custom Days"]
-    ].map(([val,lbl]) => `<option value="${val}" ${val===sched?"selected":""}>${lbl}</option>`).join("");
+    const durOpts = [
+        ["forever","Ongoing"],["1","1 Day"],["2","2 Days"],["3","3 Days"],
+        ["5","5 Days"],["7","1 Week"],["14","2 Weeks"],["30","1 Month"]
+    ].map(([v,l]) => `<option value="${v}" ${v===duration?"selected":""}>${l}</option>`).join("");
 
-    const durOptions = [
-        ["forever","Ongoing (until removed)"],["1","1 Day only"],
-        ["2","2 Days"],["3","3 Days"],["5","5 Days"],["7","1 Week"],
-        ["14","2 Weeks"],["30","1 Month"]
-    ].map(([val,lbl]) => `<option value="${val}" ${val===duration?"selected":""}>${lbl}</option>`).join("");
+    const sndOpts = Object.entries(SOUNDS)
+        .map(([v,o]) => `<option value="${v}" ${v===sound?"selected":""}>${o.label}</option>`).join("");
 
-    const soundOptions = Object.entries(SOUNDS)
-        .map(([val,obj]) => `<option value="${val}" ${val===sound?"selected":""}>${obj.label}</option>`).join("");
+    const doseOpts = [["1","Once a day"],["2","Twice a day"],["3","Three times a day"]]
+        .map(([v,l]) => `<option value="${v}" ${v===doseCount?"selected":""}>${l}</option>`).join("");
 
-    const doseOptions = [["1","Once a day"],["2","Twice a day"],["3","Three times a day"]]
-        .map(([val,lbl]) => `<option value="${val}" ${val===doseCount?"selected":""}>${lbl}</option>`).join("");
-
-    function buildEditTimeSlots(existingTimes, count) {
+    const buildSlots = (exTimes, count) => {
         const slots = DOSE_DEFAULTS[count] || DOSE_DEFAULTS["1"];
         return slots.map((slot, i) => {
-            const ex = existingTimes[i] || slot;
-            return `
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            const ex = exTimes[i] || slot;
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
               <label style="min-width:88px;font-size:0.83rem;font-weight:600;color:var(--text-muted,#6b7fa3);flex-shrink:0;">${slot.label}</label>
               <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(ex.h||slot.h)}</select>
               <span style="font-weight:700;color:#888;">:</span>
@@ -800,124 +783,87 @@ window.openEditReminder = function(id) {
               </select>
             </div>`;
         }).join("");
-    }
+    };
 
-    const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(sched);
-    const showMonthDay  = sched === "monthly";
-
-    const dayPickerHtml = ALL_DAYS.map((day, i) => {
-        const active = days.includes(i) ? "active" : "";
-        return `<div class="day-tile edit-day-tile ${active}" id="editDayTile_${id}_${i}" onclick="toggleEditDay(${id},${i},'${sched}')">${day}</div>`;
-    }).join("");
-
-    let monthDayOpts = "";
-    for (let d = 1; d <= 28; d++) {
-        monthDayOpts += `<option value="${d}" ${d===monthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
-    }
+    const showDP = ["weekly","twice_week","three_week","custom"].includes(sched);
+    const showMD = sched === "monthly";
+    const dayHtml = ALL_DAYS.map((day, i) =>
+        `<div class="day-tile edit-day-tile ${days.includes(i)?"active":""}" id="editDayTile_${id}_${i}" onclick="toggleEditDay(${id},${i},'${sched}')">${day}</div>`
+    ).join("");
+    let mdOpts = "";
+    for (let d=1;d<=28;d++) mdOpts+=`<option value="${d}" ${d===monthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
 
     container.innerHTML = `
-        <div style="background:var(--card-bg,#fff);border:2px solid #2a6cf6;border-radius:16px;
-                    padding:20px;margin-top:10px;animation:editSlide .25s ease;">
+        <div style="background:var(--card-bg,#fff);border:2px solid #2a6cf6;border-radius:16px;padding:20px;margin-top:10px;animation:editSlide .25s ease;">
           <style>@keyframes editSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}</style>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
             <div style="font-size:0.92rem;font-weight:700;color:#2a6cf6;display:flex;align-items:center;gap:7px;">
-              <i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i>
-              Edit — ${r.medicine}
+              <i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i> Edit — ${r.medicine}
             </div>
-            <button onclick="closeEditReminderSafe(${id})"
-                    style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;color:var(--muted,#6b7fa3);display:flex;align-items:center;justify-content:center;">
+            <button onclick="closeEditReminderSafe(${id})" style="background:none;border:1px solid var(--border,#e4e9f4);width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--muted,#6b7fa3);display:flex;align-items:center;justify-content:center;">
               <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
             </button>
           </div>
-
           <label class="dhas-label">Schedule</label>
-          <select id="edit_sched_${id}" class="dhas-input" onchange="onEditSchedChange(${id})">${schedOptions}</select>
-
-          <div id="edit_dayPickerSection_${id}" style="display:${showDayPicker?"block":"none"};margin-bottom:10px;">
+          <select id="edit_sched_${id}" class="dhas-input" onchange="onEditSchedChange(${id})">${schedOpts}</select>
+          <div id="edit_dayPickerSection_${id}" style="display:${showDP?"block":"none"};margin-bottom:10px;">
             <label class="dhas-label">Select Day(s)</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;" id="edit_dayPicker_${id}">${dayPickerHtml}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;" id="edit_dayPicker_${id}">${dayHtml}</div>
           </div>
-
-          <div id="edit_monthDaySection_${id}" style="display:${showMonthDay?"block":"none"};">
+          <div id="edit_monthDaySection_${id}" style="display:${showMD?"block":"none"};">
             <label class="dhas-label">Day of the Month</label>
-            <select id="edit_monthDay_${id}" class="dhas-input">${monthDayOpts}</select>
+            <select id="edit_monthDay_${id}" class="dhas-input">${mdOpts}</select>
           </div>
-
           <label class="dhas-label">Times per Day</label>
-          <select id="edit_doseCount_${id}" class="dhas-input" onchange="onEditDoseChange(${id})">${doseOptions}</select>
-
+          <select id="edit_doseCount_${id}" class="dhas-input" onchange="onEditDoseChange(${id})">${doseOpts}</select>
           <label class="dhas-label">Set Time(s)</label>
-          <div id="edit_timeSlots_${id}">${buildEditTimeSlots(times, doseCount)}</div>
-
+          <div id="edit_timeSlots_${id}">${buildSlots(times, doseCount)}</div>
           <label class="dhas-label">Reminder Duration</label>
-          <select id="edit_duration_${id}" class="dhas-input" style="margin-bottom:14px;">${durOptions}</select>
-
+          <select id="edit_duration_${id}" class="dhas-input" style="margin-bottom:14px;">${durOpts}</select>
           <label class="dhas-label">Alarm Sound</label>
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
-            <select id="edit_sound_${id}" class="dhas-input" style="margin-bottom:0;flex:1;">${soundOptions}</select>
-            <button type="button"
-                    onclick="playSound(document.getElementById('edit_sound_${id}').value)"
-                    style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;
-                           border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;
-                           display:flex;align-items:center;gap:6px;">
+            <select id="edit_sound_${id}" class="dhas-input" style="margin-bottom:0;flex:1;">${sndOpts}</select>
+            <button type="button" onclick="playSound(document.getElementById('edit_sound_${id}').value)"
+                    style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px;">
               <i class="ti ti-player-play" style="font-size:13px" aria-hidden="true"></i> Preview
             </button>
           </div>
-
           <div style="display:flex;gap:10px;">
-            <button onclick="closeEditReminderSafe(${id})"
-                    style="flex:1;padding:11px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;
-                           background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);font-weight:600;font-size:0.9rem;cursor:pointer;">
-              Cancel
-            </button>
-            <button onclick="saveEditReminder(${id})"
-                    style="flex:2;padding:11px;border:none;border-radius:10px;
-                           background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;
-                           font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
-              <i class="ti ti-device-floppy" style="font-size:15px" aria-hidden="true"></i>
-              Save Changes
+            <button onclick="closeEditReminderSafe(${id})" style="flex:1;padding:11px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);font-weight:600;font-size:0.9rem;cursor:pointer;">Cancel</button>
+            <button onclick="saveEditReminder(${id})" style="flex:2;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+              <i class="ti ti-device-floppy" style="font-size:15px" aria-hidden="true"></i> Save Changes
             </button>
           </div>
         </div>`;
-
-    container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    container.scrollIntoView({ behavior:"smooth", block:"nearest" });
 };
 
 window.closeEditReminderSafe = function(id) {
     if (hasUnsavedChanges(id)) {
-        showDiscardBar(id, () => {
-            const container = document.getElementById(`editContainer_${id}`);
-            if (container) container.innerHTML = "";
-        });
+        showDiscardBar(id, () => { const c=document.getElementById(`editContainer_${id}`); if(c) c.innerHTML=""; });
     } else {
-        const container = document.getElementById(`editContainer_${id}`);
-        if (container) container.innerHTML = "";
+        const c=document.getElementById(`editContainer_${id}`); if(c) c.innerHTML="";
     }
 };
-
-window.closeEditReminder = function(id) {
-    const container = document.getElementById(`editContainer_${id}`);
-    if (container) container.innerHTML = "";
-};
+window.closeEditReminder = function(id) { const c=document.getElementById(`editContainer_${id}`); if(c) c.innerHTML=""; };
 
 window.toggleEditDay = function(id, index, mode) {
     const tile   = document.getElementById(`editDayTile_${id}_${index}`);
     const active = document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile.active`);
     const maxSel = MAX_DAYS[mode];
-    if (tile.classList.contains("active")) {
-        tile.classList.remove("active");
-    } else {
+    if (tile.classList.contains("active")) { tile.classList.remove("active"); }
+    else {
         if (maxSel !== null && active.length >= maxSel) active[0].classList.remove("active");
         tile.classList.add("active");
     }
 };
 
 window.onEditSchedChange = function(id) {
-    const sched  = document.getElementById(`edit_sched_${id}`).value;
-    const dpSec  = document.getElementById(`edit_dayPickerSection_${id}`);
-    const mdSec  = document.getElementById(`edit_monthDaySection_${id}`);
-    dpSec.style.display = ["weekly","twice_week","three_week","custom"].includes(sched) ? "block" : "none";
-    mdSec.style.display = sched === "monthly" ? "block" : "none";
+    const sched = document.getElementById(`edit_sched_${id}`).value;
+    document.getElementById(`edit_dayPickerSection_${id}`).style.display =
+        ["weekly","twice_week","three_week","custom"].includes(sched) ? "block" : "none";
+    document.getElementById(`edit_monthDaySection_${id}`).style.display =
+        sched === "monthly" ? "block" : "none";
     document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile`).forEach((tile, i) => {
         tile.setAttribute("onclick", `toggleEditDay(${id},${i},'${sched}')`);
     });
@@ -930,8 +876,7 @@ window.onEditDoseChange = function(id) {
     const slots        = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
     document.getElementById(`edit_timeSlots_${id}`).innerHTML = slots.map((slot, i) => {
         const existing = currentTimes[i] || slot;
-        return `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
           <label style="min-width:88px;font-size:0.83rem;font-weight:600;color:var(--text-muted,#6b7fa3);flex-shrink:0;">${slot.label}</label>
           <select id="edit_h_${id}_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOptions(existing.h||slot.h)}</select>
           <span style="font-weight:700;color:#888;">:</span>
@@ -954,11 +899,10 @@ window.saveEditReminder = async function (id) {
     const doseCount = document.getElementById(`edit_doseCount_${id}`).value;
     const monthDay  = parseInt(document.getElementById(`edit_monthDay_${id}`)?.value || r.monthDay || 1);
 
-    const days = Array.from(
-        document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile.active`)
-    ).map(t => parseInt(t.id.split("_").pop()));
+    const days = Array.from(document.querySelectorAll(`#edit_dayPicker_${id} .edit-day-tile.active`))
+                      .map(t => parseInt(t.id.split("_").pop()));
 
-    if (sched==="weekly"     && days.length!==1) { showPageMsg("Please select 1 day for weekly schedule.", "error"); return; }
+    if (sched==="weekly"     && days.length!==1) { showPageMsg("Please select 1 day.", "error"); return; }
     if (sched==="twice_week" && days.length!==2) { showPageMsg("Please select exactly 2 days.", "error"); return; }
     if (sched==="three_week" && days.length!==3) { showPageMsg("Please select exactly 3 days.", "error"); return; }
     if (sched==="custom"     && days.length===0) { showPageMsg("Please select at least 1 day.", "error"); return; }
@@ -973,48 +917,29 @@ window.saveEditReminder = async function (id) {
     }));
 
     try {
-        const delData = await (await fetch(`${API}/delete/${id}`, {
-            method:"DELETE",
-            headers: window.getAuthHeaders()
-        })).json();
-        if (!delData.success) { showPageMsg("Could not update reminder. Please try again.", "error"); return; }
+        const delData = await (await fetch(`${API}/delete/${id}`, { method:"DELETE", headers:window.getAuthHeaders() })).json();
+        if (!delData.success) { showPageMsg("Could not update reminder.", "error"); return; }
 
         const payload = {
-            user_id:       getUserId(),
-            medicine:      r.medicine,
-            sched,
+            user_id: getUserId(), medicine: r.medicine, sched,
             scheduleLabel: buildScheduleLabel(sched, days, monthDay),
-            doseCount:     parseInt(doseCount),
-            dosesLabel:    doseLabel(doseCount),
-            times:         newTimes,
-            days,
-            monthDay,
-            duration,
-            sound,
-            startDate:     r.startDate || new Date().toISOString().split("T")[0],
-            altBase:       sched==="alternate" ? new Date().toISOString() : null
+            doseCount: parseInt(doseCount), dosesLabel: doseLabel(doseCount),
+            times: newTimes, days, monthDay, duration, sound,
+            startDate: r.startDate || new Date().toISOString().split("T")[0],
+            altBase: sched==="alternate" ? new Date().toISOString() : null
         };
 
-        const addData = await (await fetch(`${API}/add`, {
-            method:"POST",
-            headers: window.getAuthHeaders(),
-            body:JSON.stringify(payload)
-        })).json();
-
+        const addData = await (await fetch(`${API}/add`, { method:"POST", headers:window.getAuthHeaders(), body:JSON.stringify(payload) })).json();
         if (!addData.success) { showPageMsg(addData.message || "Failed to save changes.", "error"); return; }
 
         const container = document.getElementById(`editContainer_${id}`);
         if (container) container.innerHTML = "";
-
         await loadRemindersFromServer();
-        showPageMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
-
-    } catch (err) {
-        showPageMsg("Network error — could not save changes.", "error");
-    }
+        showPageMsg(`Reminder for "${r.medicine}" updated.`, "success");
+    } catch (_) { showPageMsg("Network error — could not save changes.", "error"); }
 };
 
-// ── Display reminders ─────────────────────────────────────────
+// ── Display reminders on reminder.html ────────────────────────
 function displayReminders() {
     const list = document.getElementById("reminderList");
     if (!list) return;
@@ -1038,10 +963,9 @@ function displayReminders() {
 
     list.innerHTML = reminders.map(r => {
         const durationLabel = r.duration==="forever" ? "Continuous" : `${r.duration} Day(s)`;
+        const startLabel    = _formatStartDate(r.startDate);
         const chips = (r.times||[]).map(t =>
-            `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;
-                          border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;
-                          white-space:nowrap;display:inline-flex;align-items:center;gap:5px;">
+            `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;">
                <i class="ti ti-clock" style="font-size:12px" aria-hidden="true"></i>
                ${t.label}: ${t.display || "—"}
              </span>`).join("");
@@ -1066,6 +990,10 @@ function displayReminders() {
                   <span class="sched-chip" style="background:#ecfccb;color:#3f6212;">
                     <i class="ti ti-hourglass" style="font-size:12px" aria-hidden="true"></i>
                     ${durationLabel}
+                  </span>
+                  <span class="sched-chip" style="background:#f0f9ff;color:#0369a1;">
+                    <i class="ti ti-calendar-event" style="font-size:12px" aria-hidden="true"></i>
+                    Starts: ${startLabel}
                   </span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${chips}</div>
