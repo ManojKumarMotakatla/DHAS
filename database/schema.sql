@@ -1,8 +1,12 @@
 -- ============================================================
--- DHAS — schema.sql  (v5 — definitive, all column names fixed)
+-- DHAS — schema.sql  (v6 — single source of truth)
+--
+-- COLUMN DECISION: reports table uses `filename` (NO underscore).
+-- If your DB still has `file_name`, this script migrates it.
+--
 -- Safe to run on BOTH fresh and existing databases.
--- Automatically migrates old `file_name` column to `filename`.
 -- ============================================================
+
 CREATE DATABASE IF NOT EXISTS dhas_db;
 USE dhas_db;
 
@@ -17,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     google_id  VARCHAR(100)        NULL UNIQUE,
     created_at TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- ── user_profiles ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_profiles (
@@ -34,6 +39,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+
 -- ── symptoms ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS symptoms (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,7 +51,8 @@ CREATE TABLE IF NOT EXISTS symptoms (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ── Helper procedure for safe index creation ────────────────────
+
+-- ── Helper: safe index creation ─────────────────────────────────
 DROP PROCEDURE IF EXISTS dhas_add_index;
 DELIMITER //
 CREATE PROCEDURE dhas_add_index(
@@ -116,25 +123,26 @@ CALL dhas_add_index('reminder_logs', 'idx_logs_scheduled_time', 'scheduled_time'
 
 
 -- ── reports ─────────────────────────────────────────────────────
--- Column name is `filename` (NO underscore).
--- This block creates the table fresh OR migrates old `file_name` column.
+-- Column is `filename` (NO underscore) — this is the single standard.
 CREATE TABLE IF NOT EXISTS reports (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT          NOT NULL,
-    filename    VARCHAR(255) NOT NULL,
-    filesize    VARCHAR(20)  DEFAULT '',
-    filetype    VARCHAR(50)  DEFAULT '',
+    filename    VARCHAR(255) NOT NULL DEFAULT '',
+    filesize    VARCHAR(20)  NOT NULL DEFAULT '',
+    filetype    VARCHAR(50)  NOT NULL DEFAULT '',
     dataurl     LONGTEXT,
     uploaded_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Migration: rename file_name → filename on existing tables
-DROP PROCEDURE IF EXISTS dhas_fix_reports_col;
+-- ── Migration: rename file_name → filename if old column exists ──
+-- Run this block if you get "Unknown column 'filename'" errors.
+-- It only renames if file_name exists AND filename does NOT yet exist.
+DROP PROCEDURE IF EXISTS dhas_migrate_reports;
 DELIMITER //
-CREATE PROCEDURE dhas_fix_reports_col()
+CREATE PROCEDURE dhas_migrate_reports()
 BEGIN
-    -- If old `file_name` column exists and new `filename` does NOT exist, rename it
+    -- Rename file_name → filename
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
@@ -147,22 +155,21 @@ BEGIN
           AND column_name  = 'filename'
     ) THEN
         ALTER TABLE reports CHANGE `file_name` `filename` VARCHAR(255) NOT NULL DEFAULT '';
-    END IF;
-
-    -- Also ensure filesize and filetype have defaults (older schemas may not)
-    IF EXISTS (
+        SELECT 'Migration done: file_name renamed to filename' AS result;
+    ELSEIF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
           AND table_name   = 'reports'
-          AND column_name  = 'filesize'
-          AND is_nullable  = 'YES'
+          AND column_name  = 'filename'
     ) THEN
-        ALTER TABLE reports MODIFY filesize VARCHAR(20) DEFAULT '';
+        SELECT 'OK: filename column already exists, no migration needed' AS result;
+    ELSE
+        SELECT 'WARNING: Neither file_name nor filename column found in reports table' AS result;
     END IF;
 END //
 DELIMITER ;
-CALL dhas_fix_reports_col();
-DROP PROCEDURE IF EXISTS dhas_fix_reports_col;
+CALL dhas_migrate_reports();
+DROP PROCEDURE IF EXISTS dhas_migrate_reports;
 
 CALL dhas_add_index('reports', 'idx_reports_user_id',     'user_id');
 CALL dhas_add_index('reports', 'idx_reports_uploaded_at', 'uploaded_at');
@@ -182,5 +189,5 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 CALL dhas_add_index('password_reset_tokens', 'idx_prt_token',   'token');
 CALL dhas_add_index('password_reset_tokens', 'idx_prt_user_id', 'user_id');
 
--- Cleanup helper procedure
+-- Cleanup
 DROP PROCEDURE IF EXISTS dhas_add_index;

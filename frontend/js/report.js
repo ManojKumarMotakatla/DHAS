@@ -1,7 +1,7 @@
 // ============================================
-// DHAS - report.js (FIXED v2)
-// Upload, view, and delete medical reports.
-// FIXED: Handles both `file_name` and `filename` DB column variants.
+// DHAS - report.js (FIXED — unified column name)
+// Uses only `filename` (no underscore) everywhere.
+// Matches reportController.js and schema.sql (v5+).
 // ============================================
 
 const BASE_URL = window.API_BASE || "http://localhost:3006";
@@ -17,7 +17,12 @@ function showToast(text, type = "success", duration = 4500) {
     if (!t) return;
     const icon = type === "success" ? "ti-circle-check" : "ti-alert-circle";
     t.className = type;
-    t.innerHTML = `<i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
+    t.innerHTML = `
+        <i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i>
+        <span>${text}</span>
+        <button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss">
+            <i class="ti ti-x"></i>
+        </button>`;
     t.style.display = "flex";
     if (_toastTimer) clearTimeout(_toastTimer);
     _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
@@ -69,7 +74,7 @@ async function showReportViewer(id) {
                 <div style="text-align:center;padding:40px;">
                     <p style="color:red;">${errData.message || "Access denied or session expired. Please log in again."}</p>
                     <button class="viewer-back-btn" onclick="goBackToList()">
-                      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
                     </button>
                 </div>`;
             return;
@@ -82,7 +87,7 @@ async function showReportViewer(id) {
                 <div style="text-align:center;padding:40px;">
                     <p style="color:red;">File data not found. The file may have been deleted or is corrupted.</p>
                     <button class="viewer-back-btn" onclick="goBackToList()">
-                      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
                     </button>
                 </div>`;
             return;
@@ -90,6 +95,7 @@ async function showReportViewer(id) {
 
         const isPDF   = data.filetype === "application/pdf";
         const isImage = data.filetype && data.filetype.startsWith("image/");
+        const { iconEl } = fileIconEl(data.filetype);
 
         let contentHTML = "";
         if (isPDF) {
@@ -109,16 +115,14 @@ async function showReportViewer(id) {
             contentHTML = `<p style="color:#555;text-align:center;">Cannot preview this file type. Please download it.</p>`;
         }
 
-        const { iconEl } = fileIconEl(data.filetype);
-
         viewerSection.innerHTML = `
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
                 <button class="viewer-back-btn" onclick="goBackToList()">
-                  <i class="ti ti-arrow-left" style="font-size:16px" aria-hidden="true"></i> Back
+                    <i class="ti ti-arrow-left" style="font-size:16px" aria-hidden="true"></i> Back
                 </button>
                 <div style="flex:1;font-size:0.95rem;font-weight:700;color:var(--text,#0f172a);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:7px;">
-                  <i class="ti ${iconEl}" style="font-size:18px;color:var(--blue,#2a6cf6);flex-shrink:0" aria-hidden="true"></i>
-                  ${data.filename}
+                    <i class="ti ${iconEl}" style="font-size:18px;color:var(--blue,#2a6cf6);flex-shrink:0" aria-hidden="true"></i>
+                    ${data.filename}
                 </div>
                 <a href="${data.dataurl}"
                    download="${data.filename}"
@@ -128,13 +132,14 @@ async function showReportViewer(id) {
                 </a>
             </div>
             ${contentHTML}`;
+
     } catch (err) {
         console.error("View report error:", err);
         viewerSection.innerHTML = `
             <div style="text-align:center;padding:40px;">
                 <p style="color:red;">Cannot connect to server. Please check your connection.</p>
                 <button class="viewer-back-btn" onclick="goBackToList()">
-                  <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Reports
                 </button>
             </div>`;
     }
@@ -194,7 +199,7 @@ function uploadReport() {
                 headers: window.getAuthHeaders(),
                 body: JSON.stringify({
                     user_id:  user.id,
-                    filename: file.name,
+                    filename: file.name,        // ← always 'filename', no underscore
                     filesize: formatSize(file.size),
                     filetype: file.type,
                     dataurl:  dataUrl
@@ -253,35 +258,34 @@ async function displayReports() {
         }
 
         list.innerHTML = data.data.map(r => {
-            // Handle both `filename` and `file_name` column variants from DB
-            const fname = r.filename || r.file_name || "Unknown file";
+            // 'filename' is the only column name now — no fallback needed
+            const fname = r.filename || "Unknown file";
             const { iconEl } = fileIconEl(r.filetype);
             const dateStr = new Date(r.uploaded_at).toLocaleDateString("en-IN");
             return `
             <div class="report-item">
                 <div style="flex:1;min-width:0;">
                     <div class="report-name">
-                      <i class="ti ${iconEl}" aria-hidden="true"></i>
-                      ${fname}
+                        <i class="ti ${iconEl}" aria-hidden="true"></i>
+                        ${fname}
                     </div>
                     <div class="report-date">
-                      <i class="ti ti-calendar" aria-hidden="true"></i>
-                      ${dateStr} &nbsp;|&nbsp; ${r.filesize || ""}
+                        <i class="ti ti-calendar" aria-hidden="true"></i>
+                        ${dateStr} &nbsp;|&nbsp; ${r.filesize || ""}
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-                    <button class="view-btn"
-                            onclick="viewReport(${r.id})" title="View">
+                    <button class="view-btn" onclick="viewReport(${r.id})" title="View">
                         <i class="ti ti-eye" aria-hidden="true"></i>
                         View
                     </button>
                     <button class="reminder-delete" onclick="deleteReport(${r.id})" title="Delete">
-                      <i class="ti ti-trash" aria-hidden="true"></i>
-                      Delete
+                        <i class="ti ti-trash" aria-hidden="true"></i>
+                        Delete
                     </button>
                 </div>
-            </div>
-        `}).join("");
+            </div>`;
+        }).join("");
 
     } catch (err) {
         console.error("Fetch reports error:", err);
@@ -289,7 +293,7 @@ async function displayReports() {
     }
 }
 
-// ── Delete Report (two-tap confirm via toast) ──────────────────
+// ── Delete Report (two-tap confirm) ───────────────────────────
 const _pendingDelete = {};
 async function deleteReport(id) {
     if (!_pendingDelete[id]) {
@@ -328,8 +332,8 @@ function formatSize(bytes) {
 }
 
 function fileIconEl(type) {
-    if (!type)                          return { iconEl: "ti-file",          iconLabel: "File" };
-    if (type === "application/pdf")     return { iconEl: "ti-file-type-pdf", iconLabel: "PDF" };
+    if (!type)                          return { iconEl: "ti-file",           iconLabel: "File"  };
+    if (type === "application/pdf")     return { iconEl: "ti-file-type-pdf",  iconLabel: "PDF"   };
     if (type.startsWith("image/"))      return { iconEl: "ti-photo",          iconLabel: "Image" };
     return { iconEl: "ti-file", iconLabel: "File" };
 }
