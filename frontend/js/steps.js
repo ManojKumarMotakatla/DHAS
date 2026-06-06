@@ -2,6 +2,16 @@
 // DHAS - steps.js
 // Walk-only step detection using cadence + peak-valley filter.
 // Random phone movements / sitting / shaking do NOT count.
+//
+// FIX 1: performMidnightReset() now saves yesterday's steps
+//         into the correct slot BEFORE resetting todayIdx,
+//         instead of using Date.now()-86400000 which could
+//         produce the wrong day index near midnight boundaries.
+//
+// FIX 2: Removed duplicate connectGoogleFit() definition that
+//         used alert() and silently overwrote the showToast
+//         version defined in steps.html. The good version in
+//         steps.html now remains in effect at runtime.
 // ============================================================
 
 const DAILY_GOAL   = 10000;
@@ -56,11 +66,19 @@ function scheduleMidnightReset() {
 }
 
 function performMidnightReset() {
-  todayIdx = new Date().getDay();
-  weekData[new Date(Date.now() - 86400000).getDay()] = steps;
-  steps = 0;
+  // FIX: save today's step count into the slot we're about to vacate
+  // BEFORE updating todayIdx. The old code used Date.now()-86400000
+  // to find yesterday's index, which is the same as the current todayIdx
+  // at the moment this runs (just after midnight). Using todayIdx directly
+  // is both correct and unambiguous.
+  weekData[todayIdx] = steps;          // archive today → becomes "yesterday"
+
+  // Advance to the new day
+  todayIdx   = new Date().getDay();    // now points to the freshly started day
+  steps      = 0;
   briskSteps = 0;
-  weekData[todayIdx] = 0;
+  weekData[todayIdx] = 0;             // clear the new day's slot
+
   pendingSteps  = 0;
   walkConfirmed = false;
   save();
@@ -118,12 +136,13 @@ function onMotion(e) {
 
   // 1. Low-pass filter — removes high-frequency vibration/noise
   filteredMag = LOW_PASS_ALPHA * raw + (1 - LOW_PASS_ALPHA) * filteredMag;
-const suddenJump = Math.abs(filteredMag - previousFilteredMag);
+  const suddenJump = Math.abs(filteredMag - previousFilteredMag);
 
-previousFilteredMag = filteredMag;
+  previousFilteredMag = filteredMag;
 
-// Ignore violent sudden spikes (phone shake)
-if (suddenJump > 6) return;
+  // Ignore violent sudden spikes (phone shake)
+  if (suddenJump > 6) return;
+
   // 2. Track rising signal
   if (filteredMag > lastPeak) {
     lastPeak = filteredMag;
@@ -138,55 +157,50 @@ if (suddenJump > 6) return;
     const swing  = lastPeak - valley;
     const swingDiff = Math.abs(swing - previousSwing);
 
-if (swingDiff < 3) {
-    consistentSwingCount++;
-} else {
-    consistentSwingCount = 0;
-}
+    if (swingDiff < 3) {
+      consistentSwingCount++;
+    } else {
+      consistentSwingCount = 0;
+    }
 
-previousSwing = swing;
+    previousSwing = swing;
 
     // 4. Swing must be large enough to be a real footfall
     if (swing >= MIN_SWING) {
       const now      = Date.now();
       const interval = now - lastStepTime;
-if (interval < 300) return;
+
+      if (interval < 300) return;
+
       // 5. Cadence check — must match real walking rhythm (400–1200 ms)
       if (lastStepTime > 0 && interval >= MIN_STEP_MS && interval <= MAX_STEP_MS) {
         stableMovementCount++;
         pendingSteps++;
 
-      if (
-    pendingSteps >= CONFIRM_STEPS &&
-    stableMovementCount >= 4 &&
-    consistentSwingCount >= 2
-)  
- {
+        if (
+          pendingSteps >= CONFIRM_STEPS &&
+          stableMovementCount >= 4 &&
+          consistentSwingCount >= 2
+        ) {
           walkConfirmed = true;
         }
 
         if (walkConfirmed) {
           steps++;
           // Brisk: fast cadence + strong swing
-       if (
-    interval >= 400 &&
-    interval <= 650 &&
-    swing > 4
-) {
-    briskSteps++;
-}
+          if (interval >= 400 && interval <= 650 && swing > 4) {
+            briskSteps++;
+          }
           markWalking();
           save();
           updateDisplay();
         }
 
       } else if (lastStepTime > 0) {
-
-    pendingSteps = 0;
-    stableMovementCount = 0;
-    walkConfirmed = false;
-
-}
+        pendingSteps        = 0;
+        stableMovementCount = 0;
+        walkConfirmed       = false;
+      }
 
       lastStepTime = now;
     }
@@ -324,108 +338,12 @@ function renderWeekChart() {
     labels.appendChild(lbl);
   });
 }
-function connectGoogleFit() {
 
-    const client = google.accounts.oauth2.initTokenClient({
-
-        client_id:
-        "935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com",
-
-        scope:
-        "https://www.googleapis.com/auth/fitness.activity.read",
-
-        callback: async (response) => {
-
-            try {
-
-                localStorage.setItem(
-                    "fitness_token",
-                    response.access_token
-                );
-
-                const fitnessResponse = await fetch(
-                    "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Authorization":
-                            `Bearer ${response.access_token}`,
-
-                            "Content-Type":
-                            "application/json"
-                        },
-
-                        body: JSON.stringify({
-
-                            aggregateBy: [{
-                                dataTypeName:
-                                "com.google.step_count.delta"
-                            }],
-
-                            bucketByTime: {
-                                durationMillis: 86400000
-                            },
-
-                            startTimeMillis:
-                            new Date().setHours(0,0,0,0),
-
-                            endTimeMillis:
-                            Date.now()
-                        })
-                    }
-                );
-
-                const data = await fitnessResponse.json();
-
-                let googleSteps = 0;
-
-                if (
-                    data.bucket &&
-                    data.bucket.length > 0 &&
-                    data.bucket[0].dataset &&
-                    data.bucket[0].dataset.length > 0 &&
-                    data.bucket[0].dataset[0].point &&
-                    data.bucket[0].dataset[0].point.length > 0
-                ) {
-
-                    googleSteps =
-                    data.bucket[0]
-                    .dataset[0]
-                    .point[0]
-                    .value[0]
-                    .intVal || 0;
-                }
-
-                // Update app steps
-                steps = googleSteps;
-
-                save();
-                updateDisplay();
-
-                // Hide sync card
-                document.getElementById(
-                    "fitConnectCard"
-                ).style.display = "none";
-
-                // Show connected status
-                document.getElementById(
-                    "fitStatus"
-                ).style.display = "block";
-
-            } catch (err) {
-
-                console.error(err);
-
-                alert(
-                    "Unable to sync Google Fit data"
-                );
-            }
-        }
-    });
-
-    client.requestAccessToken();
-}
+// NOTE: connectGoogleFit() is intentionally NOT defined here.
+// It is defined in steps.html (inline script) where it correctly
+// uses showToast() for user feedback. Defining it here would
+// overwrite that version with an alert()-based fallback since
+// this external script is loaded after the inline script.
 
 // ── Init ─────────────────────────────────────────────────────
 window.onload = function () {

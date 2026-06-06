@@ -2,6 +2,8 @@
 // DHAS - severity.js
 // Rule-based symptom → condition → severity
 // Also populates diet & remedies on results page
+// FIX: changed window.onload to addEventListener to avoid
+//      conflict with symptom.js which also uses window.onload
 // ============================================
 
 const CONDITIONS = [
@@ -176,8 +178,9 @@ function alertClass(severity) {
     return severity === "High" ? "danger" : severity === "Medium" ? "warning" : "success";
 }
 
-// ── Run on page load ──────────────────────────
-window.onload = function () {
+// ── FIX: use addEventListener instead of window.onload
+//         to avoid silently killing symptom.js's onload handler ──
+window.addEventListener("load", function () {
     // Read symptoms array written by symptom.js
     const symptoms = JSON.parse(localStorage.getItem("dhas_symptoms")) || [];
 
@@ -258,4 +261,4 @@ window.onload = function () {
             remList.appendChild(li);
         });
     }
-};
+});
