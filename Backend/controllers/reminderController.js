@@ -1,7 +1,8 @@
-// ── reminderController.js (FINAL FIX) ────────────────────────
+// ── reminderController.js (FINAL FIX + length validation) ────
 // After running fix_reminders_hard_reset.sql, the table uses
 // the correct column names. This controller matches exactly.
 // P1.4: No SQL error details sent to client.
+// Added: max-length validation on medicine name (150 chars).
 // ─────────────────────────────────────────────────────────────
 
 const db = require("../config/db");
@@ -30,6 +31,11 @@ const addReminder = (req, res) => {
     if (!medicine || !String(medicine).trim()) {
         return res.status(400).json({ success: false, message: "Medicine name is required." });
     }
+
+    if (String(medicine).trim().length > 150) {
+        return res.status(400).json({ success: false, message: "Medicine name is too long (max 150 characters)." });
+    }
+
     if (!times || (Array.isArray(times) && times.length === 0)) {
         return res.status(400).json({ success: false, message: "At least one time is required." });
     }

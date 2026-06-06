@@ -1,12 +1,12 @@
 /**
- * DHAS — sw.js  (v7 — full offline caching for all pages)
+ * DHAS — sw.js  (v8 — fixed navigation fallback + API cache isolation)
  * Place at project ROOT (same level as server.js)
  */
 
-const CACHE_VERSION = "dhas-v7";
-const API_CACHE     = "dhas-api-v5";
-const FONT_CACHE    = "dhas-fonts-v5";
-const CDN_CACHE     = "dhas-cdn-v5";
+const CACHE_VERSION = "dhas-v8";
+const API_CACHE     = "dhas-api-v6";
+const FONT_CACHE    = "dhas-fonts-v6";
+const CDN_CACHE     = "dhas-cdn-v6";
 
 const CORE_ASSETS = [
   "/",
@@ -45,6 +45,23 @@ const CORE_ASSETS = [
   "/manifest.json"
 ];
 
+// API path prefixes — these must NEVER be served as HTML navigation fallbacks
+const API_PREFIXES = [
+  "/profile",
+  "/symptoms",
+  "/reminders",
+  "/reports",
+  "/login",
+  "/register",
+  "/auth",
+  "/reminder-logs",
+  "/test"
+];
+
+function isAPIPath(pathname) {
+  return API_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then(async cache => {
@@ -56,7 +73,7 @@ self.addEventListener("install", event => {
         )
       );
       const ok = results.filter(r => r.status === "fulfilled").length;
-      console.log(`[SW v7] Cached ${ok}/${CORE_ASSETS.length} assets`);
+      console.log(`[SW v8] Cached ${ok}/${CORE_ASSETS.length} assets`);
     }).then(() => self.skipWaiting())
   );
 });
@@ -97,16 +114,9 @@ self.addEventListener("fetch", event => {
   }
 
   // API calls — network first, fallback to cache when offline
-  if (
-    url.pathname.startsWith("/profile") ||
-    url.pathname.startsWith("/symptoms") ||
-    url.pathname.startsWith("/reminders") ||
-    url.pathname.startsWith("/reports") ||
-    url.pathname.startsWith("/login") ||
-    url.pathname.startsWith("/register") ||
-    url.pathname.startsWith("/auth") ||
-    url.pathname.startsWith("/reminder-logs")
-  ) {
+  // These are handled separately so their cached responses are
+  // NEVER served as HTML navigation fallbacks
+  if (isAPIPath(url.pathname)) {
     event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
@@ -116,9 +126,20 @@ self.addEventListener("fetch", event => {
 });
 
 async function cacheFirst(request, cacheName) {
+  const url    = new URL(request.url);
+  const isAPI  = isAPIPath(url.pathname);
+
   const cache  = await caches.open(cacheName);
   const cached = await cache.match(request);
-  if (cached) return cached;
+  if (cached) {
+    // Safety check: never serve a cached API JSON response as a page navigation
+    if (request.mode === "navigate" && isAPI) {
+      // Fall through to network
+    } else {
+      return cached;
+    }
+  }
+
   try {
     const response = await fetch(request);
     if (response.ok && response.type !== "opaque") {
@@ -126,7 +147,9 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    if (request.mode === "navigate") {
+    // Offline fallback — only serve HTML pages for navigation requests,
+    // and only when the request is NOT an API call
+    if (request.mode === "navigate" && !isAPI) {
       const fallback =
         (await cache.match("/404.html")) ||
         (await cache.match("/dashboard.html")) ||
@@ -194,8 +217,8 @@ self.addEventListener("push", event => {
     event.waitUntil(
       self.registration.showNotification(data.title || "DHAS Reminder", {
         body:    data.body    || "Time to take your medicine!",
-        icon:    data.icon    || "/icons/icon-192.png",
-        badge:   data.badge   || "/icons/icon-96.png",
+        icon:    data.icon    || "/icons/icon-192.svg",
+        badge:   data.badge   || "/icons/icon-96.svg",
         vibrate: [300, 100, 300],
         requireInteraction: true,
         tag:     data.tag     || "dhas-reminder",
@@ -206,8 +229,8 @@ self.addEventListener("push", event => {
     event.waitUntil(
       self.registration.showNotification("DHAS Reminder", {
         body:  "Time to take your medicine!",
-        icon:  "/icons/icon-192.png",
-        badge: "/icons/icon-96.png"
+        icon:  "/icons/icon-192.svg",
+        badge: "/icons/icon-96.svg"
       })
     );
   }

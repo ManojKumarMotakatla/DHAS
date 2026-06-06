@@ -86,7 +86,6 @@
     .sev-legend span { font-weight: 700; color: var(--text); margin-right: 2px; }
     .leg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
 
-    /* ── FILTER TABS ── */
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
     .tab-btn {
       padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
@@ -95,7 +94,6 @@
     }
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
     .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
-    /* Per-severity active colours */
     .tab-btn[data-sev="high"].active   { background: #ef4444; border-color: #ef4444; }
     .tab-btn[data-sev="medium"].active { background: #f59e0b; border-color: #f59e0b; }
     .tab-btn[data-sev="low"].active    { background: #10b981; border-color: #10b981; }
@@ -134,14 +132,12 @@
     .hc-date { font-size: .72rem; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .hc-date i { font-size: 12px; }
 
-    /* ── SEVERITY BADGES ── */
     .severity-badge {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 3px 10px; border-radius: 20px;
       font-size: .72rem; font-weight: 700; flex-shrink: 0;
     }
     .severity-badge i { font-size: 10px; }
-    /* Use data-level attribute for styling — avoids class name conflicts */
     .severity-badge[data-level="high"]   { background: #fee2e2; color: #991b1b; }
     .severity-badge[data-level="medium"] { background: #fef3c7; color: #92400e; }
     .severity-badge[data-level="low"]    { background: #d1fae5; color: #065f46; }
@@ -256,7 +252,6 @@
     <span><span class="leg-dot" style="background:#10b981"></span>Low</span> — mild
   </div>
 
-  <!-- Filter tabs use data-sev attribute for correct CSS targeting -->
   <div class="filter-tabs">
     <button class="tab-btn active" data-sev="all"    onclick="applyFilter('all', this)">All</button>
     <button class="tab-btn"        data-sev="high"   onclick="applyFilter('high', this)">High</button>
@@ -292,20 +287,17 @@ function showToast(text, type = "error") {
   _toastTimer = setTimeout(() => { t.style.display = "none"; }, 5000);
 }
 
-// ── CANONICAL SEVERITY NORMALISATION ─────────────────────────
-// Returns one of exactly three lowercase strings: "high" | "medium" | "low"
-// Handles every variant stored in DB: High/Medium/Low/mild/moderate/severe
+// ── SEVERITY NORMALISATION ────────────────────────────────────
 function normaliseSeverity(raw) {
   if (!raw) return "low";
   switch (String(raw).toLowerCase().trim()) {
-    case "high":     case "severe":                    return "high";
-    case "medium":   case "moderate":                  return "medium";
-    case "low":      case "mild":      case "none":    return "low";
-    default:                                           return "low";
+    case "high":   case "severe":                 return "high";
+    case "medium": case "moderate":               return "medium";
+    case "low":    case "mild": case "none":      return "low";
+    default:                                      return "low";
   }
 }
 
-// Human-readable label for each canonical level
 function severityLabel(level) {
   switch (level) {
     case "high":   return "High";
@@ -315,7 +307,80 @@ function severityLabel(level) {
   }
 }
 
-// ── Condition icon / colour map ───────────────────────────────
+// ── DATE HELPERS ──────────────────────────────────────────────
+// FIX: Compare dates using local calendar dates, not UTC midnight arithmetic.
+// MySQL timestamps come back as ISO strings (e.g. "2026-06-06T08:30:00.000Z").
+// Converting directly to Date and comparing midnight-to-midnight in UTC is wrong
+// for IST (UTC+5:30) users — a record saved at 08:30 IST is 03:00 UTC which
+// is still "yesterday" in UTC even though it was saved today locally.
+// Solution: extract the LOCAL year/month/day from the Date object and compare
+// against today's LOCAL year/month/day.
+
+function localDateParts(date) {
+  return {
+    y: date.getFullYear(),
+    m: date.getMonth(),
+    d: date.getDate()
+  };
+}
+
+function isSameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth()    === b.getMonth()    &&
+         a.getDate()     === b.getDate();
+}
+
+// Returns a human-readable relative label using LOCAL calendar dates
+function relativeDateLabel(dateStr) {
+  if (!dateStr) return "";
+  const recordDate = new Date(dateStr);
+  if (isNaN(recordDate)) return "";
+
+  const now      = new Date();
+  const rParts   = localDateParts(recordDate);
+  const nowParts = localDateParts(now);
+
+  // Build plain local date objects for diffing (no time component)
+  const rDay   = new Date(rParts.y, rParts.m, rParts.d);
+  const today  = new Date(nowParts.y, nowParts.m, nowParts.d);
+  const diffMs = today - rDay;
+  const diffDays = Math.round(diffMs / 86400000);
+
+  if (diffDays === 0)  return "Today";
+  if (diffDays === 1)  return "Yesterday";
+  if (diffDays <= 6)   return diffDays + " days ago";
+  if (diffDays <= 13)  return "1 week ago";
+  if (diffDays <= 20)  return "2 weeks ago";
+  if (diffDays <= 27)  return "3 weeks ago";
+  if (diffDays <= 35)  return "1 month ago";
+  return Math.floor(diffDays / 30) + " months ago";
+}
+
+// Full formatted date string in local time (no UTC conversion artifacts)
+function formatLocalDate(dateStr) {
+  if (!dateStr) return "Unknown date";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "Unknown date";
+  return d.toLocaleDateString("en-IN", {
+    day:    "2-digit",
+    month:  "short",
+    year:   "numeric"
+  }) + " · " + d.toLocaleTimeString("en-IN", {
+    hour:   "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+// Month-year group header using local time
+function monthYearLabel(dateStr) {
+  if (!dateStr) return "Unknown";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "Unknown";
+  return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+}
+
+// ── CONDITION META ────────────────────────────────────────────
 const COND_META = {
   covid_like:  { color: "#ef4444", bg: "#fee2e2", icon: "ti-virus"        },
   flu:         { color: "#f97316", bg: "#fff7ed", icon: "ti-thermometer"  },
@@ -352,42 +417,27 @@ function conditionKeyFromName(name) {
   return "general";
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return "Unknown date";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-}
-
-function daysAgoLabel(dateStr) {
-  if (!dateStr) return "—";
-  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-  const thenMidnight  = new Date(dateStr); thenMidnight.setHours(0,0,0,0);
-  const diffDays = Math.round((todayMidnight - thenMidnight) / 86400000);
-  if (diffDays <= 0)  return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return diffDays + "d ago";
-}
-
-// ── Stats (always from full history, not filtered view) ───────
-function updateStats(history) {
-  document.getElementById("statTotal").textContent = history.length;
-  // Count HIGH severity records using the same normaliser
-  document.getElementById("statHigh").textContent  =
-    history.filter(h => normaliseSeverity(h.severity) === "high").length;
-  const latest = history[0];
-  document.getElementById("statLast").textContent =
-    (latest && latest.created_at) ? daysAgoLabel(latest.created_at) : "—";
-}
-
 function parseSymptoms(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
   try { return JSON.parse(raw); } catch { return []; }
 }
 
-// ── Filter — uses normaliseSeverity for consistent matching ───
+// ── STATS ─────────────────────────────────────────────────────
+function updateStats(history) {
+  document.getElementById("statTotal").textContent = history.length;
+  document.getElementById("statHigh").textContent  =
+    history.filter(h => normaliseSeverity(h.severity) === "high").length;
+
+  const latest = history[0];
+  if (latest && latest.created_at) {
+    document.getElementById("statLast").textContent = relativeDateLabel(latest.created_at);
+  } else {
+    document.getElementById("statLast").textContent = "—";
+  }
+}
+
+// ── FILTER ────────────────────────────────────────────────────
 function applyFilter(filter, btn) {
   currentFilter = filter;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -400,7 +450,7 @@ function applyFilter(filter, btn) {
   renderList(filtered);
 }
 
-// ── Render ────────────────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────────────
 function renderList(history) {
   const list = document.getElementById("historyList");
 
@@ -428,19 +478,20 @@ function renderList(history) {
     const symptoms = parseSymptoms(item.symptoms);
     const condKey  = conditionKeyFromName(item.condition_name);
     const meta     = COND_META[condKey] || COND_META["general"];
-
-    // Canonical level — drives BOTH the badge and the filter
     const level    = normaliseSeverity(item.severity);
     const label    = severityLabel(level);
 
-    const monthYear = item.created_at
-      ? new Date(item.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
-      : "Unknown";
-
+    // Use local-time month grouping
+    const monthYear = monthYearLabel(item.created_at);
     if (monthYear !== lastMonth) {
       lastMonth = monthYear;
       fragments.push(`<div class="month-header">${monthYear}</div>`);
     }
+
+    // Relative label — uses local calendar comparison
+    const relLabel = relativeDateLabel(item.created_at);
+    // Full formatted date — local time, readable
+    const fullDate = formatLocalDate(item.created_at);
 
     const symTags = symptoms.slice(0, 5).map(s =>
       `<span class="sym-tag"><i class="ti ti-point-filled" aria-hidden="true"></i>${SYMPTOM_LABELS[s] || s.replace(/_/g, " ")}</span>`
@@ -459,12 +510,10 @@ function renderList(history) {
               <div class="hc-condition">${item.condition_name || "General Illness"}</div>
               <div class="hc-date">
                 <i class="ti ti-calendar" aria-hidden="true"></i>
-                ${formatDate(item.created_at)}
-                <span style="opacity:.5;">·</span>
-                ${daysAgoLabel(item.created_at)}
+                ${fullDate}
+                ${relLabel ? `<span style="opacity:.5;">·</span> ${relLabel}` : ""}
               </div>
             </div>
-            <!-- data-level drives the badge colour — no class conflict -->
             <span class="severity-badge" data-level="${level}">
               <i class="ti ti-point-filled" aria-hidden="true"></i>
               ${label}
@@ -490,7 +539,7 @@ function renderList(history) {
   list.innerHTML = fragments.join("");
 }
 
-// ── Load from API ─────────────────────────────────────────────
+// ── LOAD FROM API ─────────────────────────────────────────────
 async function load() {
   try {
     const res = await fetch(`${BASE}/symptoms/history/${user.id}`, {
@@ -518,7 +567,7 @@ async function load() {
     if (data.success) {
       allHistory = data.data || [];
       updateStats(allHistory);
-      renderList(allHistory);   // show "all" by default
+      renderList(allHistory);
     } else {
       showToast(data.message || "Could not load history.", "error");
       document.getElementById("historyList").innerHTML = `
