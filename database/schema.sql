@@ -134,7 +134,27 @@ CREATE TABLE IF NOT EXISTS reports (
     uploaded_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+-- ── doctors ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS doctors (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100) NOT NULL,
+    email        VARCHAR(100) UNIQUE NOT NULL,
+    password     VARCHAR(255) NOT NULL,
+    speciality   VARCHAR(100) DEFAULT 'General Physician',
+    invite_code  VARCHAR(20)  UNIQUE NOT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+-- ── doctor_patient_connections ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS doctor_patient_connections (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id  INT NOT NULL,
+    patient_id INT NOT NULL,
+    connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_connection (doctor_id, patient_id),
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES users(id)   ON DELETE CASCADE
+);
 -- ── Migration: rename file_name → filename if old column exists ──
 -- Run this block if you get "Unknown column 'filename'" errors.
 -- It only renames if file_name exists AND filename does NOT yet exist.
@@ -191,3 +211,23 @@ CALL dhas_add_index('password_reset_tokens', 'idx_prt_user_id', 'user_id');
 
 -- Cleanup
 DROP PROCEDURE IF EXISTS dhas_add_index;
+-- ── Add google_id to doctors if not exists ──────────────────────
+DROP PROCEDURE IF EXISTS dhas_add_doctor_google;
+DELIMITER //
+CREATE PROCEDURE dhas_add_doctor_google()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'doctors'
+          AND column_name  = 'google_id'
+    ) THEN
+        ALTER TABLE doctors ADD COLUMN google_id VARCHAR(100) NULL UNIQUE AFTER invite_code;
+        SELECT 'Added google_id to doctors' AS result;
+    ELSE
+        SELECT 'google_id already exists in doctors' AS result;
+    END IF;
+END //
+DELIMITER ;
+CALL dhas_add_doctor_google();
+DROP PROCEDURE IF EXISTS dhas_add_doctor_google;

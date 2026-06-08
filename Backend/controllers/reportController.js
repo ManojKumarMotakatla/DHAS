@@ -1,6 +1,6 @@
-// ── reportController.js (FINAL FIX) ─────────────────────────
-// Your database `reports` table already has column: `filename`
-// This file uses ONLY `filename` everywhere — no ALTER TABLE needed.
+// ── reportController.js — DB only storage ────────────────────
+// Reports are stored as base64 dataurl in MySQL.
+// No files are written to disk.
 // ─────────────────────────────────────────────────────────────
 
 const db = require("../config/db");
@@ -18,6 +18,7 @@ const uploadReport = (req, res) => {
         return res.json({ success: false, message: "Invalid file data." });
     }
 
+    // Max ~7 MB base64
     const maxBase64Bytes = 10 * 1024 * 1024;
     if (dataurl.length > maxBase64Bytes) {
         return res.json({

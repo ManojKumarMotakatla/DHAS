@@ -187,11 +187,11 @@
       </div>
       <div>
         <div class="pi-title">Profile Photo</div>
-        <div class="pi-hint">Tap to upload · Crop &amp; adjust after selecting</div>
+        <div class="pi-hint">Tap to upload </div>
         <span class="pi-clear" id="photoClear" onclick="clearPhoto(event)">✕ Remove photo</span>
       </div>
     </div>
-    <input type="file" id="fPhoto" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
+    <input type="file" id="fPhoto" accept="image/*" style="display:none">
 
     <div class="form-field">
       <label class="form-label">Full Name <span class="req">*</span></label>
@@ -448,9 +448,20 @@ document.getElementById("btnCropApply").addEventListener("click",  applyCrop);
 document.addEventListener("keydown", e => { if(e.key==="Escape" && cropOverlay.classList.contains("open")) closeCrop(); });
 
 function handlePhotoSelect(e) {
-  const file = e.target.files[0]; if (!file) return;
+  console.log("Photo selected");
+
+  const file = e.target.files[0];
+  if (!file) return;
+
+  console.log("File:", file.name);
+
   const reader = new FileReader();
-  reader.onload = ev => openCrop(ev.target.result);
+
+  reader.onload = function(ev) {
+    console.log("Reader loaded");
+    openCrop(ev.target.result);
+  };
+
   reader.readAsDataURL(file);
   e.target.value = "";
 }
@@ -613,6 +624,23 @@ async function saveProfile() {
     btn.disabled = false; btn.textContent = "Save Profile ✓";
   }
 }
+document.getElementById("fPhoto").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(ev) {
+        const p = document.getElementById("photoPreview");
+        p.innerHTML = `
+            <img src="${ev.target.result}" alt="avatar">
+            ${camBadgeHTML()}
+        `;
+        photoBase64 = ev.target.result;
+    };
+
+    reader.readAsDataURL(file);
+});
 </script>
 </body>
 </html>
