@@ -1,10 +1,12 @@
 -- ============================================================
--- DHAS — schema.sql  (v6 — single source of truth)
+-- DHAS — schema.sql  (v7 — doctor profiles + find-a-doctor)
 --
--- COLUMN DECISION: reports table uses `filename` (NO underscore).
--- If your DB still has `file_name`, this script migrates it.
---
--- Safe to run on BOTH fresh and existing databases.
+-- Changes from v6:
+--   • doctors table: added profile columns (bio, city, state,
+--     hospital, experience_years, consultation_fee, languages,
+--     expertise JSON, profile_photo, is_verified)
+--   • speciality now nullable at register; set after profile edit
+--   • Safe to run on BOTH fresh and existing databases
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS dhas_db;
@@ -123,7 +125,6 @@ CALL dhas_add_index('reminder_logs', 'idx_logs_scheduled_time', 'scheduled_time'
 
 
 -- ── reports ─────────────────────────────────────────────────────
--- Column is `filename` (NO underscore) — this is the single standard.
 CREATE TABLE IF NOT EXISTS reports (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT          NOT NULL,
@@ -134,66 +135,73 @@ CREATE TABLE IF NOT EXISTS reports (
     uploaded_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
--- ── doctors ────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS doctors (
-    id           INT AUTO_INCREMENT PRIMARY KEY,
-    name         VARCHAR(100) NOT NULL,
-    email        VARCHAR(100) UNIQUE NOT NULL,
-    password     VARCHAR(255) NOT NULL,
-    speciality   VARCHAR(100) DEFAULT 'General Physician',
-    invite_code  VARCHAR(20)  UNIQUE NOT NULL,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
--- ── doctor_patient_connections ──────────────────────────────────
-CREATE TABLE IF NOT EXISTS doctor_patient_connections (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    doctor_id  INT NOT NULL,
-    patient_id INT NOT NULL,
-    connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_connection (doctor_id, patient_id),
-    FOREIGN KEY (doctor_id)  REFERENCES doctors(id) ON DELETE CASCADE,
-    FOREIGN KEY (patient_id) REFERENCES users(id)   ON DELETE CASCADE
-);
+CALL dhas_add_index('reports', 'idx_reports_user_id',     'user_id');
+CALL dhas_add_index('reports', 'idx_reports_uploaded_at', 'uploaded_at');
+
+
 -- ── Migration: rename file_name → filename if old column exists ──
--- Run this block if you get "Unknown column 'filename'" errors.
--- It only renames if file_name exists AND filename does NOT yet exist.
 DROP PROCEDURE IF EXISTS dhas_migrate_reports;
 DELIMITER //
 CREATE PROCEDURE dhas_migrate_reports()
 BEGIN
-    -- Rename file_name → filename
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name   = 'reports'
-          AND column_name  = 'file_name'
+        WHERE table_schema = DATABASE() AND table_name = 'reports' AND column_name = 'file_name'
     ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name   = 'reports'
-          AND column_name  = 'filename'
+        WHERE table_schema = DATABASE() AND table_name = 'reports' AND column_name = 'filename'
     ) THEN
         ALTER TABLE reports CHANGE `file_name` `filename` VARCHAR(255) NOT NULL DEFAULT '';
         SELECT 'Migration done: file_name renamed to filename' AS result;
-    ELSEIF EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name   = 'reports'
-          AND column_name  = 'filename'
-    ) THEN
-        SELECT 'OK: filename column already exists, no migration needed' AS result;
     ELSE
-        SELECT 'WARNING: Neither file_name nor filename column found in reports table' AS result;
+        SELECT 'OK: filename column already correct' AS result;
     END IF;
 END //
 DELIMITER ;
 CALL dhas_migrate_reports();
 DROP PROCEDURE IF EXISTS dhas_migrate_reports;
 
-CALL dhas_add_index('reports', 'idx_reports_user_id',     'user_id');
-CALL dhas_add_index('reports', 'idx_reports_uploaded_at', 'uploaded_at');
 
+-- ── doctors ────────────────────────────────────────────────────
+-- Core columns created first (no speciality at registration — set via profile edit)
+CREATE TABLE IF NOT EXISTS doctors (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    name             VARCHAR(100)   NOT NULL,
+    email            VARCHAR(100)   UNIQUE NOT NULL,
+    password         VARCHAR(255)   NULL DEFAULT NULL,
+    google_id        VARCHAR(100)   NULL UNIQUE,
+    invite_code      VARCHAR(20)    UNIQUE NOT NULL,
+
+    -- Profile fields (filled after registration via Edit Profile)
+    speciality       VARCHAR(100)   NULL DEFAULT 'General Physician',
+    experience_years INT            NULL DEFAULT NULL,
+    consultation_fee INT            NULL DEFAULT NULL,
+    hospital         VARCHAR(200)   NULL DEFAULT NULL,
+    city             VARCHAR(100)   NULL DEFAULT NULL,
+    state            VARCHAR(100)   NULL DEFAULT NULL,
+    languages        VARCHAR(300)   NULL DEFAULT NULL,
+    bio              TEXT           NULL DEFAULT NULL,
+    expertise        JSON           NULL DEFAULT NULL,
+    profile_photo    MEDIUMTEXT     NULL DEFAULT NULL,
+
+    -- Verification: admin sets is_verified=1 for doctor to appear in patient directory
+    -- Until verified, doctor can still log in and manage patients who connect via direct code
+    is_verified      TINYINT(1)     NOT NULL DEFAULT 0,
+
+    created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ── doctor_patient_connections ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS doctor_patient_connections (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id    INT NOT NULL,
+    patient_id   INT NOT NULL,
+    connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_connection (doctor_id, patient_id),
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES users(id)   ON DELETE CASCADE
+);
 
 -- ── password_reset_tokens ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -209,25 +217,68 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 CALL dhas_add_index('password_reset_tokens', 'idx_prt_token',   'token');
 CALL dhas_add_index('password_reset_tokens', 'idx_prt_user_id', 'user_id');
 
--- Cleanup
-DROP PROCEDURE IF EXISTS dhas_add_index;
--- ── Add google_id to doctors if not exists ──────────────────────
-DROP PROCEDURE IF EXISTS dhas_add_doctor_google;
+
+-- ── Migration helpers for existing doctors table ────────────────
+-- Safely adds any missing columns to an existing doctors table.
+DROP PROCEDURE IF EXISTS dhas_migrate_doctors;
 DELIMITER //
-CREATE PROCEDURE dhas_add_doctor_google()
+CREATE PROCEDURE dhas_migrate_doctors()
 BEGIN
+    -- Remove speciality from register — make it nullable with default
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name   = 'doctors'
-          AND column_name  = 'google_id'
+        WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'experience_years'
     ) THEN
-        ALTER TABLE doctors ADD COLUMN google_id VARCHAR(100) NULL UNIQUE AFTER invite_code;
-        SELECT 'Added google_id to doctors' AS result;
+        ALTER TABLE doctors
+            ADD COLUMN experience_years INT            NULL DEFAULT NULL AFTER speciality,
+            ADD COLUMN consultation_fee INT            NULL DEFAULT NULL AFTER experience_years,
+            ADD COLUMN hospital         VARCHAR(200)   NULL DEFAULT NULL AFTER consultation_fee,
+            ADD COLUMN city             VARCHAR(100)   NULL DEFAULT NULL AFTER hospital,
+            ADD COLUMN state            VARCHAR(100)   NULL DEFAULT NULL AFTER city,
+            ADD COLUMN languages        VARCHAR(300)   NULL DEFAULT NULL AFTER state,
+            ADD COLUMN bio              TEXT           NULL DEFAULT NULL AFTER languages,
+            ADD COLUMN expertise        JSON           NULL DEFAULT NULL AFTER bio,
+            ADD COLUMN profile_photo    MEDIUMTEXT     NULL DEFAULT NULL AFTER expertise,
+            ADD COLUMN is_verified      TINYINT(1)     NOT NULL DEFAULT 0 AFTER profile_photo;
+        SELECT 'Added new doctor profile columns' AS result;
     ELSE
-        SELECT 'google_id already exists in doctors' AS result;
+        SELECT 'Doctor profile columns already exist' AS result;
+    END IF;
+
+    -- Add google_id if missing (from older schema)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'google_id'
+    ) THEN
+        ALTER TABLE doctors ADD COLUMN google_id VARCHAR(100) NULL UNIQUE AFTER email;
+        SELECT 'Added google_id to doctors' AS result;
+    END IF;
+
+    -- Add is_verified if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'is_verified'
+    ) THEN
+        ALTER TABLE doctors ADD COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 0;
+        SELECT 'Added is_verified to doctors' AS result;
     END IF;
 END //
 DELIMITER ;
-CALL dhas_add_doctor_google();
-DROP PROCEDURE IF EXISTS dhas_add_doctor_google;
+CALL dhas_migrate_doctors();
+DROP PROCEDURE IF EXISTS dhas_migrate_doctors;
+
+-- Indexes
+CALL dhas_add_index('doctors', 'idx_doctors_invite_code',  'invite_code');
+CALL dhas_add_index('doctors', 'idx_doctors_is_verified',  'is_verified');
+
+-- Cleanup helper procedure
+DROP PROCEDURE IF EXISTS dhas_add_index;
+
+
+-- ============================================================
+-- ADMIN NOTE: To make a doctor visible in the patient directory,
+-- run:  UPDATE doctors SET is_verified = 1 WHERE email = 'doctor@email.com';
+--
+-- Doctors can still log in and manage patients who connect via
+-- their invite code regardless of is_verified status.
+-- ============================================================
