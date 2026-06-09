@@ -31,15 +31,43 @@ function showToast(msg, type = "success") {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
-// Register Service Worker
+
+// ── Service Worker Registration ───────────────────────────────
 if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js")
-            .then((registration) => {
-                console.log("Service Worker registered:", registration);
-            })
-            .catch((error) => {
-                console.log("Service Worker registration failed:", error);
-            });
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .then(registration => {
+        console.log("[DHAS SW] Registered:", registration.scope);
+
+        // If a new SW is waiting, activate it immediately
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+
+        // When a new SW installs, tell it to skip waiting
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              // New SW installed, activate immediately
+              newWorker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.warn("[DHAS SW] Registration failed:", error);
+      });
+
+    // When SW changes (after skipWaiting), reload once to get fresh content
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
     });
+  });
 }

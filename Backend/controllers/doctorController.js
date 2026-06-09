@@ -15,8 +15,8 @@ function generateInviteCode() {
 
 /* ── REGISTER ── */
 const registerDoctor = async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
+    const { name, email, password ,speciality} = req.body;
+    if (!name || !email || !password || !speciality)
         return res.json({ success: false, message: "Name, email and password are required." });
 
     try {
@@ -33,10 +33,10 @@ const registerDoctor = async (req, res) => {
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
 
-        const [result] = await db.promise().query(
-            "INSERT INTO doctors (name, email, password, invite_code) VALUES (?, ?, ?, ?)",
-            [name.trim(), email.toLowerCase(), hash, invite_code]
-        );
+       const [result] = await db.promise().query(
+    "INSERT INTO doctors (name, email, password, speciality, invite_code, is_verified) VALUES (?, ?, ?, ?, ?, 1)",
+    [name.trim(), email.toLowerCase(), hash, speciality, invite_code]
+); 
 
         res.json({ success: true, message: "Doctor account created! Please login." });
     } catch (err) {
@@ -89,8 +89,8 @@ const getDoctorProfile = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
             `SELECT id, name, email, speciality, invite_code, created_at,
-                    experience_years, consultation_fee, hospital, city, state,
-                    languages, bio, expertise, profile_photo, is_verified
+       experience_years, hospital, city, state,
+       languages, bio, expertise, profile_photo, is_verified
              FROM doctors WHERE id = ?`,
             [req.doctorId]
         );
@@ -105,7 +105,7 @@ const getDoctorProfile = async (req, res) => {
 const updateDoctorProfile = async (req, res) => {
     const doctorId = req.doctorId;
     const {
-        speciality, experience_years, consultation_fee, hospital,
+        speciality, experience_years, hospital,
         city, state, languages, bio, expertise, profile_photo
     } = req.body;
 
@@ -116,7 +116,6 @@ const updateDoctorProfile = async (req, res) => {
 
         if (speciality       !== undefined) { fields.push("speciality = ?");        values.push(speciality || "General Physician"); }
         if (experience_years !== undefined) { fields.push("experience_years = ?");  values.push(experience_years || null); }
-        if (consultation_fee !== undefined) { fields.push("consultation_fee = ?");  values.push(consultation_fee || null); }
         if (hospital         !== undefined) { fields.push("hospital = ?");          values.push(hospital || null); }
         if (city             !== undefined) { fields.push("city = ?");              values.push(city || null); }
         if (state            !== undefined) { fields.push("state = ?");             values.push(state || null); }
@@ -144,7 +143,7 @@ const updateDoctorProfile = async (req, res) => {
         // Return fresh profile
         const [rows] = await db.promise().query(
             `SELECT id, name, email, speciality, invite_code, created_at,
-                    experience_years, consultation_fee, hospital, city, state,
+                    experience_years,  hospital, city, state,
                     languages, bio, expertise, profile_photo, is_verified
              FROM doctors WHERE id = ?`,
             [doctorId]
@@ -163,7 +162,7 @@ const getPublicDoctor = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
             `SELECT d.id, d.name, d.speciality, d.invite_code, d.created_at,
-                    d.experience_years, d.consultation_fee, d.hospital,
+                    d.experience_years, d.hospital,
                     d.city, d.state, d.languages, d.bio, d.expertise,
                     d.profile_photo, d.is_verified,
                     (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id) AS patient_count
@@ -186,7 +185,7 @@ const getAllDoctors = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
             `SELECT d.id, d.name, d.speciality, d.invite_code, d.created_at,
-                    d.experience_years, d.consultation_fee, d.hospital,
+                    d.experience_years, d.hospital,
                     d.city, d.state, d.languages, d.bio, d.profile_photo, d.is_verified,
                     (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id) AS patient_count
              FROM doctors d
@@ -337,11 +336,19 @@ const googleAuthDoctor = async (req, res) => {
             invite_code = generateInviteCode();
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
-
-        const [result] = await db.promise().query(
-            `INSERT INTO doctors (name, email, password, invite_code, google_id) VALUES (?, ?, NULL, ?, ?)`,
-            [name || "Doctor", email.toLowerCase(), invite_code, google_id]
-        );
+const [result] = await db.promise().query(
+    `INSERT INTO doctors
+     (name, email, password, speciality, invite_code, google_id, is_verified)
+     VALUES (?, ?, NULL, ?, ?, ?, 1)`,
+    [
+        name || "Doctor",
+        email.toLowerCase(),
+        "General Physician",
+        invite_code,
+        google_id
+    ]
+);
+      
 
         const token = signToken(result.insertId);
         res.json({
@@ -357,10 +364,38 @@ const googleAuthDoctor = async (req, res) => {
         res.json({ success: false, message: "Google sign-in failed. Please try again." });
     }
 };
+const deleteDoctorAccount = async (req, res) => {
+    const doctorId = req.doctorId;
+
+    try {
+        await db.promise().query(
+            "DELETE FROM doctor_patient_connections WHERE doctor_id = ?",
+            [doctorId]
+        );
+
+        await db.promise().query(
+            "DELETE FROM doctors WHERE id = ?",
+            [doctorId]
+        );
+
+        return res.json({
+            success: true,
+            message: "Doctor account deleted successfully."
+        });
+
+    } catch (err) {
+        console.error("deleteDoctorAccount error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete account."
+        });
+    }
+};
 
 module.exports = {
     registerDoctor, loginDoctor,
     getDoctorProfile, updateDoctorProfile, getPublicDoctor,
     getAllDoctors, getPatients, getPatientDetail,
-    connectDoctor, googleAuthDoctor
+    connectDoctor, googleAuthDoctor,deleteDoctorAccount
 };

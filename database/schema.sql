@@ -1,12 +1,10 @@
 -- ============================================================
--- DHAS — schema.sql  (v7 — doctor profiles + find-a-doctor)
+-- DHAS — schema.sql  (v8 — auto-verified doctors, no consultation_fee)
 --
--- Changes from v6:
---   • doctors table: added profile columns (bio, city, state,
---     hospital, experience_years, consultation_fee, languages,
---     expertise JSON, profile_photo, is_verified)
---   • speciality now nullable at register; set after profile edit
---   • Safe to run on BOTH fresh and existing databases
+-- Changes from v7:
+--   • doctors.is_verified default changed to 1 (auto-verified on register)
+--   • consultation_fee column removed from doctors table
+--   • Migration procedure handles existing DBs safely
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS dhas_db;
@@ -164,7 +162,9 @@ DROP PROCEDURE IF EXISTS dhas_migrate_reports;
 
 
 -- ── doctors ────────────────────────────────────────────────────
--- Core columns created first (no speciality at registration — set via profile edit)
+-- NOTE: is_verified defaults to 1 — all registered doctors are
+--       immediately visible in the patient directory.
+--       consultation_fee has been removed.
 CREATE TABLE IF NOT EXISTS doctors (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     name             VARCHAR(100)   NOT NULL,
@@ -176,7 +176,6 @@ CREATE TABLE IF NOT EXISTS doctors (
     -- Profile fields (filled after registration via Edit Profile)
     speciality       VARCHAR(100)   NULL DEFAULT 'General Physician',
     experience_years INT            NULL DEFAULT NULL,
-    consultation_fee INT            NULL DEFAULT NULL,
     hospital         VARCHAR(200)   NULL DEFAULT NULL,
     city             VARCHAR(100)   NULL DEFAULT NULL,
     state            VARCHAR(100)   NULL DEFAULT NULL,
@@ -185,9 +184,8 @@ CREATE TABLE IF NOT EXISTS doctors (
     expertise        JSON           NULL DEFAULT NULL,
     profile_photo    MEDIUMTEXT     NULL DEFAULT NULL,
 
-    -- Verification: admin sets is_verified=1 for doctor to appear in patient directory
-    -- Until verified, doctor can still log in and manage patients who connect via direct code
-    is_verified      TINYINT(1)     NOT NULL DEFAULT 0,
+    -- Default 1: every new doctor is immediately verified / visible
+    is_verified      TINYINT(1)     NOT NULL DEFAULT 1,
 
     created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
 );
@@ -219,33 +217,29 @@ CALL dhas_add_index('password_reset_tokens', 'idx_prt_user_id', 'user_id');
 
 
 -- ── Migration helpers for existing doctors table ────────────────
--- Safely adds any missing columns to an existing doctors table.
 DROP PROCEDURE IF EXISTS dhas_migrate_doctors;
 DELIMITER //
 CREATE PROCEDURE dhas_migrate_doctors()
 BEGIN
-    -- Remove speciality from register — make it nullable with default
+    -- Add missing profile columns if upgrading from v6
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'experience_years'
     ) THEN
         ALTER TABLE doctors
             ADD COLUMN experience_years INT            NULL DEFAULT NULL AFTER speciality,
-            ADD COLUMN consultation_fee INT            NULL DEFAULT NULL AFTER experience_years,
-            ADD COLUMN hospital         VARCHAR(200)   NULL DEFAULT NULL AFTER consultation_fee,
+            ADD COLUMN hospital         VARCHAR(200)   NULL DEFAULT NULL AFTER experience_years,
             ADD COLUMN city             VARCHAR(100)   NULL DEFAULT NULL AFTER hospital,
             ADD COLUMN state            VARCHAR(100)   NULL DEFAULT NULL AFTER city,
             ADD COLUMN languages        VARCHAR(300)   NULL DEFAULT NULL AFTER state,
             ADD COLUMN bio              TEXT           NULL DEFAULT NULL AFTER languages,
             ADD COLUMN expertise        JSON           NULL DEFAULT NULL AFTER bio,
             ADD COLUMN profile_photo    MEDIUMTEXT     NULL DEFAULT NULL AFTER expertise,
-            ADD COLUMN is_verified      TINYINT(1)     NOT NULL DEFAULT 0 AFTER profile_photo;
+            ADD COLUMN is_verified      TINYINT(1)     NOT NULL DEFAULT 1 AFTER profile_photo;
         SELECT 'Added new doctor profile columns' AS result;
-    ELSE
-        SELECT 'Doctor profile columns already exist' AS result;
     END IF;
 
-    -- Add google_id if missing (from older schema)
+    -- Add google_id if missing
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'google_id'
@@ -254,13 +248,31 @@ BEGIN
         SELECT 'Added google_id to doctors' AS result;
     END IF;
 
-    -- Add is_verified if missing
+    -- Add is_verified if missing; default 1 for auto-verify
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'is_verified'
     ) THEN
-        ALTER TABLE doctors ADD COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 0;
-        SELECT 'Added is_verified to doctors' AS result;
+        ALTER TABLE doctors ADD COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 1;
+        SELECT 'Added is_verified to doctors (default 1 = auto-verified)' AS result;
+    END IF;
+
+    -- Change is_verified default to 1 on existing tables that had it as 0
+    ALTER TABLE doctors MODIFY COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 1;
+
+    -- Auto-verify all existing doctors so none are invisible
+    UPDATE doctors SET is_verified = 1 WHERE is_verified = 0;
+    SELECT 'All existing doctors set to verified' AS result;
+
+    -- Drop consultation_fee if it exists (removed in v8)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'doctors' AND column_name = 'consultation_fee'
+    ) THEN
+        ALTER TABLE doctors DROP COLUMN consultation_fee;
+        SELECT 'Dropped consultation_fee column' AS result;
+    ELSE
+        SELECT 'consultation_fee column already absent' AS result;
     END IF;
 END //
 DELIMITER ;
@@ -271,14 +283,13 @@ DROP PROCEDURE IF EXISTS dhas_migrate_doctors;
 CALL dhas_add_index('doctors', 'idx_doctors_invite_code',  'invite_code');
 CALL dhas_add_index('doctors', 'idx_doctors_is_verified',  'is_verified');
 
--- Cleanup helper procedure
+-- Cleanup
 DROP PROCEDURE IF EXISTS dhas_add_index;
 
 
 -- ============================================================
--- ADMIN NOTE: To make a doctor visible in the patient directory,
--- run:  UPDATE doctors SET is_verified = 1 WHERE email = 'doctor@email.com';
---
--- Doctors can still log in and manage patients who connect via
--- their invite code regardless of is_verified status.
+-- NOTES (v8):
+--   • Every doctor is auto-verified on registration (is_verified=1).
+--   • To hide a specific doctor: UPDATE doctors SET is_verified=0 WHERE id=X;
+--   • consultation_fee has been removed from the schema entirely.
 -- ============================================================

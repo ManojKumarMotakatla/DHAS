@@ -3,40 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Doctor Profile — DHAS</title>
+  <title>My Profile — DHAS Doctor</title>
   <script src="js/config.js"></script>
   <script src="theme.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root {
-      --navy: #0b1437; --navy-mid: #112057;
-      --blue: #2a6cf6; --blue-lt: #4f8ef9; --teal: #00c9b1;
-      --green: #22d07a; --amber: #f4a035; --rose: #f25c7d;
-      --bg: #f4f6fc; --surface: #fff;
-      --border: #e4e9f4; --text: #0d1b3e; --muted: #6b7fa3;
-      --radius: 18px; --shadow: 0 2px 20px rgba(42,108,246,.09);
+      --teal: #00c9b1; --green: #059669; --navy: #064e3b; --navy-mid: #065f46;
+      --bg: #f0fdf4; --surface: #ffffff; --border: #d1fae5;
+      --text: #064e3b; --muted: #6b9a8a;
+      --blue: #2a6cf6; --rose: #f25c7d; --amber: #f4a035;
+      --radius: 18px; --radius-sm: 10px;
+      --shadow: 0 2px 20px rgba(5,150,105,.09);
+      --shadow-md: 0 6px 32px rgba(5,150,105,.14);
     }
     html.dark body, body.dark {
-      --bg: #080f28; --surface: #111c3c; --border: #1e2e58;
-      --text: #e8efff; --muted: #7d93c3;
+      --bg: #031a10; --surface: #052e1a; --border: #0a4a28;
+      --text: #c8f5e5; --muted: #4a9a7a;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg); color: var(--text);
       min-height: 100vh; transition: background .35s, color .35s;
+      padding-bottom: 80px;
     }
+    a { text-decoration: none; color: inherit; }
 
-    /* TOP */
+    /* ── TOPBAR ─────────────────────────────────────────── */
     .topbar {
       position: sticky; top: 0; z-index: 100;
       height: 62px; display: flex; align-items: center;
       padding: 0 20px; gap: 14px;
       background: rgba(255,255,255,.9); backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border); transition: background .35s;
     }
-    body.dark .topbar { background: rgba(8,15,40,.92); }
+    body.dark .topbar { background: rgba(3,26,16,.92); }
     .back-btn {
       display: flex; align-items: center; gap: 6px;
       font-size: .82rem; font-weight: 600; color: var(--muted);
@@ -44,405 +47,781 @@
       border: 1px solid var(--border); background: var(--bg);
       text-decoration: none; transition: all .18s;
     }
-    .back-btn:hover { color: var(--blue); border-color: var(--blue); }
+    .back-btn:hover { color: var(--green); border-color: var(--green); }
+    .back-btn i { font-size: 15px; }
     .topbar-title {
-      font-family: 'Playfair Display', serif; font-weight: 700;
+      font-family: 'Fraunces', serif; font-weight: 700;
       font-size: 1rem; color: var(--text); flex: 1; text-align: center;
     }
     .topbar-spacer { width: 90px; }
 
-    .page { max-width: 600px; margin: 0 auto; padding: 0 0 60px; }
+    /* ── PAGE ───────────────────────────────────────────── */
+    .page { max-width: 560px; margin: 0 auto; padding: 0 0 20px; }
 
-    /* COVER */
-    .cover-section {
-      background: linear-gradient(135deg, #0b1437 0%, #112057 45%, #1a3a8f 100%);
-      position: relative; overflow: hidden; padding: 36px 24px 70px;
+    /* ── INNER TAB BAR ──────────────────────────────────── */
+    .inner-tabs {
+      display: flex; gap: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 4px; margin: 16px 16px 0;
+      box-shadow: var(--shadow);
     }
-    .cover-section::before {
-      content: ''; position: absolute; top: -60px; right: -60px;
-      width: 280px; height: 280px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(42,108,246,.3), transparent 70%);
+    .itab {
+      flex: 1; padding: 9px; border-radius: 10px;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      border: none; background: none; color: var(--muted);
+      font-family: 'DM Sans', sans-serif; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-    .cover-section::after {
-      content: ''; position: absolute; bottom: -80px; left: 10%;
-      width: 260px; height: 260px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(0,201,177,.18), transparent 70%);
+    .itab i { font-size: 14px; }
+    .itab.active { background: var(--green); color: #fff; box-shadow: 0 2px 12px rgba(5,150,105,.3); }
+
+    .pane { display: none; padding: 16px; }
+    .pane.active { display: block; animation: fadeUp .3s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── PROFILE HERO ────────────────────────────────────── */
+    .prof-hero {
+      background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 60%, #071a10 100%);
+      padding: 28px 20px 60px; text-align: center;
+      position: relative; overflow: hidden;
+      border-radius: 20px; margin-bottom: 0;
     }
-    .cover-inner { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 20px; }
-    .doc-avatar {
-      width: 90px; height: 90px; border-radius: 24px; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--blue), var(--teal));
-      border: 3px solid rgba(255,255,255,.25);
+    .prof-hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.2), transparent 70%); pointer-events: none; }
+    .avatar-wrap { position: relative; display: inline-block; margin-bottom: 14px; cursor: pointer; }
+    .avatar-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--green), var(--teal));
+      border: 3px solid rgba(255,255,255,.2);
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700;
-      color: #fff; overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+      font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: #fff;
+      overflow: hidden; margin: 0 auto;
     }
-    .doc-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .cover-text { flex: 1; }
-    .doc-verified {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(34,208,122,.2); border: 1px solid rgba(34,208,122,.35);
-      color: #6ee7b7; font-size: .68rem; font-weight: 700;
-      padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;
-      text-transform: uppercase; letter-spacing: .5px;
+    .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-edit-ring {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--green); border: 3px solid var(--navy);
+      display: flex; align-items: center; justify-content: center;
     }
-    .doc-verified i { font-size: 11px; }
-    .doc-name {
-      font-family: 'Playfair Display', serif; font-size: 1.8rem;
-      font-weight: 900; color: #fff; margin-bottom: 4px; line-height: 1.1;
+    .avatar-edit-ring svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2.2; }
+    .prof-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .prof-email { font-size: .8rem; color: rgba(255,255,255,.5); margin-bottom: 10px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 20px; padding: 5px 14px; font-size: .75rem; font-weight: 600; color: #fff;
     }
-    .doc-spec-big {
-      font-size: .9rem; color: rgba(255,255,255,.65); margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .doc-spec-big i { font-size: 14px; color: var(--teal); }
-    .cover-stats { display: flex; gap: 20px; flex-wrap: wrap; }
-    .cstat { text-align: center; }
-    .cstat-val { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: #fff; }
-    .cstat-lbl { font-size: .65rem; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+    .sdot { width: 7px; height: 7px; border-radius: 50%; }
 
-    /* FLOATING CONNECT CARD */
-    .connect-float {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 20px; padding: 20px 22px;
-      margin: -36px 20px 20px; position: relative; z-index: 10;
-      box-shadow: 0 8px 32px rgba(0,0,0,.12);
-    }
-    .connect-title {
-      font-family: 'Playfair Display', serif; font-weight: 700;
-      font-size: 1rem; color: var(--text); margin-bottom: 4px;
-    }
-    .connect-sub { font-size: .78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
-    .invite-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .invite-big-code {
-      background: rgba(42,108,246,.08); border: 2px solid rgba(42,108,246,.2);
-      border-radius: 12px; padding: 10px 18px; font-size: 1.2rem;
-      font-weight: 800; color: var(--blue); letter-spacing: 2.5px;
-      font-family: 'DM Sans', sans-serif; flex: 1; text-align: center;
-    }
-    body.dark .invite-big-code { background: rgba(42,108,246,.15); border-color: rgba(42,108,246,.3); color: #7aafff; }
-    .btn-copy-big {
-      display: flex; align-items: center; gap: 7px;
-      padding: 11px 20px; border-radius: 12px;
-      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
-      color: #fff; font-weight: 700; font-size: .88rem;
-      border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
-      box-shadow: 0 4px 16px rgba(42,108,246,.3); transition: all .2s;
-      white-space: nowrap;
-    }
-    .btn-copy-big:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
-    .btn-copy-big.copied { background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 16px rgba(5,150,105,.3); }
-    .btn-copy-big i { font-size: 15px; }
-    .connect-hint { font-size: .72rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
-    .connect-hint strong { color: var(--blue); }
+    /* ── PROF BODY ───────────────────────────────────────── */
+    .prof-body { margin-top: -36px; position: relative; z-index: 10; padding: 0; }
 
-    /* SECTIONS */
-    .body-wrap { padding: 0 20px; }
+    /* stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 10px; text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-val { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700; color: var(--green); }
+    .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
 
+    /* verified banner */
+    .verified-banner {
+      display: flex; align-items: center; gap: 12px;
+      background: #f0fdf4; border: 1px solid #6ee7b7;
+      border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
+    }
+    body.dark .verified-banner { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.3); }
+    .unverified-banner {
+      display: flex; align-items: center; gap: 12px;
+      background: #fffbeb; border: 1px solid #fcd34d;
+      border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
+    }
+    body.dark .unverified-banner { background: rgba(244,160,53,.1); border-color: rgba(244,160,53,.3); }
+    .vb-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vb-icon i { font-size: 20px; }
+    .vb-title { font-size: .88rem; font-weight: 700; }
+    .vb-sub { font-size: .73rem; margin-top: 2px; }
+    .verified-banner .vb-icon { background: #d1fae5; }
+    .verified-banner .vb-icon i { color: #065f46; }
+    .verified-banner .vb-title { color: #065f46; }
+    .verified-banner .vb-sub { color: #047857; }
+    body.dark .verified-banner .vb-title { color: #6ee7b7; }
+    body.dark .verified-banner .vb-sub { color: #34d399; }
+    .unverified-banner .vb-icon { background: #fef3c7; }
+    .unverified-banner .vb-icon i { color: #92400e; }
+    .unverified-banner .vb-title { color: #92400e; }
+    .unverified-banner .vb-sub { color: #b45309; }
+    body.dark .unverified-banner .vb-title { color: #fcd34d; }
+    body.dark .unverified-banner .vb-sub { color: #f4a035; }
+
+    /* sections */
     .section {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); overflow: hidden;
-      box-shadow: var(--shadow); margin-bottom: 14px;
+      box-shadow: var(--shadow); margin-bottom: 12px;
     }
-    .sec-head {
-      padding: 14px 18px; border-bottom: 1px solid var(--border);
+    .section-head {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
       font-size: .7rem; font-weight: 700; color: var(--muted);
       text-transform: uppercase; letter-spacing: .8px;
       display: flex; align-items: center; gap: 8px;
     }
-    .sec-head i { font-size: 14px; }
-    .sec-body { padding: 16px 18px; }
+    .section-head i { font-size: 14px; }
+    .irow { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
+    .irow:last-child { border-bottom: none; }
+    .iicon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .iicon i { font-size: 18px; }
+    .icontent { flex: 1; min-width: 0; }
+    .ilbl { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .ival { font-size: .9rem; font-weight: 600; color: var(--text); margin-top: 2px; }
+    .ival.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+    .arow {
+      display: flex; align-items: center; padding: 14px 16px;
+      border-bottom: 1px solid var(--border); gap: 12px;
+      cursor: pointer; transition: background .15s;
+    }
+    .arow:hover { background: var(--bg); }
+    .arow:last-child { border-bottom: none; }
+    .acontent { flex: 1; }
+    .albl { font-size: .9rem; font-weight: 600; color: var(--text); }
+    .adesc { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .arow.danger .albl, .arow.danger .adesc { color: var(--rose); }
+    .achev i { font-size: 16px; color: var(--muted); }
+    .arow.danger .achev i { color: var(--rose); }
 
-    /* BIO */
-    .bio-text { font-size: .9rem; color: var(--text); line-height: 1.75; }
-    .bio-text.collapsed { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .read-more { color: var(--blue); font-size: .8rem; font-weight: 600; cursor: pointer; margin-top: 6px; display: inline-block; }
+    /* ── EDIT FORM ────────────────────────────────────────── */
+    .form-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px;
+    }
+    .form-head {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .8px; display: flex; align-items: center; gap: 8px;
+    }
+    .form-head i { font-size: 14px; }
+    .form-body { padding: 18px; }
+    .field-group { margin-bottom: 16px; }
+    .field-label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
+    .dhas-input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text);
+      background: var(--bg); outline: none; transition: border-color .2s; margin-bottom: 0; appearance: none;
+    }
+    .dhas-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(5,150,105,.12); }
+    body.dark .dhas-input { background: #031a10; color: #c8f5e5; border-color: #0a4a28; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-save {
+      width: 100%; padding: 12px 24px; border: none; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--green), var(--teal)); color: #fff;
+      font-weight: 700; font-size: .92rem; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 16px rgba(5,150,105,.3);
+      transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-save:hover { transform: translateY(-1px); opacity: .92; }
+    .btn-save:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-    /* EXPERTISE TAGS */
-    .tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
-    .expert-tag {
+    /* tags */
+    .tags-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag-chip {
       display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(42,108,246,.07); border: 1px solid rgba(42,108,246,.15);
-      color: var(--blue); border-radius: 20px; padding: 5px 12px;
-      font-size: .78rem; font-weight: 600;
+      background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.25);
+      color: var(--green); border-radius: 20px; padding: 4px 12px; font-size: .78rem; font-weight: 600;
     }
-    body.dark .expert-tag { background: rgba(42,108,246,.15); border-color: rgba(42,108,246,.25); color: #7aafff; }
-    .expert-tag i { font-size: 12px; }
+    .tag-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: .8rem; padding: 0; line-height: 1; }
+    .tag-input-row { display: flex; gap: 8px; }
+    .tag-add-btn {
+      padding: 9px 14px; border: 1.5px solid var(--green); border-radius: 9px;
+      background: rgba(5,150,105,.08); color: var(--green);
+      font-weight: 700; font-size: .8rem; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif;
+    }
 
-    /* TIMELINE (education / experience) */
-    .timeline { position: relative; }
-    .timeline::before {
-      content: ''; position: absolute; left: 19px; top: 8px; bottom: 8px;
-      width: 2px; background: linear-gradient(180deg, var(--blue), var(--teal));
-      opacity: .2; border-radius: 2px;
-    }
-    .timeline-item { display: flex; gap: 16px; margin-bottom: 18px; }
-    .timeline-item:last-child { margin-bottom: 0; }
-    .tl-dot {
-      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    /* photo upload */
+    .photo-upload-wrap { display: flex; align-items: center; gap: 16px; }
+    .photo-preview-small {
+      width: 64px; height: 64px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--green), var(--teal));
       display: flex; align-items: center; justify-content: center;
-      position: relative; z-index: 1; border: 2px solid var(--surface);
-      box-shadow: 0 0 0 2px var(--border);
+      font-size: 1.6rem; font-weight: 700; color: #fff; font-family: 'Fraunces', serif; overflow: hidden; flex-shrink: 0;
     }
-    .tl-dot i { font-size: 17px; }
-    .tl-dot.edu { background: rgba(42,108,246,.1); color: var(--blue); }
-    .tl-dot.work { background: rgba(0,201,177,.1); color: var(--teal); }
-    .tl-dot.award { background: rgba(244,160,53,.1); color: var(--amber); }
-    .tl-content { flex: 1; padding-top: 8px; }
-    .tl-title { font-weight: 700; font-size: .92rem; color: var(--text); margin-bottom: 2px; }
-    .tl-place { font-size: .8rem; color: var(--blue); font-weight: 600; margin-bottom: 2px; }
-    .tl-year { font-size: .74rem; color: var(--muted); }
-    .tl-desc { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-
-    /* CONTACT / LANG */
-    .info-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .info-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .info-icon i { font-size: 17px; }
-    .info-lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
-    .info-val { font-size: .88rem; font-weight: 600; color: var(--text); }
-
-    /* LOADING */
-    .skeleton-wrap { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .skel { background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,.06) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-    /* TOAST */
-    #dhasToast {
-      position: fixed; bottom: 24px; left: 20px; z-index: 99999;
-      max-width: 320px; padding: 12px 16px; border-radius: 12px;
-      font-size: .85rem; font-weight: 600; display: none;
-      align-items: center; gap: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    .photo-preview-small img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-upload-btn {
+      display: flex; align-items: center; gap: 6px; padding: 9px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--muted);
+      font-size: .82rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
     }
-    #dhasToast.success { background: #d1fae5; border: 1.5px solid #6ee7b7; color: #065f46; }
-    body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    .photo-upload-btn:hover { border-color: var(--green); color: var(--green); }
+
+    /* ── CHANGE PASSWORD ──────────────────────────────────── */
+    .pw-wrap { position: relative; }
+    .pw-wrap .dhas-input { padding-right: 44px; }
+    .eye-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center;
+    }
+    .eye-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .strength-bars { display: flex; gap: 4px; margin-top: 6px; }
+    .strength-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background .3s; }
+    .strength-lbl { font-size: .72rem; font-weight: 600; color: var(--muted); margin-top: 4px; }
+    .req-list { list-style: none; padding: 0; margin: 8px 0 0; font-size: .75rem; }
+    .req-list li { display: flex; align-items: center; gap: 6px; color: var(--muted); margin-bottom: 3px; }
+    .req-list li::before { content: "✗"; font-weight: 700; color: #ef4444; min-width: 14px; }
+    .req-list li.ok { color: #27ae60; }
+    .req-list li.ok::before { content: "✓"; color: #27ae60; }
+    .pw-alert {
+      display: none; padding: 11px 14px; border-radius: 10px;
+      font-size: .84rem; font-weight: 600; margin-bottom: 14px;
+    }
+    .pw-alert.error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .pw-alert.success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    body.dark .pw-alert.error { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5; }
+    body.dark .pw-alert.success { background: rgba(5,150,105,.12); border-color: rgba(5,150,105,.3); color: #6ee7b7; }
+
+    /* ── TOAST ───────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      border-radius: 12px; font-size: .85rem; font-weight: 600; padding: 11px 22px;
+      display: none; z-index: 9999; white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,.18);
+    }
+    #toast.success { background: #d1fae5; border: 1.5px solid #6ee7b7; color: #065f46; }
+    #toast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<div id="dhasToast" role="status" aria-live="polite"></div>
+<div id="toast"></div>
 
 <header class="topbar">
-  <a href="find_doctor.html" class="back-btn">
-    <i class="ti ti-chevron-left" style="font-size:15px" aria-hidden="true"></i>
-    Find a Doctor
+  <a href="doctor_dashboard.html" class="back-btn">
+    <i class="ti ti-chevron-left" aria-hidden="true"></i>
+    Dashboard
   </a>
-  <div class="topbar-title">Doctor Profile</div>
+  <div class="topbar-title">My Profile</div>
   <div class="topbar-spacer"></div>
 </header>
 
-<div class="page" id="mainPage">
-  <div class="skeleton-wrap">
-    <div class="skel" style="height:220px;border-radius:0;"></div>
-    <div class="skel" style="height:140px;margin:0 16px;border-radius:16px;"></div>
-    <div class="skel" style="height:100px;margin:0 16px;border-radius:16px;"></div>
+<div class="page">
+
+  <!-- Inner sub-tabs -->
+  <div class="inner-tabs">
+    <button class="itab active" id="itab-view" onclick="switchTab('view')">
+      <i class="ti ti-eye"></i> View
+    </button>
+    <button class="itab" id="itab-edit" onclick="switchTab('edit')">
+      <i class="ti ti-edit"></i> Edit
+    </button>
+    <button class="itab" id="itab-password" onclick="switchTab('password')">
+      <i class="ti ti-lock"></i> Password
+    </button>
   </div>
-</div>
 
-<script>
-const BASE = window.API_BASE;
+  <!-- ── VIEW PROFILE ────────────────────────────────────── -->
+  <div class="pane active" id="pane-view">
 
-let _tt = null;
-function showToast(text) {
-  const t = document.getElementById('dhasToast');
-  t.className = 'success';
-  t.innerHTML = `<i class="ti ti-circle-check" style="font-size:15px"></i><span>${text}</span>`;
-  t.style.display = 'flex';
-  if (_tt) clearTimeout(_tt);
-  _tt = setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
-
-function copyCode(code, btn) {
-  navigator.clipboard.writeText(code).then(() => {
-    btn.classList.add('copied');
-    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied!';
-    showToast(`Invite code ${code} copied!`);
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy Invite Code';
-    }, 2500);
-  });
-}
-
-function buildTimeline(items, type) {
-  if (!items || !items.length) return '<p style="font-size:.84rem;color:var(--muted);padding:4px 0;">Not provided yet.</p>';
-  return items.map(item => `
-    <div class="timeline-item">
-      <div class="tl-dot ${type}">
-        <i class="ti ti-${type === 'edu' ? 'school' : type === 'work' ? 'briefcase' : 'award'}" aria-hidden="true"></i>
+    <div class="prof-hero">
+      <div class="avatar-wrap" onclick="switchTab('edit')">
+        <div class="avatar-circle" id="profAvatar">D</div>
+        <div class="avatar-edit-ring">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+        </div>
       </div>
-      <div class="tl-content">
-        <div class="tl-title">${item.title || ''}</div>
-        ${item.place ? `<div class="tl-place">${item.place}</div>` : ''}
-        ${item.year  ? `<div class="tl-year">${item.year}</div>` : ''}
-        ${item.desc  ? `<div class="tl-desc">${item.desc}</div>` : ''}
+      <div class="prof-name" id="profName">Dr. Loading…</div>
+      <div class="prof-email" id="profEmail">doctor@email.com</div>
+      <div class="status-pill">
+        <span class="sdot" id="profSdot" style="background:var(--amber);"></span>
+        <span id="profStatus">Not Verified</span>
       </div>
-    </div>`).join('');
-}
+    </div>
 
-function renderPage(d) {
-  const page     = document.getElementById('mainPage');
-  const initials = (d.name || 'D').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  const avatar   = d.profile_photo
-    ? `<img src="${d.profile_photo}" alt="Dr. ${d.name}">`
-    : initials;
+    <div class="prof-body" style="padding:0 16px;">
 
-  const education  = parseJSON(d.education,  []);
-  const experience = parseJSON(d.experience, []);
-  const expertise  = parseJSON(d.expertise,  []);
-  const languages  = d.languages ? d.languages.split(',').map(s => s.trim()) : [];
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="vStatPat">0</div><div class="stat-lbl">Patients</div></div>
+        <div class="stat-card"><div class="stat-val" id="vStatSym">0</div><div class="stat-lbl">Symptoms</div></div>
+        <div class="stat-card"><div class="stat-val" id="vStatRep">0</div><div class="stat-lbl">Reports</div></div>
+      </div>
 
-  page.innerHTML = `
-    <!-- COVER -->
-    <div class="cover-section">
-      <div class="cover-inner">
-        <div class="doc-avatar">${avatar}</div>
-        <div class="cover-text">
-          <div class="doc-verified"><i class="ti ti-circle-check" aria-hidden="true"></i>Verified DHAS Doctor</div>
-          <div class="doc-name">Dr. ${d.name}</div>
-          <div class="doc-spec-big"><i class="ti ti-stethoscope" aria-hidden="true"></i>${d.speciality || 'General Physician'}</div>
-          <div class="cover-stats">
-            ${d.experience_years ? `<div class="cstat"><div class="cstat-val">${d.experience_years}+</div><div class="cstat-lbl">Yrs Exp</div></div>` : ''}
-            <div class="cstat"><div class="cstat-val">${d.patient_count || 0}</div><div class="cstat-lbl">Patients</div></div>
-            ${education.length ? `<div class="cstat"><div class="cstat-val">${education.length}</div><div class="cstat-lbl">Degrees</div></div>` : ''}
+      <div class="verified-banner" id="verifiedBanner" style="display:none;">
+        <div class="vb-icon"><i class="ti ti-circle-check"></i></div>
+        <div><div class="vb-title">Verified Doctor</div><div class="vb-sub">Your profile is visible in the patient directory.</div></div>
+      </div>
+      <div class="unverified-banner" id="unverifiedBanner">
+        <div class="vb-icon"><i class="ti ti-clock-hour-4"></i></div>
+        <div><div class="vb-title">Pending Verification</div><div class="vb-sub">Complete your profile to get verified and appear in the doctor directory.</div></div>
+      </div>
+
+      <!-- Professional -->
+      <div class="section">
+        <div class="section-head"><i class="ti ti-stethoscope"></i>Professional</div>
+        <div class="irow">
+          <div class="iicon" style="background:#e6faf8;color:var(--teal);"><i class="ti ti-stethoscope"></i></div>
+          <div class="icontent"><div class="ilbl">Speciality</div><div class="ival" id="vi-spec">—</div></div>
+        </div>
+        <div class="irow">
+          <div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-building-hospital"></i></div>
+          <div class="icontent"><div class="ilbl">Hospital / Clinic</div><div class="ival" id="vi-hospital">—</div></div>
+        </div>
+        <div class="irow">
+          <div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-clock"></i></div>
+          <div class="icontent"><div class="ilbl">Experience</div><div class="ival" id="vi-exp">—</div></div>
+        </div>
+        
+        <div class="irow">
+          <div class="iicon" style="background:#faf5ff;color:#7c3aed;"><i class="ti ti-map-pin"></i></div>
+          <div class="icontent"><div class="ilbl">Location</div><div class="ival" id="vi-location">—</div></div>
+        </div>
+        <div class="irow">
+          <div class="iicon" style="background:#fff0f4;color:var(--rose);"><i class="ti ti-message-circle"></i></div>
+          <div class="icontent"><div class="ilbl">Languages</div><div class="ival" id="vi-languages">—</div></div>
+        </div>
+      </div>
+
+      <!-- Account -->
+      <div class="section">
+        <div class="section-head"><i class="ti ti-lock"></i>Account</div>
+        <div class="irow">
+          <div class="iicon" style="background:#f8fafc;color:var(--muted);"><i class="ti ti-key"></i></div>
+          <div class="icontent"><div class="ilbl">Sign-in Method</div><div class="ival" id="vi-provider">—</div></div>
+        </div>
+        <div class="irow">
+          <div class="iicon" style="background:#f8fafc;color:var(--muted);"><i class="ti ti-calendar"></i></div>
+          <div class="icontent"><div class="ilbl">Member Since</div><div class="ival" id="vi-joined">—</div></div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="section">
+        <div class="section-head"><i class="ti ti-settings"></i>Settings</div>
+        <div class="arow" onclick="switchTab('edit')">
+          <div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-edit"></i></div>
+          <div class="acontent"><div class="albl">Edit Profile</div><div class="adesc">Update your professional information</div></div>
+          <div class="achev"><i class="ti ti-chevron-right"></i></div>
+        </div>
+        <div class="arow" onclick="switchTab('password')">
+          <div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div>
+          <div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div>
+          <div class="achev"><i class="ti ti-chevron-right"></i></div>
+        </div>
+        <div class="arow" onclick="window.location.href='language.html'">
+          <div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-language"></i></div>
+          <div class="acontent"><div class="albl">Language</div><div class="adesc">English · Hindi · Telugu</div></div>
+          <div class="achev"><i class="ti ti-chevron-right"></i></div>
+        </div>
+        <div class="arow danger" onclick="doLogout()">
+          <div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-logout"></i></div>
+          <div class="acontent"><div class="albl">Logout</div><div class="adesc">Sign out of your doctor account</div></div>
+          <div class="achev"><i class="ti ti-chevron-right"></i></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── EDIT PROFILE ─────────────────────────────────────── -->
+  <div class="pane" id="pane-edit">
+
+    <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+
+    <div class="form-card">
+      <div class="form-head"><i class="ti ti-camera"></i>Profile Photo</div>
+      <div class="form-body">
+        <div class="photo-upload-wrap">
+          <div class="photo-preview-small" id="photoPreview">D</div>
+          <div>
+            <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
+              <i class="ti ti-upload" style="font-size:13px"></i> Upload Photo
+            </button>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:5px;">JPG or PNG, max 2 MB. Visible to patients.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- CONNECT FLOAT -->
-    <div class="body-wrap">
-      <div class="connect-float">
-        <div class="connect-title">Connect with Dr. ${d.name.split(' ')[0]}</div>
-        <div class="connect-sub">Go to your Profile → "Connect to Doctor" and enter this code to share your health data securely.</div>
-        <div class="invite-row">
-          <div class="invite-big-code">${d.invite_code}</div>
-          <button class="btn-copy-big" onclick="copyCode('${d.invite_code}', this)">
-            <i class="ti ti-copy" aria-hidden="true"></i> Copy Invite Code
-          </button>
+    <div class="form-card">
+      <div class="form-head"><i class="ti ti-user"></i>Basic Info</div>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Speciality</label>
+          <select id="fSpec" class="dhas-input">
+            <option>General Physician</option><option>Cardiologist</option>
+            <option>Dermatologist</option><option>Neurologist</option>
+            <option>Paediatrician</option><option>Orthopaedic</option>
+            <option>Gynaecologist</option><option>Psychiatrist</option>
+            <option>ENT Specialist</option><option>Ophthalmologist</option>
+            <option>Oncologist</option><option>Urologist</option>
+            <option>Gastroenterologist</option><option>Pulmonologist</option>
+            <option>Endocrinologist</option><option>Other</option>
+          </select>
         </div>
-        <div class="connect-hint">
-          After connecting, Dr. ${d.name.split(' ')[0]} can securely view your <strong>symptom history</strong> and <strong>medical reports</strong> to provide better care.
+        <div class="field-group">
+  <label class="field-label">Experience (years)</label>
+  <input type="number" id="fExpYears" class="dhas-input" placeholder="e.g. 10" min="0" max="60">
+</div>
+        
+        <div class="field-group">
+          <label class="field-label">Hospital / Clinic</label>
+          <input type="text" id="fHospital" class="dhas-input" placeholder="e.g. Apollo Hospitals">
         </div>
-      </div>
-
-      <!-- ABOUT -->
-      ${d.bio || d.about ? `
-      <div class="section">
-        <div class="sec-head"><i class="ti ti-user" aria-hidden="true"></i>About</div>
-        <div class="sec-body">
-          <div class="bio-text collapsed" id="bioText">${d.bio || d.about}</div>
-          <span class="read-more" id="readMoreBtn" onclick="expandBio()">Read more ↓</span>
-        </div>
-      </div>` : ''}
-
-      <!-- EXPERTISE -->
-      ${expertise.length ? `
-      <div class="section">
-        <div class="sec-head"><i class="ti ti-certificate" aria-hidden="true"></i>Areas of Expertise</div>
-        <div class="sec-body">
-          <div class="tags-wrap">
-            ${expertise.map(e => `<span class="expert-tag"><i class="ti ti-check" aria-hidden="true"></i>${e}</span>`).join('')}
+        <div class="two-col">
+          <div class="field-group">
+            <label class="field-label">City</label>
+            <input type="text" id="fCity" class="dhas-input" placeholder="e.g. Hyderabad">
+          </div>
+          <div class="field-group">
+            <label class="field-label">State</label>
+            <input type="text" id="fState" class="dhas-input" placeholder="e.g. Telangana">
           </div>
         </div>
-      </div>` : ''}
-
-      <!-- EDUCATION -->
-      ${education.length ? `
-      <div class="section">
-        <div class="sec-head"><i class="ti ti-school" aria-hidden="true"></i>Education & Qualifications</div>
-        <div class="sec-body">
-          <div class="timeline">${buildTimeline(education, 'edu')}</div>
-        </div>
-      </div>` : ''}
-
-      <!-- EXPERIENCE -->
-      ${experience.length ? `
-      <div class="section">
-        <div class="sec-head"><i class="ti ti-briefcase" aria-hidden="true"></i>Work Experience</div>
-        <div class="sec-body">
-          <div class="timeline">${buildTimeline(experience, 'work')}</div>
-        </div>
-      </div>` : ''}
-
-      <!-- INFO -->
-      <div class="section">
-        <div class="sec-head"><i class="ti ti-info-circle" aria-hidden="true"></i>Details</div>
-        <div class="sec-body">
-          ${d.hospital ? `<div class="info-row">
-            <div class="info-icon" style="background:rgba(42,108,246,.08);color:var(--blue);"><i class="ti ti-building-hospital" aria-hidden="true"></i></div>
-            <div><div class="info-lbl">Hospital / Clinic</div><div class="info-val">${d.hospital}</div></div>
-          </div>` : ''}
-          ${d.city ? `<div class="info-row">
-            <div class="info-icon" style="background:rgba(0,201,177,.08);color:var(--teal);"><i class="ti ti-map-pin" aria-hidden="true"></i></div>
-            <div><div class="info-lbl">Location</div><div class="info-val">${d.city}${d.state ? ', ' + d.state : ''}</div></div>
-          </div>` : ''}
-          ${d.consultation_fee ? `<div class="info-row">
-            <div class="info-icon" style="background:rgba(34,208,122,.08);color:var(--green);"><i class="ti ti-currency-rupee" aria-hidden="true"></i></div>
-            <div><div class="info-lbl">Consultation Fee</div><div class="info-val">₹${d.consultation_fee}</div></div>
-          </div>` : ''}
-          ${languages.length ? `<div class="info-row">
-            <div class="info-icon" style="background:rgba(139,92,246,.08);color:#8b5cf6;"><i class="ti ti-message-circle" aria-hidden="true"></i></div>
-            <div><div class="info-lbl">Languages</div><div class="info-val">${languages.join(', ')}</div></div>
-          </div>` : ''}
-          <div class="info-row">
-            <div class="info-icon" style="background:rgba(42,108,246,.08);color:var(--blue);"><i class="ti ti-calendar-event" aria-hidden="true"></i></div>
-            <div><div class="info-lbl">Member Since</div><div class="info-val">${new Date(d.created_at).toLocaleDateString('en-IN', {month:'long', year:'numeric'})}</div></div>
-          </div>
+        <div class="field-group">
+          <label class="field-label">Languages (comma-separated)</label>
+          <input type="text" id="fLanguages" class="dhas-input" placeholder="e.g. English, Telugu, Hindi">
         </div>
       </div>
+    </div>
 
-    </div>`;
+    <div class="form-card">
+      <div class="form-head"><i class="ti ti-file-text"></i>About / Bio</div>
+      <div class="form-body">
+        <textarea id="fBio" class="dhas-input" rows="5" placeholder="Write a short bio visible to patients…" style="resize:vertical;"></textarea>
+      </div>
+    </div>
 
-  // Bio read-more toggle
-  const bioEl = document.getElementById('bioText');
-  const rmBtn = document.getElementById('readMoreBtn');
-  if (bioEl && rmBtn) {
-    if (bioEl.scrollHeight <= bioEl.clientHeight + 5) rmBtn.style.display = 'none';
+    <div class="form-card">
+      <div class="form-head"><i class="ti ti-certificate"></i>Areas of Expertise</div>
+      <div class="form-body">
+        <div class="tags-editor" id="expertiseTags"></div>
+        <div class="tag-input-row">
+          <input type="text" id="expertiseInput" class="dhas-input" placeholder="e.g. Diabetes management" onkeydown="if(event.key==='Enter'){addExpertise();event.preventDefault();}">
+          <button class="tag-add-btn" onclick="addExpertise()"><i class="ti ti-plus" style="font-size:13px"></i> Add</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-save" id="saveBtn" onclick="saveProfile()" style="margin-bottom:20px;">
+      <i class="ti ti-device-floppy" style="font-size:15px"></i> Save Profile
+    </button>
+
+  </div>
+
+  <!-- ── CHANGE PASSWORD ──────────────────────────────────── -->
+  <div class="pane" id="pane-password">
+    <div class="form-card">
+      <div class="form-head"><i class="ti ti-lock"></i>Change Password</div>
+      <div class="form-body">
+        <div class="pw-alert" id="pwAlert"></div>
+
+        <div class="field-group">
+          <label class="field-label">Current Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="pwCurrent" class="dhas-input" placeholder="Your current password">
+            <button type="button" class="eye-btn" onclick="toggleEye('pwCurrent','eyeCurrent')">
+              <svg id="eyeCurrent" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">New Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="pwNew" class="dhas-input" placeholder="Min 6 chars — uppercase, number & symbol" oninput="evalPwStrength(this.value)">
+            <button type="button" class="eye-btn" onclick="toggleEye('pwNew','eyeNew')">
+              <svg id="eyeNew" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+          </div>
+          <div class="strength-bars">
+            <div class="strength-seg" id="ps1"></div><div class="strength-seg" id="ps2"></div>
+            <div class="strength-seg" id="ps3"></div><div class="strength-seg" id="ps4"></div>
+          </div>
+          <div class="strength-lbl" id="pwStrengthLbl">—</div>
+          <ul class="req-list" style="margin-top:8px;">
+            <li id="pr-len">At least 6 characters</li>
+            <li id="pr-upper">One uppercase letter</li>
+            <li id="pr-lower">One lowercase letter</li>
+            <li id="pr-num">One number</li>
+            <li id="pr-sym">One symbol</li>
+          </ul>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Confirm New Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="pwConfirm" class="dhas-input" placeholder="Re-enter new password">
+            <button type="button" class="eye-btn" onclick="toggleEye('pwConfirm','eyeConfirm')">
+              <svg id="eyeConfirm" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-save" id="pwSaveBtn" onclick="savePwChange()">
+          <i class="ti ti-lock-check" style="font-size:15px"></i> Update Password
+        </button>
+        <p style="font-size:.72rem;color:var(--muted);margin-top:12px;line-height:1.6;">
+          After changing your password you will be logged out and need to sign in again.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .page -->
+
+<script>
+const doctor = JSON.parse(localStorage.getItem("dhas_doctor") || "{}");
+if (!doctor || !doctor.id) window.location.href = "doctor_login.html";
+
+function getDoctorHeaders() {
+  const token = localStorage.getItem("dhas_doctor_token");
+  return { "Content-Type": "application/json", "Authorization": "Bearer " + (token || "") };
+}
+
+// ── Toast ────────────────────────────────────────────────
+let _tt;
+function showToast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.className = type; t.textContent = msg; t.style.display = "block";
+  clearTimeout(_tt); _tt = setTimeout(() => { t.style.display = "none"; }, 3500);
+}
+
+// ── Logout ───────────────────────────────────────────────
+function doLogout() {
+  if (!confirm("Log out of Doctor Portal?")) return;
+  localStorage.removeItem("dhas_doctor");
+  localStorage.removeItem("dhas_doctor_token");
+  window.location.href = "doctor_login.html";
+}
+
+// ── Inner tabs ───────────────────────────────────────────
+function switchTab(name) {
+  ["view","edit","password"].forEach(n => {
+    document.getElementById("itab-" + n).classList.toggle("active", n === name);
+    document.getElementById("pane-" + n).classList.toggle("active", n === name);
+  });
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+// ── Set avatar ───────────────────────────────────────────
+function setAvatar(elId, src, name) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (src) el.innerHTML = `<img src="${src}" alt="${name}">`;
+  else el.textContent = (name || "D").charAt(0).toUpperCase();
+}
+
+// ── Load profile ─────────────────────────────────────────
+let profilePhotoBase64 = null;
+let expertiseList = [];
+
+async function loadProfile() {
+  let d = {};
+  try {
+    const res  = await fetch(window.API_BASE + "/doctor/profile", { headers: getDoctorHeaders() });
+    const data = await res.json();
+    d = data.doctor || doctor;
+  } catch { d = doctor; }
+
+  // Hero
+  document.getElementById("profName").textContent  = "Dr. " + (d.name || "");
+  document.getElementById("profEmail").textContent = d.email || "";
+  setAvatar("profAvatar", d.profile_photo, d.name);
+
+  // Verified status
+  if (d.is_verified) {
+    document.getElementById("verifiedBanner").style.display   = "flex";
+    document.getElementById("unverifiedBanner").style.display = "none";
+    document.getElementById("profSdot").style.background = "var(--green)";
+    document.getElementById("profStatus").textContent = "Verified Doctor";
   }
+
+  // Stats (fetched from patient list)
+  try {
+    const pr = await fetch(window.API_BASE + "/doctor/patients", { headers: getDoctorHeaders() }).then(r => r.json());
+    const patients = pr.success ? (pr.data || []) : [];
+    document.getElementById("vStatPat").textContent = patients.length;
+    document.getElementById("vStatSym").textContent = patients.reduce((s,p) => s + (parseInt(p.symptom_count)||0), 0);
+    document.getElementById("vStatRep").textContent = patients.reduce((s,p) => s + (parseInt(p.report_count) ||0), 0);
+  } catch {}
+
+  // View fields
+  const sv = (id, val, suffix) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val) { el.textContent = val + (suffix||""); el.classList.remove("empty"); }
+    else     { el.textContent = "Not set"; el.classList.add("empty"); }
+  };
+  sv("vi-spec",      d.speciality || "General Physician");
+  sv("vi-hospital",  d.hospital);
+  sv("vi-exp",       d.experience_years, " years experience");
+ 
+  sv("vi-location",  (d.city && d.state) ? d.city+", "+d.state : (d.city||d.state||null));
+  sv("vi-languages", d.languages);
+  sv("vi-provider",  d.google_id ? "Google Account" : "Email & Password");
+  sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN",{month:"long",year:"numeric"}) : null);
+
+  // Fill edit form
+  document.getElementById("fSpec").value      = d.speciality || "General Physician";
+  document.getElementById("fExpYears").value  = d.experience_years || "";
+  document.getElementById("fHospital").value  = d.hospital || "";
+  document.getElementById("fCity").value      = d.city || "";
+  document.getElementById("fState").value     = d.state || "";
+  document.getElementById("fLanguages").value = d.languages || "";
+  document.getElementById("fBio").value       = d.bio || d.about || "";
+
+  const pp = document.getElementById("photoPreview");
+  if (d.profile_photo) pp.innerHTML = `<img src="${d.profile_photo}" alt="photo">`;
+  else pp.textContent = (d.name || "D").charAt(0).toUpperCase();
+
+  try { expertiseList = JSON.parse(d.expertise || "[]"); } catch { expertiseList = []; }
+  renderExpertiseTags();
 }
 
-function expandBio() {
-  const bio = document.getElementById('bioText');
-  const btn = document.getElementById('readMoreBtn');
-  if (bio.classList.contains('collapsed')) {
-    bio.classList.remove('collapsed');
-    btn.textContent = 'Show less ↑';
-  } else {
-    bio.classList.add('collapsed');
-    btn.textContent = 'Read more ↓';
-  }
+// ── Expertise tags ────────────────────────────────────────
+function renderExpertiseTags() {
+  document.getElementById("expertiseTags").innerHTML = expertiseList.map((e, i) =>
+    `<span class="tag-chip">${e}<button onclick="removeExpertise(${i})" aria-label="Remove">✕</button></span>`
+  ).join("");
+}
+function addExpertise() {
+  const input = document.getElementById("expertiseInput");
+  const val   = input.value.trim();
+  if (!val || expertiseList.includes(val)) { input.value=""; return; }
+  expertiseList.push(val); input.value=""; renderExpertiseTags();
+}
+function removeExpertise(i) { expertiseList.splice(i,1); renderExpertiseTags(); }
+
+// ── Photo upload ──────────────────────────────────────────
+function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { showToast("Photo must be under 2 MB.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    profilePhotoBase64 = ev.target.result;
+    document.getElementById("photoPreview").innerHTML = `<img src="${ev.target.result}" alt="photo">`;
+    setAvatar("profAvatar", ev.target.result, doctor.name);
+  };
+  reader.readAsDataURL(file);
 }
 
-function parseJSON(val, fallback) {
-  if (!val) return fallback;
-  if (Array.isArray(val)) return val;
-  try { return JSON.parse(val); } catch { return fallback; }
-}
+// ── Save profile ──────────────────────────────────────────
+async function saveProfile() {
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Saving…';
 
-async function load() {
-  const params = new URLSearchParams(window.location.search);
-  const id     = params.get('id');
-  if (!id) { window.location.href = 'find_doctor.html'; return; }
+  const payload = {
+    speciality:       document.getElementById("fSpec").value,
+    experience_years: parseInt(document.getElementById("fExpYears").value) || null,
+    hospital:         document.getElementById("fHospital").value.trim(),
+    city:             document.getElementById("fCity").value.trim(),
+    state:            document.getElementById("fState").value.trim(),
+    languages:        document.getElementById("fLanguages").value.trim(),
+    bio:              document.getElementById("fBio").value.trim(),
+    expertise:        expertiseList,
+    profile_photo:    profilePhotoBase64 || null
+  };
 
   try {
-    const res  = await fetch(`${BASE}/doctor/public/${id}`);
+    const res  = await fetch(window.API_BASE + "/doctor/profile/update", {
+      method:"POST", headers:getDoctorHeaders(), body:JSON.stringify(payload)
+    });
     const data = await res.json();
-    if (!data.success) throw new Error(data.message);
-    renderPage(data.doctor);
-  } catch (e) {
-    document.getElementById('mainPage').innerHTML = `
-      <div style="text-align:center;padding:60px 20px;color:var(--muted);">
-        <i class="ti ti-alert-circle" style="font-size:48px;display:block;margin:0 auto 14px;opacity:.4;"></i>
-        <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px;">Doctor not found</div>
-        <div style="font-size:.84rem;margin-bottom:20px;">Could not load this doctor's profile.</div>
-        <a href="find_doctor.html" style="color:var(--blue);font-weight:600;font-size:.88rem;">← Back to Doctor Directory</a>
-      </div>`;
+    if (data.success) {
+      showToast("Profile updated!");
+      profilePhotoBase64 = null;
+      await loadProfile();
+      switchTab("view");
+    } else {
+      showToast(data.message || "Save failed.", "error");
+    }
+  } catch {
+    showToast("Cannot connect to server.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-device-floppy" style="font-size:15px"></i> Save Profile';
   }
 }
 
-load();
+// ── Password change ───────────────────────────────────────
+const PW_RULES = {
+  len: v => v.length >= 6, upper: v => /[A-Z]/.test(v),
+  lower: v => /[a-z]/.test(v), num: v => /[0-9]/.test(v), sym: v => /[^A-Za-z0-9]/.test(v)
+};
+function evalPwStrength(val) {
+  Object.keys(PW_RULES).forEach(k => document.getElementById("pr-"+k)?.classList.toggle("ok", PW_RULES[k](val)));
+  const score = Object.values(PW_RULES).filter(fn => fn(val)).length;
+  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+  const colors = ["","#e74c3c","#e67e22","#f1c40f","#27ae60"];
+  const labels = ["","Weak","Fair","Good","Strong"];
+  const color  = colors[bars] || "#e0e0e0";
+  for (let i = 1; i <= 4; i++) document.getElementById("ps"+i).style.background = i <= bars ? color : "";
+  const lbl = document.getElementById("pwStrengthLbl");
+  lbl.textContent = val.length === 0 ? "—" : (labels[bars] || "—");
+  lbl.style.color = val.length === 0 ? "var(--muted)" : color;
+}
+function isPwStrong(v) { return Object.values(PW_RULES).every(fn => fn(v)); }
+
+function toggleEye(fieldId, iconId) {
+  const f = document.getElementById(fieldId);
+  const e = document.getElementById(iconId);
+  const h = f.type === "password"; f.type = h ? "text" : "password";
+  e.innerHTML = h
+    ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+}
+
+function showPwAlert(msg, type) {
+  const a = document.getElementById("pwAlert");
+  a.textContent = msg; a.className = "pw-alert " + type; a.style.display = "block";
+}
+
+async function savePwChange() {
+  const current  = document.getElementById("pwCurrent").value;
+  const next     = document.getElementById("pwNew").value;
+  const confirm  = document.getElementById("pwConfirm").value;
+  const btn      = document.getElementById("pwSaveBtn");
+  document.getElementById("pwAlert").style.display = "none";
+
+  if (!current)          { showPwAlert("Please enter your current password.", "error"); return; }
+  if (!isPwStrong(next)) { showPwAlert("New password must meet all requirements.", "error"); return; }
+  if (next !== confirm)  { showPwAlert("Passwords do not match.", "error"); return; }
+  if (current === next)  { showPwAlert("New password must differ from current.", "error"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Updating…';
+
+  try {
+    const res = await fetch(window.API_BASE + "/profile/change-password", {
+      method: "POST", headers: getDoctorHeaders(),
+      body: JSON.stringify({ current_password: current, new_password: next })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showPwAlert("Password changed! Logging you out…", "success");
+      setTimeout(() => {
+        localStorage.removeItem("dhas_doctor");
+        localStorage.removeItem("dhas_doctor_token");
+        window.location.href = "doctor_login.html";
+      }, 2000);
+    } else {
+      showPwAlert(data.message || "Failed to change password.", "error");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-lock-check" style="font-size:15px"></i> Update Password';
+    }
+  } catch {
+    showPwAlert("Cannot connect to server.", "error");
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-lock-check" style="font-size:15px"></i> Update Password';
+  }
+}
+
+// Check for ?tab=edit query param
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get("tab") === "edit") switchTab("edit");
+
+loadProfile();
 </script>
 </body>
 </html>

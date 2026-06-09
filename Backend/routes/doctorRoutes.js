@@ -4,7 +4,7 @@ const {
     registerDoctor, loginDoctor,
     getDoctorProfile, updateDoctorProfile, getPublicDoctor,
     getAllDoctors, getPatients, getPatientDetail,
-    connectDoctor, googleAuthDoctor
+    connectDoctor, googleAuthDoctor, deleteDoctorAccount
 } = require("../controllers/doctorController");
 const { requireDoctorAuth } = require("../middleware/doctorAuthMiddleware");
 const { requireAuth }       = require("../middleware/authMiddleware");
@@ -21,8 +21,8 @@ router.get(  "/profile",              requireDoctorAuth, getDoctorProfile);
 router.post( "/profile/update",       requireDoctorAuth, updateDoctorProfile);
 router.get(  "/patients",             requireDoctorAuth, getPatients);
 router.get(  "/patients/:patient_id", requireDoctorAuth, getPatientDetail);
+router.delete("/delete-account", requireDoctorAuth, deleteDoctorAccount);
 
 // ── Patient-auth required (patient connects to doctor) ───────
 router.post("/connect",               requireAuth, connectDoctor);
-
 module.exports = router;

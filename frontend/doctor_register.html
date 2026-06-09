@@ -73,6 +73,20 @@
 
       <label class="dhas-label">Email Address</label>
       <input type="email" id="email" class="dhas-input" placeholder="doctor@hospital.com">
+      <label class="dhas-label">Speciality</label>
+<select id="speciality" class="dhas-input">
+  <option value="">Select Speciality</option>
+  <option>General Physician</option>
+  <option>Cardiologist</option>
+  <option>Dermatologist</option>
+  <option>Neurologist</option>
+  <option>Pediatrician</option>
+  <option>Orthopedic Surgeon</option>
+  <option>Psychiatrist</option>
+  <option>Gynecologist</option>
+  <option>ENT Specialist</option>
+  <option>Ophthalmologist</option>
+</select>
       <label class="dhas-label">Password</label>
       <div class="pw-wrap">
         <input type="password" id="password" class="dhas-input"
@@ -170,11 +184,16 @@ function showErr(msg) {
 async function register() {
   const name       = document.getElementById("name").value.trim();
   const email      = document.getElementById("email").value.trim();
-  
+  const speciality = document.getElementById("speciality").value;
+  const password = document.getElementById("password").value;
   document.getElementById("errMsg").style.display = "none";
 
   if (!name)  { showErr("Full name is required."); return; }
   if (!email) { showErr("Email address is required."); return; }
+  if (!speciality) {
+  showErr("Please select your speciality.");
+  return;
+}
   if (!password || !isPasswordStrong(password)) {
     showErr("Password must be at least 6 characters with uppercase, lowercase, number, and symbol.");
     return;
@@ -182,7 +201,7 @@ async function register() {
 
   const res  = await fetch(window.API_BASE + "/doctor/register", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password})
+    body: JSON.stringify({ name, email, password,speciality})
   }).then(r => r.json()).catch(() => ({ success: false, message: "Cannot connect to server." }));
 
   if (res.success) {

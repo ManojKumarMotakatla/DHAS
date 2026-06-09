@@ -1,12 +1,12 @@
 /**
- * DHAS — sw.js  (v8 — fixed navigation fallback + API cache isolation)
+ * DHAS — sw.js  (v9 — network-first HTML, proper cache busting)
  * Place at project ROOT (same level as server.js)
  */
 
-const CACHE_VERSION = "dhas-v8";
-const API_CACHE     = "dhas-api-v6";
-const FONT_CACHE    = "dhas-fonts-v6";
-const CDN_CACHE     = "dhas-cdn-v6";
+const CACHE_VERSION = "dhas-v9";
+const API_CACHE     = "dhas-api-v9";
+const FONT_CACHE    = "dhas-fonts-v9";
+const CDN_CACHE     = "dhas-cdn-v9";
 
 const CORE_ASSETS = [
   "/",
@@ -45,7 +45,7 @@ const CORE_ASSETS = [
   "/manifest.json"
 ];
 
-// API path prefixes — these must NEVER be served as HTML navigation fallbacks
+// API path prefixes — never serve as HTML navigation fallbacks
 const API_PREFIXES = [
   "/profile",
   "/symptoms",
@@ -55,40 +55,63 @@ const API_PREFIXES = [
   "/register",
   "/auth",
   "/reminder-logs",
+  "/doctor",
   "/test"
 ];
+
+// HTML pages — always network-first so changes show immediately
+const HTML_EXTENSIONS = [".html", "/"];
 
 function isAPIPath(pathname) {
   return API_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
+function isHTMLRequest(request) {
+  const url = new URL(request.url);
+  const { pathname } = url;
+  return (
+    request.mode === "navigate" ||
+    pathname.endsWith(".html") ||
+    pathname === "/" ||
+    (!pathname.includes(".") && !isAPIPath(pathname))
+  );
+}
+
+// ── INSTALL: cache core assets ────────────────────────────────
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then(async cache => {
       const results = await Promise.allSettled(
         CORE_ASSETS.map(url =>
-          fetch(url, { cache: "no-cache" })
+          fetch(url, { cache: "reload" })
             .then(response => { if (response.ok) return cache.put(url, response); })
             .catch(() => {})
         )
       );
       const ok = results.filter(r => r.status === "fulfilled").length;
-      console.log(`[SW v8] Cached ${ok}/${CORE_ASSETS.length} assets`);
+      console.log(`[SW v9] Cached ${ok}/${CORE_ASSETS.length} assets`);
     }).then(() => self.skipWaiting())
   );
 });
 
+// ── ACTIVATE: clear old caches ────────────────────────────────
 self.addEventListener("activate", event => {
   const validCaches = [CACHE_VERSION, API_CACHE, FONT_CACHE, CDN_CACHE];
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => !validCaches.includes(k)).map(k => caches.delete(k))
+        keys
+          .filter(k => !validCaches.includes(k))
+          .map(k => {
+            console.log(`[SW v9] Removing old cache: ${k}`);
+            return caches.delete(k);
+          })
       ))
       .then(() => self.clients.claim())
   );
 });
 
+// ── FETCH ─────────────────────────────────────────────────────
 self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
@@ -102,7 +125,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // CDN assets — cache first
+  // CDN assets — cache first (they're versioned externally)
   if (
     url.hostname.includes("cdn.jsdelivr.net") ||
     url.hostname.includes("cdnjs.cloudflare.com") ||
@@ -113,32 +136,58 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // API calls — network first, fallback to cache when offline
-  // These are handled separately so their cached responses are
-  // NEVER served as HTML navigation fallbacks
+  // API calls — network first, short cache for offline
   if (isAPIPath(url.pathname)) {
     event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  // Everything else (HTML, CSS, JS) — cache first
+  // HTML pages — ALWAYS network first so updates show immediately
+  if (isHTMLRequest(request)) {
+    event.respondWith(networkFirstHTML(request));
+    return;
+  }
+
+  // JS/CSS/images — cache first with network fallback
   event.respondWith(cacheFirst(request, CACHE_VERSION));
 });
 
-async function cacheFirst(request, cacheName) {
-  const url    = new URL(request.url);
-  const isAPI  = isAPIPath(url.pathname);
+// ── STRATEGIES ────────────────────────────────────────────────
 
+// Network first for HTML — show fresh content, fall back to cache offline
+async function networkFirstHTML(request) {
+  const cache = await caches.open(CACHE_VERSION);
+  try {
+    const response = await fetch(request, { cache: "no-cache" });
+    if (response.ok) {
+      // Update cache with fresh copy
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // Offline: serve from cache
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    // Ultimate fallback
+    const fallback =
+      (await cache.match("/404.html")) ||
+      (await cache.match("/dashboard.html")) ||
+      (await cache.match("/"));
+    if (fallback) return fallback;
+
+    return new Response("<h1>Offline</h1><p>Please check your connection.</p>", {
+      status: 503,
+      headers: { "Content-Type": "text/html" }
+    });
+  }
+}
+
+// Cache first for static assets
+async function cacheFirst(request, cacheName) {
   const cache  = await caches.open(cacheName);
   const cached = await cache.match(request);
-  if (cached) {
-    // Safety check: never serve a cached API JSON response as a page navigation
-    if (request.mode === "navigate" && isAPI) {
-      // Fall through to network
-    } else {
-      return cached;
-    }
-  }
+  if (cached) return cached;
 
   try {
     const response = await fetch(request);
@@ -147,22 +196,11 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    // Offline fallback — only serve HTML pages for navigation requests,
-    // and only when the request is NOT an API call
-    if (request.mode === "navigate" && !isAPI) {
-      const fallback =
-        (await cache.match("/404.html")) ||
-        (await cache.match("/dashboard.html")) ||
-        (await cache.match("/"));
-      if (fallback) return fallback;
-    }
-    return new Response(
-      JSON.stringify({ success: false, message: "You are offline. Please check your connection." }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response("", { status: 503 });
   }
 }
 
+// Network first for API
 async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   try {
@@ -179,6 +217,7 @@ async function networkFirst(request, cacheName) {
   }
 }
 
+// Stale while revalidate for fonts
 async function staleWhileRevalidate(request, cacheName) {
   const cache        = await caches.open(cacheName);
   const cached       = await cache.match(request);
@@ -188,6 +227,7 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await fetchPromise) || new Response("", { status: 204 });
 }
 
+// ── MESSAGE HANDLER ───────────────────────────────────────────
 self.addEventListener("message", event => {
   if (event.data?.type === "CHECK_ALARMS") {
     self.clients.matchAll().then(clients =>

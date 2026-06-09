@@ -1069,3 +1069,75 @@ body.dark .symptom-item.checked {
   .steps-display { font-size: 3.5rem; }
   .page-title { font-size: 1.25rem; }
 }
+.delete-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+  padding:20px;
+}
+
+.delete-modal.show{
+  display:flex;
+}
+
+.delete-box{
+  background:#fff;
+  width:100%;
+  max-width:420px;
+  border-radius:18px;
+  padding:28px;
+  text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.15);
+}
+
+.delete-icon{
+  width:72px;
+  height:72px;
+  margin:auto;
+  border-radius:50%;
+  background:#fee2e2;
+  color:#dc2626;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+}
+
+.delete-box h3{
+  margin:18px 0 10px;
+}
+
+.delete-box p{
+  color:#666;
+  line-height:1.7;
+  font-size:.92rem;
+}
+
+.delete-actions{
+  display:flex;
+  gap:12px;
+  margin-top:20px;
+}
+
+.btn-cancel,
+.btn-delete{
+  flex:1;
+  border:none;
+  padding:12px;
+  border-radius:12px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn-cancel{
+  background:#f3f4f6;
+}
+
+.btn-delete{
+  background:#dc2626;
+  color:white;
+}
