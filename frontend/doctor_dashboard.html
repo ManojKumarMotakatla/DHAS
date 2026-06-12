@@ -39,255 +39,130 @@
       --shadow-md: 0 6px 32px rgba(0,0,0,.5);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg); color: var(--text);
-      min-height: 100vh; transition: background .35s, color .35s;
-    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background .35s, color .35s; }
     a { text-decoration: none; color: inherit; }
     svg { display: block; }
 
-    /* ── SKELETON ── */
-    .skeleton {
-      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,.06) 50%, var(--border) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 8px; display: inline-block;
-    }
+    .skeleton { background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,.06) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; display: inline-block; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    /* ── SIDEBAR ── */
-    .sidebar {
-      position: fixed; top: 0; left: 0; width: 236px; height: 100vh;
-      background: var(--navy);
-      padding: 0 12px 24px;
-      display: flex; flex-direction: column; gap: 2px;
-      transform: translateX(-100%);
-      transition: transform .32s cubic-bezier(.4,0,.2,1), background .3s;
-      z-index: 300; overflow-y: auto;
-    }
-    .sidebar.open { transform: translateX(0); }
-    @media(min-width:900px) {
-      .sidebar { transform: translateX(0); }
-      .sidebar-overlay, .ham { display: none !important; }
-      .main-layout { margin-left: 236px; }
-    }
+    /* TOAST */
+    #dhasToast { position: fixed; bottom: 24px; left: 20px; z-index: 99999; max-width: 360px; min-width: 240px; padding: 13px 18px; border-radius: 14px; font-size: .87rem; font-weight: 600; line-height: 1.5; display: none; align-items: flex-start; gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,.18); font-family: 'DM Sans', sans-serif; }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    #dhasToast.info    { background: #eff6ff; border: 1.5px solid #93c5fd; color: #1d4ed8; }
+    body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: .6; font-size: 14px; padding: 0 0 0 8px; flex-shrink: 0; }
+    .toast-dismiss:hover { opacity: 1; }
 
-    .sidebar-logo {
-      display: flex; align-items: center; gap: 10px;
-      padding: 22px 8px 20px;
-      border-bottom: 1px solid rgba(255,255,255,.07);
-      margin-bottom: 8px; flex-shrink: 0;
-    }
-    .sidebar-logo-icon {
-      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      display: flex; align-items: center; justify-content: center;
-    }
+    /* CONFIRM MODAL */
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; z-index: 99998; padding: 20px; backdrop-filter: blur(4px); }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box { background: var(--surface); width: 100%; max-width: 400px; border-radius: 20px; padding: 28px 24px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: popIn .25s cubic-bezier(.4,0,.2,1); }
+    body.dark .confirm-box { background: #052e1a; border: 1px solid #0a4a28; }
+    @keyframes popIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+    .confirm-icon { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    .confirm-icon.danger  { background: #fee2e2; color: #dc2626; }
+    .confirm-icon.warning { background: #fff8ec; color: var(--amber); }
+    .confirm-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .confirm-msg { font-size: .87rem; color: var(--muted); line-height: 1.65; margin-bottom: 22px; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-cancel { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-weight: 600; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+    .confirm-cancel:hover { border-color: var(--muted); }
+    .confirm-ok { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none; font-weight: 700; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+    .confirm-ok.danger  { background: #dc2626; color: #fff; }
+    .confirm-ok.warning { background: var(--amber); color: #fff; }
+    .confirm-ok:hover { opacity: .9; }
+    .confirm-ok:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* SIDEBAR */
+    .sidebar { position: fixed; top: 0; left: 0; width: 236px; height: 100vh; background: var(--navy); padding: 0 12px 24px; display: flex; flex-direction: column; gap: 2px; transform: translateX(-100%); transition: transform .32s cubic-bezier(.4,0,.2,1); z-index: 300; overflow-y: auto; }
+    .sidebar.open { transform: translateX(0); }
+    @media(min-width:900px) { .sidebar { transform: translateX(0); } .sidebar-overlay, .ham { display: none !important; } .main-layout { margin-left: 236px; } }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 22px 8px 20px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; flex-shrink: 0; }
+    .sidebar-logo-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; }
     .sidebar-logo-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
     .sidebar-logo-text { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff; }
-
-    .sidebar-close {
-      margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
-      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: rgba(255,255,255,.7); transition: all .2s; flex-shrink: 0;
-    }
+    .sidebar-close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,.7); transition: all .2s; flex-shrink: 0; }
     .sidebar-close:hover { background: rgba(255,255,255,.2); color: #fff; }
     .sidebar-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
     @media(min-width:900px) { .sidebar-close { display: none !important; } }
-
-    .side-link {
-      display: flex; align-items: center; gap: 11px;
-      padding: 10px 12px; border-radius: 11px;
-      font-size: .875rem; font-weight: 500;
-      color: rgba(255,255,255,.55); transition: all .2s;
-      cursor: pointer; background: none; border: none;
-      font-family: 'DM Sans', sans-serif; width: 100%; text-align: left;
-    }
+    .side-link { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 11px; font-size: .875rem; font-weight: 500; color: rgba(255,255,255,.55); transition: all .2s; cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; width: 100%; text-align: left; }
     .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
     .side-link.active { background: rgba(5,150,105,.35); color: #fff; }
-    .side-link svg, .side-link i { width: 17px; height: 17px; font-size: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; flex-shrink: 0; }
-
-    .sidebar-section-label {
-      font-size: .65rem; font-weight: 700; color: rgba(255,255,255,.25);
-      text-transform: uppercase; letter-spacing: 1px;
-      padding: 14px 12px 4px; margin-top: 6px;
-    }
-
-    .sidebar-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.45); z-index: 299; backdrop-filter: blur(2px);
-    }
+    .side-link i { font-size: 17px; flex-shrink: 0; }
+    .sidebar-section-label { font-size: .65rem; font-weight: 700; color: rgba(255,255,255,.25); text-transform: uppercase; letter-spacing: 1px; padding: 14px 12px 4px; margin-top: 6px; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 299; backdrop-filter: blur(2px); }
     .sidebar-overlay.show { display: block; }
 
-    /* ── TOPBAR ── */
-    .topbar {
-      position: sticky; top: 0; z-index: 200;
-      background: rgba(255,255,255,.88); backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
-      height: 62px; display: flex; align-items: center;
-      padding: 0 16px; gap: 12px; transition: background .35s;
-    }
+    /* TOPBAR */
+    .topbar { position: sticky; top: 0; z-index: 200; background: rgba(255,255,255,.88); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); height: 62px; display: flex; align-items: center; padding: 0 16px; gap: 12px; transition: background .35s; }
     html.dark .topbar, body.dark .topbar { background: rgba(3,26,16,.92); }
-    .ham {
-      width: 36px; height: 36px; border-radius: 9px;
-      background: var(--bg); border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--muted); transition: all .2s;
-    }
+    .ham { width: 36px; height: 36px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all .2s; }
     .ham:hover { color: var(--green); border-color: var(--green); }
     .ham svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
-    .topbar-brand {
-      font-family: 'Fraunces', serif; font-weight: 700;
-      font-size: 1.05rem; color: var(--green);
-      display: flex; align-items: center; gap: 6px;
-    }
+    .topbar-brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; color: var(--green); display: flex; align-items: center; gap: 6px; }
     .topbar-brand-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); }
     .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-
-    .theme-pill {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 20px; padding: 5px 12px 5px 9px;
-      cursor: pointer; font-size: .78rem; font-weight: 600;
-      color: var(--muted); user-select: none; white-space: nowrap; transition: all .2s;
-    }
+    .theme-pill { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--muted); user-select: none; white-space: nowrap; transition: all .2s; }
     .theme-pill:hover { color: var(--green); border-color: var(--green); }
     .theme-pill svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-
     .profile-wrap { position: relative; }
-    .avatar-btn {
-      width: 38px; height: 38px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: .9rem;
-      cursor: pointer; position: relative;
-      border: 2px solid var(--border); overflow: hidden; transition: transform .2s;
-    }
+    .avatar-btn { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer; position: relative; border: 2px solid var(--border); overflow: hidden; transition: transform .2s; }
     .avatar-btn:hover { transform: scale(1.06); }
     .avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
-    .online-dot {
-      position: absolute; bottom: 1px; right: 1px;
-      width: 10px; height: 10px; border-radius: 50%;
-      background: #22d07a; border: 2px solid var(--surface);
-    }
-    .pdrop {
-      position: absolute; top: calc(100% + 10px); right: 0;
-      width: 240px; border-radius: 16px;
-      background: var(--surface); border: 1px solid var(--border);
-      box-shadow: var(--shadow-md); overflow: hidden;
-      opacity: 0; visibility: hidden; transform: translateY(-8px);
-      transition: all .22s cubic-bezier(.4,0,.2,1); z-index: 400;
-    }
+    .online-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #22d07a; border: 2px solid var(--surface); }
+    .pdrop { position: absolute; top: calc(100% + 10px); right: 0; width: 240px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md); overflow: hidden; opacity: 0; visibility: hidden; transform: translateY(-8px); transition: all .22s cubic-bezier(.4,0,.2,1); z-index: 400; }
     .pdrop.open { opacity: 1; visibility: visible; transform: translateY(0); }
     .pdrop-header { padding: 14px 16px; background: linear-gradient(135deg, var(--navy), var(--navy-mid)); }
     .pdrop-name  { font-weight: 600; font-size: .9rem; color: #fff; }
     .pdrop-email { font-size: .73rem; color: rgba(255,255,255,.5); margin-top: 2px; }
-    .pdrop-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(34,208,122,.2); border: 1px solid rgba(34,208,122,.3);
-      color: #6ee7b7; font-size: .65rem; font-weight: 700;
-      padding: 2px 9px; border-radius: 20px; margin-top: 8px;
-      text-transform: uppercase; letter-spacing: .5px;
-    }
+    .pdrop-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(34,208,122,.2); border: 1px solid rgba(34,208,122,.3); color: #6ee7b7; font-size: .65rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; margin-top: 8px; text-transform: uppercase; letter-spacing: .5px; }
     .pdrop-divider { height: 1px; background: var(--border); }
-    .pdrop-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 11px 16px; font-size: .84rem; font-weight: 500;
-      color: var(--text); cursor: pointer; transition: background .15s;
-    }
+    .pdrop-item { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: .84rem; font-weight: 500; color: var(--text); cursor: pointer; transition: background .15s; }
     .pdrop-item:hover { background: var(--bg); }
     .pdrop-item i { font-size: 16px; color: var(--muted); }
     .pdrop-item.danger { color: var(--rose); }
     .pdrop-item.danger i { color: var(--rose); }
 
-    /* ── MAIN LAYOUT ── */
-    .main-layout { transition: margin-left .32s; }
-
-    /* ── VIEW SYSTEM ── */
+    /* VIEWS */
     .view { display: none; }
     .view.active { display: block; }
-
-    /* ── PAGE CONTAINER ── */
     .page { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; }
 
-    /* ── HERO ── */
-    .hero-card {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 55%, #059669 100%);
-      border-radius: 22px; padding: 28px 24px; margin-bottom: 20px;
-      position: relative; overflow: hidden;
-      box-shadow: 0 8px 40px rgba(6,78,59,.3);
-      animation: fadeUp .45s ease both;
-    }
+    /* HERO */
+    .hero-card { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 55%, #059669 100%); border-radius: 22px; padding: 28px 24px; margin-bottom: 20px; position: relative; overflow: hidden; box-shadow: 0 8px 40px rgba(6,78,59,.3); animation: fadeUp .45s ease both; }
     .hero-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.25), transparent 70%); pointer-events: none; }
     .hero-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
-    .hero-avatar {
-      width: 72px; height: 72px; border-radius: 20px; flex-shrink: 0;
-      background: linear-gradient(135deg, #059669, #00c9b1);
-      border: 3px solid rgba(255,255,255,.2);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: #fff; overflow: hidden;
-    }
+    .hero-avatar { width: 72px; height: 72px; border-radius: 20px; flex-shrink: 0; background: linear-gradient(135deg, #059669, #00c9b1); border: 3px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: #fff; overflow: hidden; }
     .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .hero-text { flex: 1; }
     .hero-greeting { font-size: .72rem; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 3px; }
     .hero-name { font-family: 'Fraunces', serif; font-size: 1.55rem; font-weight: 700; color: #fff; margin-bottom: 3px; min-height: 32px; }
     .hero-spec { font-size: .85rem; color: rgba(255,255,255,.6); display: flex; align-items: center; gap: 6px; }
     .hero-spec i { font-size: 13px; color: var(--teal); }
-    .hero-edit-btn {
-      background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.25);
-      color: #fff; border-radius: 10px; padding: 7px 14px;
-      font-size: .76rem; font-weight: 700; cursor: pointer;
-      font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 5px;
-      transition: all .2s; white-space: nowrap;
-    }
-    .hero-edit-btn:hover { background: rgba(255,255,255,.25); }
-
-    /* invite box */
-    .invite-box {
-      background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2);
-      border-radius: 14px; padding: 14px 18px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    }
+    .invite-box { background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2); border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .invite-label { font-size: .7rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
     .invite-code { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700; color: #fff; letter-spacing: 2px; }
-    .copy-btn {
-      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
-      color: #fff; border-radius: 8px; padding: 8px 16px;
-      font-size: .78rem; font-weight: 700; cursor: pointer;
-      font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px;
-      transition: all .2s; white-space: nowrap;
-    }
+    .copy-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; padding: 8px 16px; font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px; transition: all .2s; white-space: nowrap; }
     .copy-btn:hover { background: rgba(255,255,255,.25); }
     .copy-btn.copied { background: rgba(34,208,122,.25); border-color: rgba(34,208,122,.4); }
 
-    /* ── STATS ── */
+    /* STATS */
     .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; animation: fadeUp .5s .06s ease both; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; box-shadow: var(--shadow); }
     .stat-val { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: var(--green); min-height: 36px; display: flex; align-items: center; justify-content: center; }
     .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
 
-    /* ── SECTION HEAD ── */
     .sec-head { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 12px; }
     .sec-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); }
     .sec-link { font-size: .78rem; color: var(--green); font-weight: 600; cursor: pointer; }
 
-    /* ── PATIENTS LIST ── */
-    .patient-card {
-      background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
-      padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer;
-      display: flex; align-items: center; gap: 14px;
-      transition: border-color .2s, transform .18s, box-shadow .18s;
-      animation: fadeUp .3s ease both;
-    }
+    /* PATIENTS */
+    .patient-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; display: flex; align-items: center; gap: 14px; transition: border-color .2s, transform .18s, box-shadow .18s; animation: fadeUp .3s ease both; }
     .patient-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-    .patient-avatar {
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: #fff;
-    }
+    .patient-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: #fff; }
     .patient-name { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 3px; }
     .patient-meta { font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; }
     .patient-meta span { display: flex; align-items: center; gap: 3px; }
@@ -295,12 +170,8 @@
     .patient-arrow { margin-left: auto; color: var(--muted); font-size: 1.1rem; }
     .patient-card:hover .patient-arrow { color: var(--green); }
 
-    /* ── PATIENT DETAIL ── */
-    .detail-back {
-      display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted);
-      padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border);
-      background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s;
-    }
+    /* DETAIL */
+    .detail-back { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s; }
     .detail-back:hover { color: var(--green); border-color: var(--green); }
     .detail-header { background: linear-gradient(135deg, var(--navy), var(--navy-mid)); border-radius: 20px; padding: 22px 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
     .detail-header::before { content: ''; position: absolute; top: -30px; right: -30px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.2), transparent 70%); pointer-events: none; }
@@ -327,63 +198,44 @@
     .report-name { font-weight: 600; font-size: .88rem; color: var(--text); word-break: break-all; }
     .report-date { font-size: .72rem; color: var(--muted); }
 
-    /* ── PROFILE VIEW ── */
-    .prof-hero {
-      background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 60%, #071a10 100%);
-      padding: 28px 20px 60px; text-align: center;
-      position: relative; overflow: hidden; border-radius: 20px;
-    }
+    /* PROFILE VIEW */
+    .prof-hero { background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 60%, #071a10 100%); padding: 28px 20px 60px; text-align: center; position: relative; overflow: hidden; border-radius: 20px; }
     .prof-hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.2), transparent 70%); pointer-events: none; }
     .avatar-wrap { position: relative; display: inline-block; margin-bottom: 14px; cursor: pointer; }
-    .avatar-circle {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--green), var(--teal));
-      border: 3px solid rgba(255,255,255,.2);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: #fff;
-      overflow: hidden; margin: 0 auto;
-    }
+    .avatar-circle { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); border: 3px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: #fff; overflow: hidden; margin: 0 auto; }
     .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
-    .avatar-edit-ring {
-      position: absolute; bottom: 2px; right: 2px;
-      width: 26px; height: 26px; border-radius: 50%;
-      background: var(--green); border: 3px solid var(--navy);
-      display: flex; align-items: center; justify-content: center;
-    }
+    .avatar-edit-ring { position: absolute; bottom: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: var(--green); border: 3px solid var(--navy); display: flex; align-items: center; justify-content: center; }
     .avatar-edit-ring svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2.2; }
     .prof-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
     .prof-email { font-size: .8rem; color: rgba(255,255,255,.5); margin-bottom: 10px; }
     .status-pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 5px 14px; font-size: .75rem; font-weight: 600; color: #fff; }
     .sdot { width: 7px; height: 7px; border-radius: 50%; }
-
     .prof-body { margin-top: -36px; position: relative; z-index: 10; }
-
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
 
-    .v-banner {
-      display: flex; align-items: center; gap: 12px;
-      border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
-    }
-    .v-banner.verified   { background: #f0fdf4; border: 1px solid #6ee7b7; }
+    /* VERIFIED BANNER — same pattern as DHAS patient "Health Snapshot" complete banner */
+    .v-banner { display: flex; align-items: center; gap: 12px; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 14px; }
+    .v-banner.verified   { background: #d1fae5; border: 1px solid #6ee7b7; }
     .v-banner.unverified { background: #fffbeb; border: 1px solid #fcd34d; }
-    body.dark .v-banner.verified   { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.3); }
-    body.dark .v-banner.unverified { background: rgba(244,160,53,.1); border-color: rgba(244,160,53,.3); }
+    body.dark .v-banner.verified   { background: rgba(5,150,105,.15); border-color: rgba(5,150,105,.4); }
+    body.dark .v-banner.unverified { background: rgba(244,160,53,.12); border-color: rgba(244,160,53,.4); }
     .vb-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .vb-icon i { font-size: 20px; }
-    .verified .vb-icon   { background: #d1fae5; }
-    .verified .vb-icon i { color: #065f46; }
-    .unverified .vb-icon   { background: #fef3c7; }
+    .verified   .vb-icon { background: #f0fdf4; }
+    .verified   .vb-icon i { color: #065f46; }
+    .unverified .vb-icon { background: #fef3c7; }
     .unverified .vb-icon i { color: #92400e; }
-    .vb-title { font-size: .88rem; font-weight: 700; }
-    .verified .vb-title   { color: #065f46; }
-    .unverified .vb-title { color: #92400e; }
-    .vb-sub { font-size: .73rem; margin-top: 2px; }
-    .verified .vb-sub   { color: #047857; }
-    .unverified .vb-sub { color: #b45309; }
-    body.dark .verified .vb-title   { color: #6ee7b7; }
-    body.dark .unverified .vb-title { color: #fcd34d; }
+    .vb-content .vb-title { font-size: .88rem; font-weight: 700; }
+    .verified   .vb-content .vb-title { color: #065f46; }
+    .unverified .vb-content .vb-title { color: #92400e; }
+    .vb-content .vb-sub { font-size: .73rem; margin-top: 2px; }
+    .verified   .vb-content .vb-sub { color: #047857; }
+    .unverified .vb-content .vb-sub { color: #b45309; }
+    body.dark .verified   .vb-content .vb-title { color: #6ee7b7; }
+    body.dark .verified   .vb-content .vb-sub   { color: #34d399; }
+    body.dark .unverified .vb-content .vb-title { color: #fcd34d; }
+    body.dark .unverified .vb-content .vb-sub   { color: #f4a035; }
 
-    /* info section rows */
     .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 12px; }
     .section-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; display: flex; align-items: center; gap: 8px; }
     .section-head i { font-size: 14px; }
@@ -405,47 +257,33 @@
     .achev i { font-size: 16px; color: var(--muted); }
     .arow.danger .achev i { color: var(--rose); }
 
-    /* ── EDIT FORM ── */
+    /* EDIT FORM */
     .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
     .form-head { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; display: flex; align-items: center; gap: 8px; }
     .form-head i { font-size: 14px; }
     .form-body { padding: 18px; }
     .field-group { margin-bottom: 16px; }
     .field-label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
-    .dhas-input {
-      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text);
-      background: var(--bg); outline: none; transition: border-color .2s; margin-bottom: 0; appearance: none;
-    }
+    .dhas-input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text); background: var(--bg); outline: none; transition: border-color .2s; margin-bottom: 0; appearance: none; }
     .dhas-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(5,150,105,.12); }
     body.dark .dhas-input { background: #031a10; color: #c8f5e5; border-color: #0a4a28; }
     textarea.dhas-input { resize: vertical; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .btn-save {
-      width: 100%; padding: 12px 24px; border: none; border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--green), var(--teal)); color: #fff;
-      font-weight: 700; font-size: .92rem; cursor: pointer;
-      font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 16px rgba(5,150,105,.3);
-      transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 20px;
-    }
+    .btn-save { width: 100%; padding: 12px 24px; border: none; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--green), var(--teal)); color: #fff; font-weight: 700; font-size: .92rem; cursor: pointer; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 16px rgba(5,150,105,.3); transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 20px; }
     .btn-save:hover { transform: translateY(-1px); opacity: .92; }
     .btn-save:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-
-    /* tags */
     .tags-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .tag-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.25); color: var(--green); border-radius: 20px; padding: 4px 12px; font-size: .78rem; font-weight: 600; }
     .tag-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: .8rem; padding: 0; line-height: 1; }
     .tag-input-row { display: flex; gap: 8px; }
     .tag-add-btn { padding: 9px 14px; border: 1.5px solid var(--green); border-radius: 9px; background: rgba(5,150,105,.08); color: var(--green); font-weight: 700; font-size: .8rem; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; }
-
-    /* photo upload */
     .photo-upload-wrap { display: flex; align-items: center; gap: 16px; }
     .photo-preview-small { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #fff; font-family: 'Fraunces', serif; overflow: hidden; flex-shrink: 0; }
     .photo-preview-small img { width: 100%; height: 100%; object-fit: cover; }
     .photo-upload-btn { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); font-size: .82rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
     .photo-upload-btn:hover { border-color: var(--green); color: var(--green); }
 
-    /* ── CHANGE PASSWORD ── */
+    /* PASSWORD */
     .pw-wrap { position: relative; }
     .pw-wrap .dhas-input { padding-right: 44px; }
     .eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; }
@@ -461,30 +299,37 @@
     .pw-alert { display: none; padding: 11px 14px; border-radius: 10px; font-size: .84rem; font-weight: 600; margin-bottom: 14px; }
     .pw-alert.error   { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
     .pw-alert.success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    body.dark .pw-alert.error   { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5; }
+    body.dark .pw-alert.success { background: rgba(5,150,105,.12); border-color: rgba(5,150,105,.3); color: #6ee7b7; }
 
-    /* ── EMPTY BOX ── */
     .empty-box { text-align: center; padding: 40px 20px; background: var(--surface); border: 1.5px dashed var(--border); border-radius: var(--radius); }
     .empty-box i { font-size: 48px; opacity: .3; display: block; margin-bottom: 12px; color: var(--green); }
     .empty-box p { font-size: .88rem; color: var(--muted); line-height: 1.6; }
 
-    /* ── TOAST ── */
-    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); border-radius: 12px; font-size: .85rem; font-weight: 600; padding: 11px 22px; display: none; z-index: 9999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.18); }
-    #toast.success { background: #d1fae5; border: 1.5px solid #6ee7b7; color: #065f46; }
-    #toast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
-
     .disclaimer { text-align: center; font-size: .7rem; color: var(--muted); margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); line-height: 1.7; }
-
     @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin   { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<div id="toast"></div>
+<div id="dhasToast" role="status" aria-live="polite"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon"><i class="ti ti-alert-triangle"></i></div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-msg" id="confirmMsg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="confirmResolve(false)">Cancel</button>
+      <button class="confirm-ok danger" id="confirmOkBtn" onclick="confirmResolve(true)">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
 
-<!-- ── SIDEBAR ── -->
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="sidebar-logo-icon">
@@ -495,45 +340,23 @@
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
-
   <div class="sidebar-section-label">Overview</div>
-  <button class="side-link active" id="sl-dashboard" onclick="showView('dashboard'); closeSidebar();">
-    <i class="ti ti-layout-dashboard"></i><span>Dashboard</span>
-  </button>
-  <button class="side-link" id="sl-patients" onclick="showView('patients'); closeSidebar();">
-    <i class="ti ti-users"></i><span>My Patients</span>
-  </button>
-  
-
+  <button class="side-link active" id="sl-dashboard" onclick="showView('dashboard'); closeSidebar();"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
+  <button class="side-link" id="sl-patients"  onclick="showView('patients'); closeSidebar();"><i class="ti ti-users"></i><span>My Patients</span></button>
   <div class="sidebar-section-label">Account</div>
-  <button class="side-link" id="sl-profile" onclick="showView('profile'); closeSidebar();">
-    <i class="ti ti-user-circle"></i><span>My Profile</span>
-  </button>
-  <button class="side-link" id="sl-edit" onclick="showView('edit'); closeSidebar();">
-    <i class="ti ti-edit"></i><span>Edit Profile</span>
-  </button>
-  <button class="side-link" id="sl-password" onclick="showView('password'); closeSidebar();">
-    <i class="ti ti-lock"></i><span>Change Password</span>
-  </button>
-  <button class="side-link" onclick="window.location.href='language.html';">
-    <i class="ti ti-language"></i><span>Language</span>
-  </button>
-  <button class="side-link danger" onclick="doLogout()" style="color:rgba(242,92,125,.7);margin-top:8px;">
-    <i class="ti ti-logout"></i><span>Logout</span>
-  </button>
+  <button class="side-link" id="sl-profile"  onclick="showView('profile'); closeSidebar();"><i class="ti ti-user-circle"></i><span>My Profile</span></button>
+  <button class="side-link" id="sl-edit"     onclick="showView('edit'); closeSidebar();"><i class="ti ti-edit"></i><span>Edit Profile</span></button>
+  <button class="side-link" id="sl-password" onclick="showView('password'); closeSidebar();"><i class="ti ti-lock"></i><span>Change Password</span></button>
+  <button class="side-link" onclick="window.location.href='language.html';"><i class="ti ti-language"></i><span>Language</span></button>
+  <button class="side-link" onclick="doLogout()" style="color:rgba(242,92,125,.7);margin-top:8px;"><i class="ti ti-logout"></i><span>Logout</span></button>
 </nav>
 
 <div class="main-layout" id="mainLayout">
-
-  <!-- ── TOPBAR ── -->
   <header class="topbar">
     <button class="ham" onclick="toggleSidebar()" aria-label="Open menu">
       <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <div class="topbar-brand">
-      <div class="topbar-brand-dot"></div>
-      DHAS Doctor
-    </div>
+    <div class="topbar-brand"><div class="topbar-brand-dot"></div>DHAS Doctor</div>
     <div class="topbar-right">
       <div class="theme-pill" onclick="toggleTheme()" role="button">
         <svg class="theme-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
@@ -551,22 +374,12 @@
             <div class="pdrop-badge" id="dropBadge" style="display:none;"><i class="ti ti-circle-check"></i> Verified</div>
           </div>
           <div class="pdrop-divider"></div>
-          <div class="pdrop-item" onclick="showView('profile'); closePdrop();">
-            <i class="ti ti-user-circle"></i> My Profile
-          </div>
-          <div class="pdrop-item" onclick="showView('edit'); closePdrop();">
-            <i class="ti ti-edit"></i> Edit Profile
-          </div>
-          <div class="pdrop-item" onclick="showView('password'); closePdrop();">
-            <i class="ti ti-lock"></i> Change Password
-          </div>
-          <div class="pdrop-item" onclick="window.location.href='language.html'">
-            <i class="ti ti-language"></i> Language
-          </div>
+          <div class="pdrop-item" onclick="showView('profile'); closePdrop();"><i class="ti ti-user-circle"></i> My Profile</div>
+          <div class="pdrop-item" onclick="showView('edit'); closePdrop();"><i class="ti ti-edit"></i> Edit Profile</div>
+          <div class="pdrop-item" onclick="showView('password'); closePdrop();"><i class="ti ti-lock"></i> Change Password</div>
+          <div class="pdrop-item" onclick="window.location.href='language.html'"><i class="ti ti-language"></i> Language</div>
           <div class="pdrop-divider"></div>
-          <div class="pdrop-item danger" onclick="doLogout()">
-            <i class="ti ti-logout"></i> Logout
-          </div>
+          <div class="pdrop-item danger" onclick="doLogout()"><i class="ti ti-logout"></i> Logout</div>
         </div>
       </div>
     </div>
@@ -574,19 +387,16 @@
 
   <main>
 
-    <!-- ══ VIEW: DASHBOARD ══ -->
+    <!-- DASHBOARD -->
     <div class="view active page" id="view-dashboard">
       <div class="hero-card">
         <div class="hero-top">
           <div class="hero-avatar" id="heroAvatar">D</div>
           <div class="hero-text">
             <div class="hero-greeting">Welcome back</div>
-            <div class="hero-name" id="heroName">
-              <span class="skeleton" style="width:200px;height:32px;border-radius:8px;"></span>
-            </div>
+            <div class="hero-name" id="heroName"><span class="skeleton" style="width:200px;height:32px;border-radius:8px;"></span></div>
             <div class="hero-spec"><i class="ti ti-stethoscope"></i><span id="heroSpec">General Physician</span></div>
           </div>
-          
         </div>
         <div class="invite-box">
           <div>
@@ -609,41 +419,26 @@
         <div class="sec-title">Connected Patients</div>
         <span class="sec-link" onclick="showView('patients')">View all →</span>
       </div>
-      <div id="dashPatientList">
-        <div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div>
-      </div>
-
-      <p class="disclaimer">DHAS Doctor Portal &nbsp;·&nbsp; Patient data is private &amp; encrypted.</p>
+      <div id="dashPatientList"><div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div></div>
+      <p class="disclaimer">DHAS Doctor Portal · Patient data is private &amp; encrypted.</p>
     </div>
 
-    <!-- ══ VIEW: PATIENTS ══ -->
+    <!-- PATIENTS -->
     <div class="view page" id="view-patients">
-  <button class="detail-back" onclick="showView('dashboard')">
-    <i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard
-  </button>
-
-
-      <div class="sec-head" style="margin-top:0;">
-        <div class="sec-title">All Connected Patients</div>
-      </div>
-      <div id="allPatientList">
-        <div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div>
-      </div>
+      <button class="detail-back" onclick="showView('dashboard')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard</button>
+      <div class="sec-head" style="margin-top:0;"><div class="sec-title">All Connected Patients</div></div>
+      <div id="allPatientList"><div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div></div>
     </div>
 
-    <!-- ══ VIEW: PATIENT DETAIL ══ -->
+    <!-- PATIENT DETAIL -->
     <div class="view page" id="view-patientDetail">
-      <button class="detail-back" onclick="goBackFromDetail()">
-        <i class="ti ti-chevron-left" style="font-size:15px"></i> Back
-      </button>
+      <button class="detail-back" onclick="goBackFromDetail()"><i class="ti ti-chevron-left" style="font-size:15px"></i> Back</button>
       <div id="detailContent"></div>
     </div>
 
-    <!-- ══ VIEW: MY PROFILE ══ -->
+    <!-- MY PROFILE -->
     <div class="view page" id="view-profile">
-  <button class="detail-back" onclick="showView('dashboard')">
-    <i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard
-  </button>
+      <button class="detail-back" onclick="showView('dashboard')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard</button>
 
       <div class="prof-hero">
         <div class="avatar-wrap" onclick="showView('edit')" title="Edit photo">
@@ -656,24 +451,34 @@
         <div class="prof-email" id="profEmail">doctor@email.com</div>
         <div class="status-pill">
           <span class="sdot" id="profSdot" style="background:var(--amber);"></span>
-          <span id="profStatus">Not Verified</span>
+          <span id="profStatus">Loading…</span>
         </div>
       </div>
 
-      <div class="prof-body">
+      <div class="prof-body" style="padding:0;">
         <div class="stats-row">
           <div class="stat-card"><div class="stat-val" id="vStatPat">0</div><div class="stat-lbl">Patients</div></div>
           <div class="stat-card"><div class="stat-val" id="vStatSym">0</div><div class="stat-lbl">Symptoms</div></div>
           <div class="stat-card"><div class="stat-val" id="vStatRep">0</div><div class="stat-lbl">Reports</div></div>
         </div>
 
+        <!--
+          VERIFIED BANNER — shown/hidden by JS based on is_verified from API.
+          Both start hidden; JS shows the correct one after loadProfile().
+        -->
         <div class="v-banner verified" id="verifiedBanner" style="display:none;">
           <div class="vb-icon"><i class="ti ti-circle-check"></i></div>
-          <div><div class="vb-title">Verified Doctor</div><div class="vb-sub">Your profile is visible in the patient directory.</div></div>
+          <div class="vb-content">
+            <div class="vb-title">Verified Doctor</div>
+            <div class="vb-sub">Your profile is visible in the patient directory.</div>
+          </div>
         </div>
-        <div class="v-banner unverified" id="unverifiedBanner">
+        <div class="v-banner unverified" id="unverifiedBanner" style="display:none;">
           <div class="vb-icon"><i class="ti ti-clock-hour-4"></i></div>
-          <div><div class="vb-title">Pending Verification</div><div class="vb-sub">Complete your profile. Admin verifies before you appear in the directory.</div></div>
+          <div class="vb-content">
+            <div class="vb-title">Pending Verification</div>
+            <div class="vb-sub">Complete your profile to appear in the doctor directory.</div>
+          </div>
         </div>
 
         <div class="section">
@@ -693,39 +498,19 @@
 
         <div class="section">
           <div class="section-head"><i class="ti ti-settings"></i>Settings</div>
-          <div class="arow" onclick="showView('edit')">
-            <div class="iicon" style="background:#e6faf8;color:var(--green);"><i class="ti ti-edit"></i></div>
-            <div class="acontent"><div class="albl">Edit Profile</div><div class="adesc">Update professional information</div></div>
-            <div class="achev"><i class="ti ti-chevron-right"></i></div>
-          </div>
-          <div class="arow" onclick="showView('password')">
-            <div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div>
-            <div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div>
-            <div class="achev"><i class="ti ti-chevron-right"></i></div>
-          </div>
-          <div class="arow" onclick="window.location.href='language.html'">
-            <div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-language"></i></div>
-            <div class="acontent"><div class="albl">Language</div><div class="adesc">English · Hindi · Telugu</div></div>
-            <div class="achev"><i class="ti ti-chevron-right"></i></div>
-          </div>
-          <div class="arow danger" onclick="doLogout()">
-  <div class="iicon" style="background:#fee2e2;color:var(--rose);">
-    <i class="ti ti-logout"></i>
-  </div>
-  <div class="acontent">
-    <div class="albl">Logout</div>
-    <div class="adesc">Sign out of Doctor Portal</div>
-  </div>
-  <div class="achev">
-    <i class="ti ti-chevron-right"></i>
-  </div>
-</div>
+          <div class="arow" onclick="showView('edit')"><div class="iicon" style="background:#e6faf8;color:var(--green);"><i class="ti ti-edit"></i></div><div class="acontent"><div class="albl">Edit Profile</div><div class="adesc">Update professional information</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow" onclick="showView('password')"><div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div><div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow" onclick="window.location.href='language.html'"><div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-language"></i></div><div class="acontent"><div class="albl">Language</div><div class="adesc">English · Hindi · Telugu</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow danger" onclick="doDeleteAccount()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-trash"></i></div><div class="acontent"><div class="albl">Delete Account</div><div class="adesc">Permanently remove your account</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow danger" onclick="doLogout()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-logout"></i></div><div class="acontent"><div class="albl">Logout</div><div class="adesc">Sign out of Doctor Portal</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+        </div>
+      </div>
+    </div>
 
-    <!-- ══ VIEW: EDIT PROFILE ══ -->
+    <!-- EDIT PROFILE -->
     <div class="view page" id="view-edit">
-  <button class="detail-back" onclick="showView('profile')">
-    <i class="ti ti-chevron-left" style="font-size:15px"></i>  Profile
-  </button>
+      <button class="detail-back" onclick="showView('profile')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Profile</button>
+
       <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
 
       <div class="form-card">
@@ -734,9 +519,7 @@
           <div class="photo-upload-wrap">
             <div class="photo-preview-small" id="photoPreview">D</div>
             <div>
-              <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
-                <i class="ti ti-upload" style="font-size:13px"></i> Upload Photo
-              </button>
+              <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()"><i class="ti ti-upload" style="font-size:13px"></i> Upload Photo</button>
               <div style="font-size:.72rem;color:var(--muted);margin-top:5px;">JPG or PNG, max 2 MB. Visible to patients.</div>
             </div>
           </div>
@@ -749,46 +532,26 @@
           <div class="field-group">
             <label class="field-label">Speciality</label>
             <select id="fSpec" class="dhas-input">
-              <option>General Physician</option><option>Cardiologist</option>
-              <option>Dermatologist</option><option>Neurologist</option>
-              <option>Paediatrician</option><option>Orthopaedic</option>
-              <option>Gynaecologist</option><option>Psychiatrist</option>
-              <option>ENT Specialist</option><option>Ophthalmologist</option>
-              <option>Oncologist</option><option>Urologist</option>
-              <option>Gastroenterologist</option><option>Pulmonologist</option>
-              <option>Endocrinologist</option><option>Other</option>
+              <option>General Physician</option><option>Cardiologist</option><option>Dermatologist</option>
+              <option>Neurologist</option><option>Paediatrician</option><option>Orthopaedic</option>
+              <option>Gynaecologist</option><option>Psychiatrist</option><option>ENT Specialist</option>
+              <option>Ophthalmologist</option><option>Oncologist</option><option>Urologist</option>
+              <option>Gastroenterologist</option><option>Pulmonologist</option><option>Endocrinologist</option><option>Other</option>
             </select>
           </div>
-          <div class="field-group">
-  <label class="field-label">Experience (years)</label>
-  <input type="number" id="fExpYears" class="dhas-input" placeholder="e.g. 10" min="0" max="60">
-</div>
-          <div class="field-group">
-            <label class="field-label">Hospital / Clinic</label>
-            <input type="text" id="fHospital" class="dhas-input" placeholder="e.g. Apollo Hospitals">
-          </div>
+          <div class="field-group"><label class="field-label">Experience (years)</label><input type="number" id="fExpYears" class="dhas-input" placeholder="e.g. 10" min="0" max="60"></div>
+          <div class="field-group"><label class="field-label">Hospital / Clinic</label><input type="text" id="fHospital" class="dhas-input" placeholder="e.g. Apollo Hospitals"></div>
           <div class="two-col">
-            <div class="field-group">
-              <label class="field-label">City</label>
-              <input type="text" id="fCity" class="dhas-input" placeholder="e.g. Hyderabad">
-            </div>
-            <div class="field-group">
-              <label class="field-label">State</label>
-              <input type="text" id="fState" class="dhas-input" placeholder="e.g. Telangana">
-            </div>
+            <div class="field-group"><label class="field-label">City</label><input type="text" id="fCity" class="dhas-input" placeholder="e.g. Hyderabad"></div>
+            <div class="field-group"><label class="field-label">State</label><input type="text" id="fState" class="dhas-input" placeholder="e.g. Telangana"></div>
           </div>
-          <div class="field-group">
-            <label class="field-label">Languages (comma-separated)</label>
-            <input type="text" id="fLanguages" class="dhas-input" placeholder="e.g. English, Telugu, Hindi">
-          </div>
+          <div class="field-group"><label class="field-label">Languages (comma-separated)</label><input type="text" id="fLanguages" class="dhas-input" placeholder="e.g. English, Telugu, Hindi"></div>
         </div>
       </div>
 
       <div class="form-card">
         <div class="form-head"><i class="ti ti-file-text"></i>About / Bio</div>
-        <div class="form-body">
-          <textarea id="fBio" class="dhas-input" rows="5" placeholder="Write a short bio visible to patients…"></textarea>
-        </div>
+        <div class="form-body"><textarea id="fBio" class="dhas-input" rows="5" placeholder="Write a short bio visible to patients…"></textarea></div>
       </div>
 
       <div class="form-card">
@@ -807,64 +570,39 @@
       </button>
     </div>
 
-    <!-- ══ VIEW: CHANGE PASSWORD ══ -->
-   <div class="view page" id="view-password">
-  <button class="detail-back" onclick="showView('profile')">
-    <i class="ti ti-chevron-left" style="font-size:15px"></i> Profile
-  </button>
+    <!-- CHANGE PASSWORD -->
+    <div class="view page" id="view-password">
+      <button class="detail-back" onclick="showView('profile')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Profile</button>
       <div class="form-card">
         <div class="form-head"><i class="ti ti-lock"></i>Change Password</div>
         <div class="form-body">
           <div class="pw-alert" id="pwAlert"></div>
-
           <div class="field-group">
             <label class="field-label">Current Password</label>
             <div class="pw-wrap">
               <input type="password" id="pwCurrent" class="dhas-input" placeholder="Your current password" autocomplete="current-password">
-              <button type="button" class="eye-btn" onclick="toggleEye('pwCurrent','eyeCurrent')">
-                <svg id="eyeCurrent" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              </button>
+              <button type="button" class="eye-btn" onclick="toggleEye('pwCurrent','eyeCurrent')"><svg id="eyeCurrent" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
             </div>
           </div>
-
           <div class="field-group">
             <label class="field-label">New Password</label>
             <div class="pw-wrap">
               <input type="password" id="pwNew" class="dhas-input" placeholder="Min 6 chars — uppercase, number & symbol" autocomplete="new-password" oninput="evalPwStrength(this.value)">
-              <button type="button" class="eye-btn" onclick="toggleEye('pwNew','eyeNew')">
-                <svg id="eyeNew" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              </button>
+              <button type="button" class="eye-btn" onclick="toggleEye('pwNew','eyeNew')"><svg id="eyeNew" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
             </div>
-            <div class="strength-bars">
-              <div class="strength-seg" id="ps1"></div><div class="strength-seg" id="ps2"></div>
-              <div class="strength-seg" id="ps3"></div><div class="strength-seg" id="ps4"></div>
-            </div>
+            <div class="strength-bars"><div class="strength-seg" id="ps1"></div><div class="strength-seg" id="ps2"></div><div class="strength-seg" id="ps3"></div><div class="strength-seg" id="ps4"></div></div>
             <div class="strength-lbl" id="pwStrengthLbl">—</div>
-            <ul class="req-list" style="margin-top:8px;">
-              <li id="pr-len">At least 6 characters</li>
-              <li id="pr-upper">One uppercase letter (A–Z)</li>
-              <li id="pr-lower">One lowercase letter (a–z)</li>
-              <li id="pr-num">One number (0–9)</li>
-              <li id="pr-sym">One symbol (!@#$…)</li>
-            </ul>
+            <ul class="req-list" style="margin-top:8px;"><li id="pr-len">At least 6 characters</li><li id="pr-upper">One uppercase letter</li><li id="pr-lower">One lowercase letter</li><li id="pr-num">One number</li><li id="pr-sym">One symbol</li></ul>
           </div>
-
           <div class="field-group">
             <label class="field-label">Confirm New Password</label>
             <div class="pw-wrap">
               <input type="password" id="pwConfirm" class="dhas-input" placeholder="Re-enter new password" autocomplete="new-password">
-              <button type="button" class="eye-btn" onclick="toggleEye('pwConfirm','eyeConfirm')">
-                <svg id="eyeConfirm" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              </button>
+              <button type="button" class="eye-btn" onclick="toggleEye('pwConfirm','eyeConfirm')"><svg id="eyeConfirm" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
             </div>
           </div>
-
-          <button class="btn-save" id="pwSaveBtn" onclick="savePwChange()">
-            <i class="ti ti-lock-check" style="font-size:15px"></i> Update Password
-          </button>
-          <p style="font-size:.72rem;color:var(--muted);margin-top:0;line-height:1.6;">
-            After changing your password you will be logged out and need to sign in again.
-          </p>
+          <button class="btn-save" id="pwSaveBtn" onclick="savePwChange()"><i class="ti ti-lock-check" style="font-size:15px"></i> Update Password</button>
+          <p style="font-size:.72rem;color:var(--muted);margin-top:0;line-height:1.6;">After changing your password you will be logged out and need to sign in again.</p>
         </div>
       </div>
     </div>
@@ -873,9 +611,7 @@
 </div>
 
 <script>
-/* ─────────────────────────────────────────
-   AUTH CHECK
-───────────────────────────────────────── */
+/* ── AUTH ── */
 const doctor = JSON.parse(localStorage.getItem("dhas_doctor") || "{}");
 if (!doctor || !doctor.id) window.location.href = "doctor_login.html";
 
@@ -884,97 +620,119 @@ function getDoctorHeaders() {
   return { "Content-Type": "application/json", "Authorization": "Bearer " + (token || "") };
 }
 
-/* ─────────────────────────────────────────
-   SIDEBAR / DROPDOWN HELPERS
-───────────────────────────────────────── */
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
-  document.getElementById("overlay").classList.toggle("show");
+/* ── TOAST ── */
+let _toastTimer = null;
+function showToast(text, type = "success", duration = 4000) {
+  const t = document.getElementById("dhasToast");
+  const ic = type === "success" ? "ti-circle-check" : type === "error" ? "ti-alert-circle" : "ti-info-circle";
+  t.className = type;
+  t.innerHTML = `<i class="ti ${ic}" style="font-size:16px;flex-shrink:0;margin-top:1px"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'"><i class="ti ti-x"></i></button>`;
+  t.style.display = "flex";
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
 }
-function closeSidebar() {
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
+
+/* ── CONFIRM MODAL ── */
+let _confirmResolve = null;
+function showConfirm({ title, msg, okLabel = "Confirm", okType = "danger", icon = "ti-alert-triangle" }) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent   = msg;
+    document.getElementById("confirmIcon").innerHTML    = `<i class="ti ${icon}"></i>`;
+    document.getElementById("confirmIcon").className    = "confirm-icon " + okType;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.textContent = okLabel;
+    btn.className   = "confirm-ok " + okType;
+    document.getElementById("confirmOverlay").classList.add("show");
+  });
 }
+function confirmResolve(result) {
+  document.getElementById("confirmOverlay").classList.remove("show");
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+
+/* ── SIDEBAR / DROPDOWN ── */
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); document.getElementById("overlay").classList.toggle("show"); }
+function closeSidebar()  { document.getElementById("sidebar").classList.remove("open"); document.getElementById("overlay").classList.remove("show"); }
 function toggleDropdown() { document.getElementById("pdrop").classList.toggle("open"); }
 function closePdrop()     { document.getElementById("pdrop").classList.remove("open"); }
-document.addEventListener("click", e => {
-  if (!document.querySelector(".profile-wrap").contains(e.target)) closePdrop();
-});
+document.addEventListener("click", e => { if (!document.querySelector(".profile-wrap").contains(e.target)) closePdrop(); });
 
-/* ─────────────────────────────────────────
-   VIEW SYSTEM
-───────────────────────────────────────── */
-const VIEWS = ["dashboard","patients","patientDetail","profile","edit","password"];
-const SL_MAP = {
-  dashboard:"sl-dashboard", patients:"sl-patients",
-  profile:"sl-profile", edit:"sl-edit", password:"sl-password"
-};
+/* ── VIEW SYSTEM ── */
+const ALL_VIEWS = ["dashboard","patients","patientDetail","profile","edit","password"];
+const SL_MAP    = { dashboard:"sl-dashboard", patients:"sl-patients", profile:"sl-profile", edit:"sl-edit", password:"sl-password" };
 let _prevPatientView = "patients";
-
 function showView(name) {
-  VIEWS.forEach(v => {
-    const el = document.getElementById("view-" + v);
-    if (el) el.classList.toggle("active", v === name);
-  });
-  // Update sidebar active state
-  Object.keys(SL_MAP).forEach(k => {
-    const el = document.getElementById(SL_MAP[k]);
-    if (el) el.classList.toggle("active", k === name);
-  });
-  window.scrollTo({top:0, behavior:"smooth"});
+  ALL_VIEWS.forEach(v => { const el = document.getElementById("view-" + v); if (el) el.classList.toggle("active", v === name); });
+  Object.keys(SL_MAP).forEach(k => { const el = document.getElementById(SL_MAP[k]); if (el) el.classList.toggle("active", k === name); });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* ─────────────────────────────────────────
-   TOAST
-───────────────────────────────────────── */
-let _tt;
-function showToast(msg, type = "success") {
-  const t = document.getElementById("toast");
-  t.className = type; t.textContent = msg; t.style.display = "block";
-  clearTimeout(_tt); _tt = setTimeout(() => { t.style.display = "none"; }, 3500);
-}
-
-/* ─────────────────────────────────────────
-   LOGOUT
-───────────────────────────────────────── */
-function doLogout() {
-  if (!confirm("Log out of Doctor Portal?")) return;
-  localStorage.removeItem("dhas_doctor");
-  localStorage.removeItem("dhas_doctor_token");
-  window.location.href = "doctor_login.html";
-}
-
-/* ─────────────────────────────────────────
-   COPY INVITE CODE
-───────────────────────────────────────── */
+/* ── COPY INVITE CODE ── */
 function copyCode() {
   const code = document.getElementById("inviteCode").textContent;
   const btn  = document.getElementById("copyBtn");
   navigator.clipboard.writeText(code).then(() => {
     btn.classList.add("copied");
     btn.innerHTML = '<i class="ti ti-check" style="font-size:13px"></i> Copied!';
-    showToast("Invite code copied!");
-    setTimeout(() => {
-      btn.classList.remove("copied");
-      btn.innerHTML = '<i class="ti ti-copy" style="font-size:13px"></i> Copy';
-    }, 2500);
-  });
+    showToast("Invite code " + code + " copied to clipboard!");
+    setTimeout(() => { btn.classList.remove("copied"); btn.innerHTML = '<i class="ti ti-copy" style="font-size:13px"></i> Copy'; }, 2500);
+  }).catch(() => showToast("Could not copy. Code: " + code, "error"));
 }
 
-/* ─────────────────────────────────────────
-   SET AVATAR HELPER
-───────────────────────────────────────── */
+/* ── SET AVATAR ── */
 function setAvatar(elId, src, name) {
   const el = document.getElementById(elId);
   if (!el) return;
-  if (src) el.innerHTML = `<img src="${src}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
-  else     el.textContent = (name || "D").charAt(0).toUpperCase();
+  if (src) {
+    el.innerHTML = `<img src="${src}" alt="${name || 'D'}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+  } else {
+    el.textContent = (name || "D").charAt(0).toUpperCase();
+  }
 }
 
-/* ─────────────────────────────────────────
-   LOAD PROFILE FROM SERVER
-───────────────────────────────────────── */
-let _profileData = {};
+/* ═══════════════════════════════════════════════════════════
+   IS_VERIFIED — THE FIX
+   
+   MySQL TINYINT(1) is returned by mysql2 as:
+   - JavaScript number: 1 or 0
+   - NEVER as boolean true/false (that's a common misconception)
+   - NEVER as string "1" or "0" via mysql2
+   
+   So parseInt(val) === 1 is the safest check.
+   We also guard against unexpected string values just in case.
+═══════════════════════════════════════════════════════════ */
+function checkVerified(val) {
+  if (val === null || val === undefined) return false;
+  // Number: 1 → true, 0 → false
+  if (typeof val === "number")  return val === 1;
+  // Boolean (unlikely from mysql2 but safe to handle)
+  if (typeof val === "boolean") return val === true;
+  // String (if somehow serialised)
+  if (typeof val === "string")  return val === "1" || val.toLowerCase() === "true";
+  return false;
+}
+
+/* ── APPLY VERIFIED STATUS TO UI ──
+   Called after loadProfile() once we have the API response.
+   Updates BOTH the profile hero pill AND the banner.
+── */
+function applyVerifiedUI(verified) {
+  // Hero status pill
+  document.getElementById("profSdot").style.background = verified ? "var(--green)" : "var(--amber)";
+  document.getElementById("profStatus").textContent    = verified ? "Verified Doctor" : "Pending Verification";
+
+  // Banner: show the correct one, hide the other
+  document.getElementById("verifiedBanner").style.display   = verified ? "flex" : "none";
+  document.getElementById("unverifiedBanner").style.display = verified ? "none" : "flex";
+
+  // Topbar dropdown badge
+  document.getElementById("dropBadge").style.display = verified ? "inline-flex" : "none";
+}
+
+/* ── PROFILE LOAD ── */
+let _profileData  = {};
 let profilePhotoBase64 = null;
 let expertiseList = [];
 
@@ -983,49 +741,51 @@ async function loadProfile() {
   try {
     const res  = await fetch(window.API_BASE + "/doctor/profile", { headers: getDoctorHeaders() });
     const data = await res.json();
-    d = data.doctor || doctor;
-  } catch { d = doctor; }
-
-  _profileData = d;
-  const initials = (d.name || "D").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
-
-  // ── Topbar ──
-  document.getElementById("dropName").textContent  = "Dr. " + (d.name || "");
-  document.getElementById("dropEmail").textContent = d.email || "";
-  if (d.is_verified) document.getElementById("dropBadge").style.display = "inline-flex";
-  setAvatar("avatarBtn", d.profile_photo, d.name);
-  // re-inject online-dot after img
-  const ab = document.getElementById("avatarBtn");
-  if (!ab.querySelector(".online-dot")) {
-    const dot = document.createElement("div"); dot.className = "online-dot"; ab.appendChild(dot);
+    if (data.success && data.doctor) {
+      d = data.doctor;
+    } else {
+      // fallback to localStorage — but this won't have is_verified reliably
+      d = doctor;
+      console.warn("Profile API failed, using localStorage fallback:", data.message);
+    }
+  } catch (err) {
+    d = doctor;
+    console.warn("Profile fetch error:", err);
   }
 
-  // ── Hero ──
+  _profileData = d;
+
+  // ── Update topbar & dropdown ──
+  document.getElementById("dropName").textContent  = "Dr. " + (d.name || "");
+  document.getElementById("dropEmail").textContent = d.email || "";
+  setAvatar("avatarBtn", d.profile_photo, d.name);
+  // Re-add online dot (setAvatar may have replaced children)
+  const ab = document.getElementById("avatarBtn");
+  if (!ab.querySelector(".online-dot")) { const dot = document.createElement("div"); dot.className = "online-dot"; ab.appendChild(dot); }
+
+  // ── Hero card ──
   document.getElementById("heroName").textContent   = "Dr. " + (d.name || "");
   document.getElementById("heroSpec").textContent   = d.speciality || "General Physician";
   document.getElementById("inviteCode").textContent = d.invite_code || doctor.invite_code || "";
   setAvatar("heroAvatar", d.profile_photo, d.name);
 
-  // ── Profile view ──
+  // ── Profile view hero ──
   document.getElementById("profName").textContent  = "Dr. " + (d.name || "");
   document.getElementById("profEmail").textContent = d.email || "";
   setAvatar("profAvatar", d.profile_photo, d.name);
-  if (d.is_verified) {
-    document.getElementById("verifiedBanner").style.display   = "flex";
-    document.getElementById("unverifiedBanner").style.display = "none";
-    document.getElementById("profSdot").style.background      = "var(--green)";
-    document.getElementById("profStatus").textContent         = "Verified Doctor";
-    document.getElementById("dropBadge").style.display        = "inline-flex";
-  }
+
+  // ── VERIFIED STATUS — use checkVerified() helper ──
+  const verified = checkVerified(d.is_verified);
+  applyVerifiedUI(verified);
 
   // ── Info rows ──
   sv("vi-spec",      d.speciality || "General Physician");
   sv("vi-hospital",  d.hospital);
   sv("vi-exp",       d.experience_years ? d.experience_years + " years experience" : null);
-  sv("vi-location",  d.city && d.state ? d.city+", "+d.state : (d.city||d.state||null));
+  sv("vi-location",  d.city && d.state ? d.city + ", " + d.state : (d.city || d.state || null));
   sv("vi-languages", d.languages);
   sv("vi-provider",  d.google_id ? "Google Account" : "Email & Password");
-  sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN",{month:"long",year:"numeric"}) : null);
+  sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : null);
 
   // ── Edit form prefill ──
   document.getElementById("fSpec").value      = d.speciality || "General Physician";
@@ -1035,9 +795,10 @@ async function loadProfile() {
   document.getElementById("fState").value     = d.state || "";
   document.getElementById("fLanguages").value = d.languages || "";
   document.getElementById("fBio").value       = d.bio || d.about || "";
+
   const pp = document.getElementById("photoPreview");
-  if (d.profile_photo) pp.innerHTML = `<img src="${d.profile_photo}" alt="photo">`;
-  else pp.textContent = (d.name || "D").charAt(0).toUpperCase();
+  if (d.profile_photo) { pp.innerHTML = `<img src="${d.profile_photo}" alt="photo">`; }
+  else { pp.textContent = (d.name || "D").charAt(0).toUpperCase(); }
 
   try { expertiseList = JSON.parse(d.expertise || "[]"); } catch { expertiseList = []; }
   renderExpertiseTags();
@@ -1050,25 +811,26 @@ function sv(id, val) {
   else     { el.textContent = "Not set"; el.classList.add("empty"); }
 }
 
-/* ─────────────────────────────────────────
-   LOAD PATIENTS
-───────────────────────────────────────── */
+/* ── PATIENTS ── */
 let _patients = [];
+let _prevFromView = "patients";
 
 async function loadPatients() {
   const res = await fetch(window.API_BASE + "/doctor/patients", { headers: getDoctorHeaders() })
     .then(r => r.json()).catch(() => ({ success: false, data: [] }));
   _patients = res.success ? (res.data || []) : [];
 
-  // stats
-  document.getElementById("statPat").textContent = _patients.length;
-  document.getElementById("statSym").textContent = _patients.reduce((s,p) => s + (parseInt(p.symptom_count)||0), 0);
-  document.getElementById("statRep").textContent = _patients.reduce((s,p) => s + (parseInt(p.report_count) ||0), 0);
-  document.getElementById("vStatPat").textContent = _patients.length;
-  document.getElementById("vStatSym").textContent = _patients.reduce((s,p) => s + (parseInt(p.symptom_count)||0), 0);
-  document.getElementById("vStatRep").textContent = _patients.reduce((s,p) => s + (parseInt(p.report_count) ||0), 0);
+  const symTotal = _patients.reduce((s, p) => s + (parseInt(p.symptom_count) || 0), 0);
+  const repTotal = _patients.reduce((s, p) => s + (parseInt(p.report_count)  || 0), 0);
 
-  renderPatientList("dashPatientList", _patients.slice(0,3));
+  document.getElementById("statPat").textContent  = _patients.length;
+  document.getElementById("statSym").textContent  = symTotal;
+  document.getElementById("statRep").textContent  = repTotal;
+  document.getElementById("vStatPat").textContent = _patients.length;
+  document.getElementById("vStatSym").textContent = symTotal;
+  document.getElementById("vStatRep").textContent = repTotal;
+
+  renderPatientList("dashPatientList", _patients.slice(0, 3));
   renderPatientList("allPatientList",  _patients);
 }
 
@@ -1076,16 +838,13 @@ function renderPatientList(containerId, patients) {
   const list = document.getElementById(containerId);
   if (!list) return;
   if (!patients.length) {
-    list.innerHTML = `<div class="empty-box">
-      <i class="ti ti-users"></i>
-      <p>No patients connected yet.<br>Share your invite code with patients to connect.</p>
-    </div>`;
+    list.innerHTML = `<div class="empty-box"><i class="ti ti-users"></i><p>No patients connected yet.<br>Share your invite code with patients to connect.</p></div>`;
     return;
   }
-  list.innerHTML = patients.map(p => {
-    const initials = (p.name||"P").split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
-    const connDate = new Date(p.connected_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
-    return `<div class="patient-card" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
+  list.innerHTML = patients.map((p, idx) => {
+    const initials = (p.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const connDate = new Date(p.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    return `<div class="patient-card" style="animation-delay:${idx * 40}ms" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
       <div class="patient-avatar">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div class="patient-name">${p.name}</div>
@@ -1101,64 +860,11 @@ function renderPatientList(containerId, patients) {
     </div>`;
   }).join("");
 }
-function openDeleteModal() {
-  document.getElementById("deleteModal").classList.add("show");
-}
 
-function closeDeleteModal() {
-  document.getElementById("deleteModal").classList.remove("show");
-}
-
-async function deleteDoctorAccount() {
-
-  const btn = document.querySelector(".btn-delete");
-
-  btn.disabled = true;
-  btn.innerHTML = "Deleting...";
-
-  try {
-
-    const res = await fetch(
-      window.API_BASE + "/doctor/delete-account",
-      {
-        method: "DELETE",
-        headers: getDoctorHeaders()
-      }
-    );
-
-    const data = await res.json();
-
-    if (!data.success) {
-      showToast(data.message || "Delete failed", "error");
-      btn.disabled = false;
-      btn.innerHTML = "Delete Account";
-      return;
-    }
-
-    localStorage.removeItem("dhas_doctor");
-    localStorage.removeItem("dhas_doctor_token");
-
-    showToast("Account deleted successfully");
-
-    setTimeout(() => {
-      window.location.href = "doctor_login.html";
-    }, 1500);
-
-  } catch {
-
-    showToast("Cannot connect to server", "error");
-
-    btn.disabled = false;
-    btn.innerHTML = "Delete Account";
-  }
-}
-/* ─────────────────────────────────────────
-   PATIENT DETAIL
-───────────────────────────────────────── */
-function goBackFromDetail() { showView(_prevPatientView); }
+function goBackFromDetail() { showView(_prevFromView); }
 
 async function loadPatientDetail(patientId, fromView) {
-  _prevPatientView = fromView || "patients";
+  _prevFromView = fromView || "patients";
   showView("patientDetail");
   document.getElementById("detailContent").innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);">Loading…</div>`;
 
@@ -1180,60 +886,48 @@ async function loadPatientDetail(patientId, fromView) {
   ].filter(Boolean).join("");
 
   const symptomsHTML = symptoms.length ? symptoms.map(s => {
-    const level = (s.severity||"").toLowerCase().includes("high") ? "high"
-                : (s.severity||"").toLowerCase().includes("medium") ? "medium" : "low";
-    const dotColor = level==="high"?"#ef4444":level==="medium"?"#f59e0b":"#10b981";
-    let syms=""; try { syms = JSON.parse(s.symptoms).join(", "); } catch { syms = s.symptoms; }
-    return `<div class="sym-row">
-      <div class="sym-dot" style="background:${dotColor}"></div>
-      <div>
-        <div class="sym-cond">${s.condition_name||"General"}<span class="sev-tag sev-${level}">${s.severity}</span></div>
-        <div class="sym-date">${new Date(s.created_at).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})} · ${syms}</div>
-      </div>
-    </div>`;
+    const sev = (s.severity || "").toLowerCase();
+    const level = sev.includes("high") ? "high" : sev.includes("medium") ? "medium" : "low";
+    const dotColor = level === "high" ? "#ef4444" : level === "medium" ? "#f59e0b" : "#10b981";
+    let syms = "";
+    try { syms = JSON.parse(s.symptoms).join(", "); } catch { syms = s.symptoms; }
+    return `<div class="sym-row"><div class="sym-dot" style="background:${dotColor}"></div><div><div class="sym-cond">${s.condition_name || "General"}<span class="sev-tag sev-${level}">${s.severity}</span></div><div class="sym-date">${new Date(s.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · ${syms}</div></div></div>`;
   }).join("") : `<p style="font-size:.85rem;color:var(--muted);">No symptom records found.</p>`;
 
   const reportsHTML = reports.length ? reports.map(r => {
-    const icon = r.filetype==="application/pdf"?"ti-file-type-pdf":r.filetype?.startsWith("image/")?"ti-photo":"ti-file";
-    return `<div class="report-row"><i class="ti ${icon}"></i><div>
-      <div class="report-name">${r.filename}</div>
-      <div class="report-date">${new Date(r.uploaded_at).toLocaleDateString("en-IN")} · ${r.filesize}</div>
-    </div></div>`;
+    const icon = r.filetype === "application/pdf" ? "ti-file-type-pdf" : r.filetype?.startsWith("image/") ? "ti-photo" : "ti-file";
+    return `<div class="report-row"><i class="ti ${icon}"></i><div><div class="report-name">${r.filename}</div><div class="report-date">${new Date(r.uploaded_at).toLocaleDateString("en-IN")} · ${r.filesize}</div></div></div>`;
   }).join("") : `<p style="font-size:.85rem;color:var(--muted);">No reports uploaded.</p>`;
 
   document.getElementById("detailContent").innerHTML = `
     <div class="detail-header">
       <div class="detail-name">${profile.name}</div>
-      <div class="detail-email">${profile.email}${profile.phone ? " · "+profile.phone : ""}</div>
+      <div class="detail-email">${profile.email}${profile.phone ? " · " + profile.phone : ""}</div>
       <div class="detail-vitals">${vitals || '<div class="vital-chip">No vitals on record</div>'}</div>
     </div>
     <div class="info-card"><div class="info-card-title"><i class="ti ti-notes"></i>Symptom History</div>${symptomsHTML}</div>
     <div class="info-card"><div class="info-card-title"><i class="ti ti-folder-open"></i>Medical Reports</div>${reportsHTML}</div>`;
 }
 
-/* ─────────────────────────────────────────
-   EXPERTISE TAGS
-───────────────────────────────────────── */
+/* ── EXPERTISE TAGS ── */
 function renderExpertiseTags() {
-  document.getElementById("expertiseTags").innerHTML = expertiseList.map((e,i) =>
+  document.getElementById("expertiseTags").innerHTML = expertiseList.map((e, i) =>
     `<span class="tag-chip">${e}<button onclick="removeExpertise(${i})" aria-label="Remove">✕</button></span>`
   ).join("");
 }
 function addExpertise() {
   const input = document.getElementById("expertiseInput");
   const val   = input.value.trim();
-  if (!val || expertiseList.includes(val)) { input.value=""; return; }
-  expertiseList.push(val); input.value=""; renderExpertiseTags();
+  if (!val || expertiseList.includes(val)) { input.value = ""; return; }
+  expertiseList.push(val); input.value = ""; renderExpertiseTags();
 }
-function removeExpertise(i) { expertiseList.splice(i,1); renderExpertiseTags(); }
+function removeExpertise(i) { expertiseList.splice(i, 1); renderExpertiseTags(); }
 
-/* ─────────────────────────────────────────
-   PHOTO UPLOAD
-───────────────────────────────────────── */
+/* ── PHOTO UPLOAD ── */
 function handlePhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 2*1024*1024) { showToast("Photo must be under 2 MB.", "error"); return; }
+  if (file.size > 2 * 1024 * 1024) { showToast("Photo must be under 2 MB.", "error"); return; }
   const reader = new FileReader();
   reader.onload = ev => {
     profilePhotoBase64 = ev.target.result;
@@ -1242,9 +936,7 @@ function handlePhoto(input) {
   reader.readAsDataURL(file);
 }
 
-/* ─────────────────────────────────────────
-   SAVE PROFILE
-───────────────────────────────────────── */
+/* ── SAVE PROFILE ── */
 async function saveProfile() {
   const btn = document.getElementById("saveBtn");
   btn.disabled = true;
@@ -1252,7 +944,7 @@ async function saveProfile() {
 
   const payload = {
     speciality:       document.getElementById("fSpec").value,
-    experience_years: parseInt(document.getElementById("fExpYears").value)||null,
+    experience_years: parseInt(document.getElementById("fExpYears").value) || null,
     hospital:         document.getElementById("fHospital").value.trim(),
     city:             document.getElementById("fCity").value.trim(),
     state:            document.getElementById("fState").value.trim(),
@@ -1263,9 +955,7 @@ async function saveProfile() {
   };
 
   try {
-    const res  = await fetch(window.API_BASE + "/doctor/profile/update", {
-      method:"POST", headers:getDoctorHeaders(), body:JSON.stringify(payload)
-    });
+    const res  = await fetch(window.API_BASE + "/doctor/profile/update", { method: "POST", headers: getDoctorHeaders(), body: JSON.stringify(payload) });
     const data = await res.json();
     if (data.success) {
       showToast("Profile updated successfully!");
@@ -1276,48 +966,43 @@ async function saveProfile() {
     } else {
       showToast(data.message || "Save failed.", "error");
     }
-  } catch { showToast("Cannot connect to server.", "error"); }
-  finally {
+  } catch {
+    showToast("Cannot connect to server.", "error");
+  } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="ti ti-device-floppy" style="font-size:15px"></i> Save Profile';
   }
 }
 
-/* ─────────────────────────────────────────
-   CHANGE PASSWORD
-───────────────────────────────────────── */
-const PW_RULES = {
-  len:   v => v.length >= 6,
-  upper: v => /[A-Z]/.test(v),
-  lower: v => /[a-z]/.test(v),
-  num:   v => /[0-9]/.test(v),
-  sym:   v => /[^A-Za-z0-9]/.test(v)
-};
+/* ── CHANGE PASSWORD ── */
+const PW_RULES = { len: v => v.length >= 6, upper: v => /[A-Z]/.test(v), lower: v => /[a-z]/.test(v), num: v => /[0-9]/.test(v), sym: v => /[^A-Za-z0-9]/.test(v) };
 function evalPwStrength(val) {
-  Object.keys(PW_RULES).forEach(k => document.getElementById("pr-"+k)?.classList.toggle("ok", PW_RULES[k](val)));
-  const score = Object.values(PW_RULES).filter(fn=>fn(val)).length;
-  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score*4/5));
-  const colors = ["","#e74c3c","#e67e22","#f1c40f","#27ae60"];
-  const labels = ["","Weak","Fair","Good","Strong"];
-  const color  = colors[bars]||"#e0e0e0";
-  for (let i=1;i<=4;i++) document.getElementById("ps"+i).style.background = i<=bars?color:"";
+  Object.keys(PW_RULES).forEach(k => document.getElementById("pr-" + k)?.classList.toggle("ok", PW_RULES[k](val)));
+  const score = Object.values(PW_RULES).filter(fn => fn(val)).length;
+  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+  const colors = ["", "#e74c3c", "#e67e22", "#f1c40f", "#27ae60"];
+  const labels = ["", "Weak", "Fair", "Good", "Strong"];
+  const color  = colors[bars] || "#e0e0e0";
+  for (let i = 1; i <= 4; i++) document.getElementById("ps" + i).style.background = i <= bars ? color : "";
   const lbl = document.getElementById("pwStrengthLbl");
-  lbl.textContent = val.length===0?"—":(labels[bars]||"—");
-  lbl.style.color = val.length===0?"var(--muted)":color;
+  lbl.textContent = val.length === 0 ? "—" : (labels[bars] || "—");
+  lbl.style.color = val.length === 0 ? "var(--muted)" : color;
 }
-function isPwStrong(v) { return Object.values(PW_RULES).every(fn=>fn(v)); }
+function isPwStrong(v) { return Object.values(PW_RULES).every(fn => fn(v)); }
 
 function toggleEye(fieldId, iconId) {
-  const f=document.getElementById(fieldId), e=document.getElementById(iconId);
-  const h=f.type==="password"; f.type=h?"text":"password";
-  e.innerHTML=h
-    ?`<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
-    :`<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+  const f = document.getElementById(fieldId);
+  const e = document.getElementById(iconId);
+  const h = f.type === "password";
+  f.type = h ? "text" : "password";
+  e.innerHTML = h
+    ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
 }
 
 function showPwAlert(msg, type) {
   const a = document.getElementById("pwAlert");
-  a.textContent = msg; a.className = "pw-alert "+type; a.style.display = "block";
+  a.textContent = msg; a.className = "pw-alert " + type; a.style.display = "block";
 }
 
 async function savePwChange() {
@@ -1327,27 +1012,23 @@ async function savePwChange() {
   const btn     = document.getElementById("pwSaveBtn");
   document.getElementById("pwAlert").style.display = "none";
 
-  if (!current)         { showPwAlert("Please enter your current password.", "error"); return; }
-  if (!isPwStrong(next)){ showPwAlert("New password must meet all requirements.", "error"); return; }
-  if (next !== confirm) { showPwAlert("Passwords do not match.", "error"); return; }
-  if (current === next) { showPwAlert("New password must differ from current.", "error"); return; }
+  if (!current)          { showPwAlert("Please enter your current password.", "error"); return; }
+  if (!isPwStrong(next)) { showPwAlert("New password must meet all requirements.", "error"); return; }
+  if (next !== confirm)  { showPwAlert("Passwords do not match.", "error"); return; }
+  if (current === next)  { showPwAlert("New password must differ from current.", "error"); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Updating…';
 
   try {
     const res  = await fetch(window.API_BASE + "/profile/change-password", {
-      method:"POST", headers:getDoctorHeaders(),
-      body:JSON.stringify({ current_password:current, new_password:next })
+      method: "POST", headers: getDoctorHeaders(),
+      body: JSON.stringify({ current_password: current, new_password: next })
     });
     const data = await res.json();
     if (data.success) {
       showPwAlert("Password changed! Logging you out…", "success");
-      setTimeout(() => {
-        localStorage.removeItem("dhas_doctor");
-        localStorage.removeItem("dhas_doctor_token");
-        window.location.href = "doctor_login.html";
-      }, 2000);
+      setTimeout(() => { localStorage.removeItem("dhas_doctor"); localStorage.removeItem("dhas_doctor_token"); window.location.href = "doctor_login.html"; }, 2000);
     } else {
       showPwAlert(data.message || "Failed to change password.", "error");
       btn.disabled = false;
@@ -1360,37 +1041,44 @@ async function savePwChange() {
   }
 }
 
-/* ─────────────────────────────────────────
-   INIT
-───────────────────────────────────────── */
+/* ── LOGOUT ── */
+async function doLogout() {
+  const ok = await showConfirm({ title: "Log out?", msg: "You will be signed out of the Doctor Portal.", okLabel: "Log Out", okType: "warning", icon: "ti-logout" });
+  if (!ok) return;
+  localStorage.removeItem("dhas_doctor");
+  localStorage.removeItem("dhas_doctor_token");
+  window.location.href = "doctor_login.html";
+}
+
+/* ── DELETE ACCOUNT ── */
+async function doDeleteAccount() {
+  const ok = await showConfirm({ title: "Delete Account?", msg: "This permanently removes your doctor profile, invite code, and all patient connections. This cannot be undone.", okLabel: "Delete Account", okType: "danger", icon: "ti-trash" });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled = true; btn.textContent = "Deleting…";
+
+  try {
+    const res  = await fetch(window.API_BASE + "/doctor/delete-account", { method: "DELETE", headers: getDoctorHeaders() });
+    const data = await res.json();
+    confirmResolve(false);
+    if (data.success) {
+      localStorage.removeItem("dhas_doctor");
+      localStorage.removeItem("dhas_doctor_token");
+      showToast("Account deleted. Redirecting…", "info");
+      setTimeout(() => { window.location.href = "doctor_login.html"; }, 1800);
+    } else {
+      showToast(data.message || "Delete failed.", "error");
+    }
+  } catch {
+    confirmResolve(false);
+    showToast("Cannot connect to server.", "error");
+  }
+}
+
+/* ── INIT ── */
 loadProfile();
 loadPatients();
 </script>
-<div id="deleteModal" class="delete-modal">
-  <div class="delete-box">
-    <div class="delete-icon">
-      <i class="ti ti-alert-triangle"></i>
-    </div>
-
-    <h3>Delete Account?</h3>
-
-    <p>
-      This action cannot be undone.
-      <br><br>
-      Your doctor profile, invite code, settings, expertise,
-      profile photo and all patient connections will be removed permanently.
-    </p>
-
-    <div class="delete-actions">
-      <button class="btn-cancel" onclick="closeDeleteModal()">
-        Cancel
-      </button>
-
-      <button class="btn-delete" onclick="deleteDoctorAccount()">
-        Delete Account
-      </button>
-    </div>
-  </div>
-</div>
 </body>
 </html>

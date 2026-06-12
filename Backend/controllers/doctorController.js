@@ -15,28 +15,27 @@ function generateInviteCode() {
 
 /* ── REGISTER ── */
 const registerDoctor = async (req, res) => {
-    const { name, email, password ,speciality} = req.body;
+    const { name, email, password, speciality } = req.body;
     if (!name || !email || !password || !speciality)
-        return res.json({ success: false, message: "Name, email and password are required." });
+        return res.json({ success: false, message: "Name, email, password and speciality are required." });
 
     try {
         const [exists] = await db.promise().query("SELECT id FROM doctors WHERE email = ?", [email.toLowerCase()]);
         if (exists.length > 0)
             return res.json({ success: false, message: "Email already registered.", alreadyExists: true });
 
-        const hash       = await bcrypt.hash(password, 10);
-        let invite_code  = generateInviteCode();
-
+        const hash = await bcrypt.hash(password, 10);
+        let invite_code = generateInviteCode();
         let [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         while (codeCheck.length > 0) {
             invite_code = generateInviteCode();
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
 
-       const [result] = await db.promise().query(
-    "INSERT INTO doctors (name, email, password, speciality, invite_code, is_verified) VALUES (?, ?, ?, ?, ?, 1)",
-    [name.trim(), email.toLowerCase(), hash, speciality, invite_code]
-); 
+        await db.promise().query(
+            "INSERT INTO doctors (name, email, password, speciality, invite_code, is_verified) VALUES (?, ?, ?, ?, ?, 1)",
+            [name.trim(), email.toLowerCase(), hash, speciality, invite_code]
+        );
 
         res.json({ success: true, message: "Doctor account created! Please login." });
     } catch (err) {
@@ -84,13 +83,13 @@ const loginDoctor = async (req, res) => {
     }
 };
 
-/* ── GET DOCTOR PROFILE (authenticated — for own dashboard) ── */
+/* ── GET DOCTOR PROFILE (authenticated) ── */
 const getDoctorProfile = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
             `SELECT id, name, email, speciality, invite_code, created_at,
-       experience_years, hospital, city, state,
-       languages, bio, expertise, profile_photo, is_verified
+                    experience_years, hospital, city, state,
+                    languages, bio, expertise, profile_photo, is_verified
              FROM doctors WHERE id = ?`,
             [req.doctorId]
         );
@@ -110,7 +109,6 @@ const updateDoctorProfile = async (req, res) => {
     } = req.body;
 
     try {
-        // Build update fields dynamically — only update what's sent
         const fields = [];
         const values = [];
 
@@ -140,10 +138,9 @@ const updateDoctorProfile = async (req, res) => {
             values
         );
 
-        // Return fresh profile
         const [rows] = await db.promise().query(
             `SELECT id, name, email, speciality, invite_code, created_at,
-                    experience_years,  hospital, city, state,
+                    experience_years, hospital, city, state,
                     languages, bio, expertise, profile_photo, is_verified
              FROM doctors WHERE id = ?`,
             [doctorId]
@@ -180,7 +177,7 @@ const getPublicDoctor = async (req, res) => {
     }
 };
 
-/* ── GET ALL VERIFIED DOCTORS (public — for patient directory) ── */
+/* ── GET ALL VERIFIED DOCTORS (public) ── */
 const getAllDoctors = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
@@ -199,7 +196,7 @@ const getAllDoctors = async (req, res) => {
     }
 };
 
-/* ── GET CONNECTED PATIENTS ── */
+/* ── GET CONNECTED PATIENTS (doctor view) ── */
 const getPatients = async (req, res) => {
     const doctorId = req.doctorId;
     try {
@@ -222,7 +219,7 @@ const getPatients = async (req, res) => {
     }
 };
 
-/* ── GET PATIENT DETAIL ── */
+/* ── GET PATIENT DETAIL (doctor view) ── */
 const getPatientDetail = async (req, res) => {
     const doctorId  = req.doctorId;
     const patientId = parseInt(req.params.patient_id);
@@ -260,7 +257,7 @@ const getPatientDetail = async (req, res) => {
 
 /* ── CONNECT PATIENT TO DOCTOR (called by patient) ── */
 const connectDoctor = async (req, res) => {
-    const patientId  = req.userId;
+    const patientId   = req.userId;
     const { invite_code } = req.body;
 
     if (!invite_code)
@@ -296,6 +293,34 @@ const connectDoctor = async (req, res) => {
     } catch (err) {
         console.error("connectDoctor error:", err.message);
         res.json({ success: false, message: "Failed to connect. Please try again." });
+    }
+};
+
+/* ── GET MY DOCTORS (patient view — their connected doctors) ── */
+const getMyDoctors = async (req, res) => {
+    const requestedId = parseInt(req.params.user_id);
+
+    // Security: patients can only fetch their own doctor list
+    if (parseInt(req.userId) !== requestedId) {
+        return res.status(403).json({ success: false, message: "Access denied." });
+    }
+
+    try {
+        const [rows] = await db.promise().query(
+            `SELECT d.id, d.name, d.speciality, d.invite_code,
+                    d.hospital, d.city, d.state, d.experience_years,
+                    d.languages, d.bio, d.profile_photo, d.is_verified,
+                    dpc.connected_at
+             FROM doctor_patient_connections dpc
+             JOIN doctors d ON d.id = dpc.doctor_id
+             WHERE dpc.patient_id = ?
+             ORDER BY dpc.connected_at DESC`,
+            [requestedId]
+        );
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        console.error("getMyDoctors error:", err.message);
+        res.json({ success: false, message: "Failed to load your doctors." });
     }
 };
 
@@ -336,19 +361,13 @@ const googleAuthDoctor = async (req, res) => {
             invite_code = generateInviteCode();
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
-const [result] = await db.promise().query(
-    `INSERT INTO doctors
-     (name, email, password, speciality, invite_code, google_id, is_verified)
-     VALUES (?, ?, NULL, ?, ?, ?, 1)`,
-    [
-        name || "Doctor",
-        email.toLowerCase(),
-        "General Physician",
-        invite_code,
-        google_id
-    ]
-);
-      
+
+        const [result] = await db.promise().query(
+            `INSERT INTO doctors
+             (name, email, password, speciality, invite_code, google_id, is_verified)
+             VALUES (?, ?, NULL, ?, ?, ?, 1)`,
+            [name || "Doctor", email.toLowerCase(), "General Physician", invite_code, google_id]
+        );
 
         const token = signToken(result.insertId);
         res.json({
@@ -364,32 +383,23 @@ const [result] = await db.promise().query(
         res.json({ success: false, message: "Google sign-in failed. Please try again." });
     }
 };
+
+/* ── DELETE DOCTOR ACCOUNT ── */
 const deleteDoctorAccount = async (req, res) => {
     const doctorId = req.doctorId;
-
     try {
         await db.promise().query(
             "DELETE FROM doctor_patient_connections WHERE doctor_id = ?",
             [doctorId]
         );
-
         await db.promise().query(
             "DELETE FROM doctors WHERE id = ?",
             [doctorId]
         );
-
-        return res.json({
-            success: true,
-            message: "Doctor account deleted successfully."
-        });
-
+        return res.json({ success: true, message: "Doctor account deleted successfully." });
     } catch (err) {
         console.error("deleteDoctorAccount error:", err);
-
-        return res.status(500).json({
-            success: false,
-            message: "Failed to delete account."
-        });
+        return res.status(500).json({ success: false, message: "Failed to delete account." });
     }
 };
 
@@ -397,5 +407,6 @@ module.exports = {
     registerDoctor, loginDoctor,
     getDoctorProfile, updateDoctorProfile, getPublicDoctor,
     getAllDoctors, getPatients, getPatientDetail,
-    connectDoctor, googleAuthDoctor,deleteDoctorAccount
+    connectDoctor, googleAuthDoctor, deleteDoctorAccount,
+    getMyDoctors
 };
