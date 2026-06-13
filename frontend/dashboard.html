@@ -281,21 +281,23 @@
     .action-tile::before { content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s; }
     .action-tile:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
     .action-tile:hover::before { opacity:1; }
-    .action-tile.c-blue::before   { background:rgba(42,108,246,.06); }
-    .action-tile.c-teal::before   { background:rgba(0,201,177,.06); }
-    .action-tile.c-amber::before  { background:rgba(244,160,53,.06); }
-    .action-tile.c-rose::before   { background:rgba(242,92,125,.06); }
-    .action-tile.c-green::before  { background:rgba(34,208,122,.06); }
-    .action-tile.c-purple::before { background:rgba(130,80,255,.06); }
+    .action-tile.c-blue::before    { background:rgba(42,108,246,.06); }
+    .action-tile.c-teal::before    { background:rgba(0,201,177,.06); }
+    .action-tile.c-amber::before   { background:rgba(244,160,53,.06); }
+    .action-tile.c-rose::before    { background:rgba(242,92,125,.06); }
+    .action-tile.c-green::before   { background:rgba(34,208,122,.06); }
+    .action-tile.c-purple::before  { background:rgba(130,80,255,.06); }
+    .action-tile.c-docgreen::before{ background:rgba(5,150,105,.06); }
     .at-icon { width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;transition:transform .2s; }
     .at-icon i { font-size:22px; }
     .action-tile:hover .at-icon { transform:scale(1.1); }
-    .action-tile.c-blue   .at-icon { background:#eff6ff; color:var(--blue); }
-    .action-tile.c-teal   .at-icon { background:#e6faf8; color:var(--teal); }
-    .action-tile.c-amber  .at-icon { background:#fff8ec; color:var(--amber); }
-    .action-tile.c-rose   .at-icon { background:#fff0f4; color:var(--rose); }
-    .action-tile.c-green  .at-icon { background:#edfdf4; color:var(--green); }
-    .action-tile.c-purple .at-icon { background:#f3efff; color:var(--purple); }
+    .action-tile.c-blue     .at-icon { background:#eff6ff;    color:var(--blue);   }
+    .action-tile.c-teal     .at-icon { background:#e6faf8;    color:var(--teal);   }
+    .action-tile.c-amber    .at-icon { background:#fff8ec;    color:var(--amber);  }
+    .action-tile.c-rose     .at-icon { background:#fff0f4;    color:var(--rose);   }
+    .action-tile.c-green    .at-icon { background:#edfdf4;    color:var(--green);  }
+    .action-tile.c-purple   .at-icon { background:#f3efff;    color:var(--purple); }
+    .action-tile.c-docgreen .at-icon { background:#e6faf8;    color:#059669;       }
     .at-lbl { font-size:.75rem;font-weight:600;color:var(--text);text-align:center; }
 
     /* ── REMINDERS STRIP ── */
@@ -320,49 +322,6 @@
     html.dark .rem-pill,                body.dark .rem-pill                { background:rgba(42,108,246,.15);  color:#7aafff;  }
     html.dark .rem-card.warn .rem-pill, body.dark .rem-card.warn .rem-pill { background:rgba(244,160,53,.15);  color:#fbbf6a;  }
     html.dark .rem-card.ok   .rem-pill, body.dark .rem-card.ok   .rem-pill { background:rgba(34,208,122,.15);  color:#4ade80;  }
-
-    /* ── MY DOCTORS ── */
-    .doctor-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scroll-snap-type:x mandatory; -ms-overflow-style:none; scrollbar-width:none; }
-    .doctor-strip::-webkit-scrollbar { display:none; }
-
-    .doc-card {
-      min-width:200px; flex-shrink:0; scroll-snap-align:start;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:var(--radius); padding:0; box-shadow:var(--shadow);
-      overflow:hidden; transition:border-color .2s, transform .18s;
-    }
-    .doc-card:hover { border-color:#059669; transform:translateY(-2px); }
-    .doc-card-accent { height:3px; background:linear-gradient(90deg,#059669,var(--teal)); }
-    .doc-card-body { padding:14px; }
-    .doc-card-avatar {
-      width:46px; height:46px; border-radius:50%; flex-shrink:0;
-      background:linear-gradient(135deg,#059669,#00c9b1);
-      display:flex; align-items:center; justify-content:center;
-      font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700; color:#fff;
-      margin-bottom:10px; overflow:hidden;
-    }
-    .doc-card-avatar img { width:100%;height:100%;object-fit:cover; }
-    .doc-card-name { font-weight:700; font-size:.88rem; color:var(--text); margin-bottom:3px; }
-    .doc-card-spec {
-      display:inline-flex; align-items:center; gap:4px;
-      background:rgba(5,150,105,.08); border:1px solid rgba(5,150,105,.18);
-      border-radius:20px; padding:2px 9px;
-      font-size:.68rem; font-weight:700; color:#059669; margin-bottom:10px;
-    }
-    html.dark .doc-card-spec, body.dark .doc-card-spec { background:rgba(5,150,105,.15); border-color:rgba(5,150,105,.3); color:#34d399; }
-    .doc-card-spec i { font-size:10px; }
-    .doc-card-invite {
-      font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:5px;
-    }
-    .doc-card-invite strong { color:var(--text); letter-spacing:.8px; font-weight:800; font-size:.75rem; }
-    .doc-view-btn {
-      width:100%; padding:7px; text-align:center;
-      background:rgba(5,150,105,.07); border-top:1px solid rgba(5,150,105,.12);
-      color:#059669; font-size:.75rem; font-weight:700;
-      cursor:pointer; transition:background .18s; text-decoration:none;
-      display:block;
-    }
-    .doc-view-btn:hover { background:rgba(5,150,105,.14); }
 
     /* ── CONNECT DOCTOR CARD ── */
     .connect-card {
@@ -432,16 +391,17 @@
     </button>
   </div>
 
-  <a href="dashboard.html" class="side-link active"><i class="ti ti-layout-dashboard"></i><span data-i18n="dashboard">Dashboard</span></a>
-  <a href="symptom.html"   class="side-link"><i class="ti ti-notes"></i><span data-i18n="symptoms">Symptoms</span></a>
-  <a href="reports.html"   class="side-link"><i class="ti ti-report-medical"></i><span data-i18n="reports">Reports</span></a>
-  <a href="diet.html"      class="side-link"><i class="ti ti-salad"></i><span data-i18n="diet">Diet</span></a>
-  <a href="remedies.html"  class="side-link"><i class="ti ti-plant"></i><span data-i18n="remedies">Remedies</span></a>
-  <a href="reminder.html"  class="side-link"><i class="ti ti-clock"></i><span data-i18n="reminders">Reminders</span></a>
-  <a href="steps.html"     class="side-link"><i class="ti ti-run"></i><span data-i18n="steps">Steps</span></a>
+  <a href="dashboard.html"   class="side-link active"><i class="ti ti-layout-dashboard"></i><span data-i18n="dashboard">Dashboard</span></a>
+  <a href="symptom.html"     class="side-link"><i class="ti ti-notes"></i><span data-i18n="symptoms">Symptoms</span></a>
+  <a href="reports.html"     class="side-link"><i class="ti ti-report-medical"></i><span data-i18n="reports">Reports</span></a>
+  <a href="diet.html"        class="side-link"><i class="ti ti-salad"></i><span data-i18n="diet">Diet</span></a>
+  <a href="remedies.html"    class="side-link"><i class="ti ti-plant"></i><span data-i18n="remedies">Remedies</span></a>
+  <a href="reminder.html"    class="side-link"><i class="ti ti-clock"></i><span data-i18n="reminders">Reminders</span></a>
+  <a href="steps.html"       class="side-link"><i class="ti ti-run"></i><span data-i18n="steps">Steps</span></a>
   <a href="find_doctor.html" class="side-link"><i class="ti ti-stethoscope"></i><span>Find Doctor</span></a>
-  <a href="language.html"  class="side-link"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
-  <a href="profile.html"   class="side-link"><i class="ti ti-user-circle"></i><span data-i18n="profile">Profile</span></a>
+  <a href="my_doctors.html"  class="side-link"><i class="ti ti-users"></i><span>My Doctors</span></a>
+  <a href="language.html"    class="side-link"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
+  <a href="profile.html"     class="side-link"><i class="ti ti-user-circle"></i><span data-i18n="profile">Profile</span></a>
 </nav>
 
 <div class="main-layout" id="mainLayout">
@@ -476,10 +436,10 @@
             <div class="pdrop-email" id="dropEmail">user@email.com</div>
           </div>
           <div class="pdrop-divider"></div>
-          <a href="profile.html" class="pdrop-item"><i class="ti ti-user-circle"></i><span data-i18n="profile">My Profile</span></a>
-          <a href="profile_details.html" class="pdrop-item"><i class="ti ti-edit"></i>Edit Profile</a>
-          <a href="change_password.html" class="pdrop-item"><i class="ti ti-lock"></i>Change Password</a>
-          <a href="language.html" class="pdrop-item"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
+          <a href="profile.html"         class="pdrop-item"><i class="ti ti-user-circle"></i><span data-i18n="profile">My Profile</span></a>
+          <a href="profile_details.html"  class="pdrop-item"><i class="ti ti-edit"></i>Edit Profile</a>
+          <a href="change_password.html"  class="pdrop-item"><i class="ti ti-lock"></i>Change Password</a>
+          <a href="language.html"         class="pdrop-item"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
           <div class="pdrop-divider"></div>
           <div class="pdrop-item danger" onclick="handleLogout()"><i class="ti ti-logout"></i><span data-i18n="logout">Logout</span></div>
         </div>
@@ -529,28 +489,27 @@
       <div class="sec-title" data-i18n="quickActions">Quick Actions</div>
     </div>
     <div class="actions-grid">
-      <a href="symptom.html"      class="action-tile c-blue">  <div class="at-icon"><i class="ti ti-notes"></i></div>          <div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
-      <a href="reports.html"      class="action-tile c-teal">  <div class="at-icon"><i class="ti ti-report-medical"></i></div>   <div class="at-lbl" data-i18n="reports">Reports</div></a>
-      <a href="diet.html"         class="action-tile c-amber"> <div class="at-icon"><i class="ti ti-salad"></i></div>           <div class="at-lbl" data-i18n="diet">Diet</div></a>
-      <a href="remedies.html"     class="action-tile c-green"> <div class="at-icon"><i class="ti ti-plant"></i></div>           <div class="at-lbl" data-i18n="remedies">Remedies</div></a>
-      <a href="reminder.html"     class="action-tile c-rose">  <div class="at-icon"><i class="ti ti-clock"></i></div>           <div class="at-lbl" data-i18n="reminders">Reminders</div></a>
-      <a href="steps.html"        class="action-tile c-purple"><div class="at-icon"><i class="ti ti-run"></i></div>             <div class="at-lbl" data-i18n="steps">Steps</div></a>
-      <a href="find_doctor.html"  class="action-tile c-teal">  <div class="at-icon"><i class="ti ti-stethoscope"></i></div>     <div class="at-lbl">Find Doctor</div></a>
+      <a href="symptom.html"     class="action-tile c-blue">     <div class="at-icon"><i class="ti ti-notes"></i></div>            <div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
+      <a href="reports.html"     class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-report-medical"></i></div>    <div class="at-lbl" data-i18n="reports">Reports</div></a>
+      <a href="diet.html"        class="action-tile c-amber">    <div class="at-icon"><i class="ti ti-salad"></i></div>            <div class="at-lbl" data-i18n="diet">Diet</div></a>
+      <a href="remedies.html"    class="action-tile c-green">    <div class="at-icon"><i class="ti ti-plant"></i></div>            <div class="at-lbl" data-i18n="remedies">Remedies</div></a>
+      <a href="reminder.html"    class="action-tile c-rose">     <div class="at-icon"><i class="ti ti-clock"></i></div>            <div class="at-lbl" data-i18n="reminders">Reminders</div></a>
+      <a href="steps.html"       class="action-tile c-purple">   <div class="at-icon"><i class="ti ti-run"></i></div>              <div class="at-lbl" data-i18n="steps">Steps</div></a>
+      <a href="find_doctor.html" class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-stethoscope"></i></div>      <div class="at-lbl">Find Doctor</div></a>
+      <a href="my_doctors.html"  class="action-tile c-docgreen"> <div class="at-icon"><i class="ti ti-users"></i></div>            <div class="at-lbl">My Doctors</div></a>
     </div>
 
-    <!-- MY DOCTORS -->
+    <!-- CONNECT WITH DOCTOR -->
     <div class="sec-head">
-      <div class="sec-title">My doctors </div>
-      <a href="find_doctor.html" class="sec-link">Browse all →</a>
+      <div class="sec-title">Connect with a Doctor</div>
+      <a href="my_doctors.html" class="sec-link">My doctors →</a>
     </div>
-
-    <!-- Connect card -->
     <div class="connect-card">
       <div class="connect-card-head">
         <div class="connect-icon-wrap"><i class="ti ti-link"></i></div>
         <div class="connect-head-text">
-          <div class="ctitle">Connect with a Doctor</div>
-          <div class="csub">Enter the invite code of a doctor </div>
+          <div class="ctitle">Enter an Invite Code</div>
+          <div class="csub">Get the code from your doctor and connect instantly</div>
         </div>
       </div>
       <div class="connect-input-row">
@@ -562,16 +521,8 @@
       <div class="connect-msg" id="connectMsg"></div>
     </div>
 
-    <div class="doctor-strip" id="doctorStrip">
-      <div class="rem-card" style="min-width:200px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">
-        <span class="skeleton" style="width:46px;height:46px;border-radius:50%;display:block;margin:0 auto 10px;"></span>
-        <span class="skeleton" style="width:120px;height:14px;border-radius:4px;display:block;margin:0 auto 6px;"></span>
-        <span class="skeleton" style="width:80px;height:12px;border-radius:4px;display:block;margin:0 auto;"></span>
-      </div>
-    </div>
-
     <!-- TODAY'S REMINDERS -->
-    <div class="sec-head" style="margin-top:20px;">
+    <div class="sec-head">
       <div class="sec-title" data-i18n="activeReminders">Today's Active Reminders</div>
       <a href="saved_reminders.html" class="sec-link">Manage →</a>
     </div>
@@ -698,7 +649,7 @@ function renderSnapshot(p) {
 
 /* ── Connect to Doctor ── */
 async function connectToDoctor() {
-  const code = document.getElementById("inviteCodeInput").value.trim();
+  const code  = document.getElementById("inviteCodeInput").value.trim();
   const msgEl = document.getElementById("connectMsg");
   const btn   = document.getElementById("connectBtn");
 
@@ -728,7 +679,6 @@ async function connectToDoctor() {
     if (data.success) {
       document.getElementById("inviteCodeInput").value = "";
       setTimeout(() => { msgEl.style.display = "none"; }, 4000);
-      loadDoctors(); // refresh the strip
     }
   } catch {
     msgEl.textContent = "Cannot connect to server.";
@@ -737,42 +687,6 @@ async function connectToDoctor() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="ti ti-link"></i> Connect';
-  }
-}
-
-/* ── Load My Doctors ── */
-async function loadDoctors() {
-  if (!user.id) return;
-  const strip = document.getElementById("doctorStrip");
-  try {
-    const res  = await fetch(`${BASE}/doctor/my-doctors/${user.id}`, { headers: window.getAuthHeaders() });
-    const data = await res.json();
-    const doctors = data.success ? (data.data || []) : [];
-
-    if (!doctors.length) {
-      strip.innerHTML = `<div class="rem-card" style="min-width:240px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">No doctors connected yet.<br><a href="find_doctor.html" style="color:var(--blue);font-weight:600;">Browse directory →</a></div>`;
-      return;
-    }
-
-    strip.innerHTML = doctors.slice(0, 6).map(d => {
-      const initials = (d.name || "D").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-      const avatarContent = d.profile_photo
-        ? `<img src="${d.profile_photo}" alt="${d.name}">`
-        : initials;
-      return `
-        <div class="doc-card">
-          <div class="doc-card-accent"></div>
-          <div class="doc-card-body">
-            <div class="doc-card-avatar">${avatarContent}</div>
-            <div class="doc-card-name">Dr. ${d.name || ""}</div>
-            <div class="doc-card-spec"><i class="ti ti-stethoscope"></i>${d.speciality || "General Physician"}</div>
-            <div class="doc-card-invite"><i class="ti ti-key" style="font-size:12px;"></i>&nbsp;<strong>${d.invite_code}</strong></div>
-          </div>
-          <a href="doctor_profile_public.html?id=${d.id}" class="doc-view-btn">View Profile →</a>
-        </div>`;
-    }).join("");
-  } catch {
-    strip.innerHTML = `<div class="rem-card" style="min-width:200px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">Could not load doctors.</div>`;
   }
 }
 
@@ -842,7 +756,6 @@ s.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
 document.head.appendChild(s);
 
 loadDashboard();
-loadDoctors();
 </script>
 </body>
 </html>

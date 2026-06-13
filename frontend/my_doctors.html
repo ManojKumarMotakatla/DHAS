@@ -74,13 +74,13 @@
       transition: all .2s; box-shadow: 0 3px 12px rgba(5,150,105,.3);
       text-decoration: none;
     }
-    .topbar-action:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(5,150,105,.4); }
+    .topbar-action:hover { transform: translateY(-1px); }
     .topbar-action i { font-size: 14px; }
 
     /* ── PAGE ── */
     .page { max-width: 600px; margin: 0 auto; padding: 20px 16px 80px; }
 
-    /* ── HERO HEADER ── */
+    /* ── HERO ── */
     .hero {
       background: linear-gradient(135deg, #064e3b 0%, #059669 55%, #00c9b1 100%);
       border-radius: 22px; padding: 28px 22px 24px; margin-bottom: 20px;
@@ -90,13 +90,6 @@
       content: ''; position: absolute; top: -40px; right: -40px;
       width: 180px; height: 180px; border-radius: 50%;
       background: radial-gradient(circle, rgba(255,255,255,.12), transparent 70%);
-      pointer-events: none;
-    }
-    .hero::after {
-      content: ''; position: absolute; bottom: -50px; left: 20%;
-      width: 200px; height: 200px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(0,201,177,.15), transparent 70%);
-      pointer-events: none;
     }
     .hero-icon-wrap {
       width: 58px; height: 58px; border-radius: 16px;
@@ -137,9 +130,7 @@
       border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px;
       box-shadow: var(--shadow);
     }
-    .connect-head {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
-    }
+    .connect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .connect-icon {
       width: 40px; height: 40px; border-radius: 11px;
       background: linear-gradient(135deg, #e6faf8, #d1fae5);
@@ -174,15 +165,14 @@
       font-size: .82rem; font-weight: 600; display: none;
     }
     .connect-msg.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .connect-msg.pending { background: #fff8ec; color: #92400e; border: 1px solid #fcd34d; }
     .connect-msg.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     body.dark .connect-msg.success { background: rgba(5,150,105,.15); border-color: rgba(5,150,105,.4); color: #6ee7b7; }
-    body.dark .connect-msg.error   { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.4); color: #fca5a5; }
+    body.dark .connect-msg.pending { background: rgba(244,160,53,.15); border-color: rgba(244,160,53,.4); color: #fcd34d; }
+    body.dark .connect-msg.error   { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.4);  color: #fca5a5; }
 
     /* ── SECTION LABEL ── */
-    .section-label {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px;
-    }
+    .section-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .section-label-title {
       font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 600; color: var(--text);
       display: flex; align-items: center; gap: 8px;
@@ -194,6 +184,20 @@
       font-size: .72rem; font-weight: 700; color: var(--green);
     }
 
+    /* ── STATUS BADGE ── */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .status-badge i { font-size: 11px; }
+    .status-badge.accepted  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .status-badge.pending   { background: #fff8ec; color: #92400e; border: 1px solid #fcd34d; }
+    .status-badge.rejected  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    body.dark .status-badge.accepted { background: rgba(5,150,105,.15); border-color: rgba(5,150,105,.3); color: #6ee7b7; }
+    body.dark .status-badge.pending  { background: rgba(244,160,53,.15); border-color: rgba(244,160,53,.3); color: #fcd34d; }
+    body.dark .status-badge.rejected { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.3);  color: #fca5a5; }
+
     /* ── DOCTOR CARD ── */
     .doctor-card {
       background: var(--surface); border: 1.5px solid var(--border);
@@ -203,9 +207,15 @@
       animation: slideIn .3s ease both;
     }
     @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .doctor-card:hover { border-color: var(--green); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .doctor-card:hover { box-shadow: var(--shadow-md); }
+    .doctor-card.accepted:hover { border-color: var(--green); transform: translateY(-2px); }
+    .doctor-card.pending  { border-color: #fcd34d; }
+    .doctor-card.rejected { border-color: #fca5a5; opacity: .8; }
 
-    .card-accent-bar { height: 4px; background: linear-gradient(90deg, var(--green), var(--teal)); }
+    .card-accent-bar { height: 4px; }
+    .card-accent-bar.accepted { background: linear-gradient(90deg, var(--green), var(--teal)); }
+    .card-accent-bar.pending  { background: linear-gradient(90deg, var(--amber), #fcd34d); }
+    .card-accent-bar.rejected { background: linear-gradient(90deg, var(--rose), #fca5a5); }
 
     .card-body { padding: 16px 18px 14px; }
     .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
@@ -227,9 +237,10 @@
     .verified-dot i { font-size: 8px; color: #fff; }
 
     .doc-info { flex: 1; min-width: 0; }
+    .doc-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
     .doc-name {
       font-family: 'Fraunces', serif; font-weight: 700;
-      font-size: 1.05rem; color: var(--text); margin-bottom: 4px;
+      font-size: 1.05rem; color: var(--text);
     }
     .doc-spec {
       display: inline-flex; align-items: center; gap: 5px;
@@ -243,7 +254,7 @@
     .doc-meta-item { display: flex; align-items: center; gap: 4px; font-size: .73rem; color: var(--muted); }
     .doc-meta-item i { font-size: 12px; }
 
-    /* Invite code pill inside card */
+    /* Invite code row — only shown for accepted */
     .invite-row {
       display: flex; align-items: center; justify-content: space-between;
       background: rgba(5,150,105,.05); border: 1px solid rgba(5,150,105,.15);
@@ -251,8 +262,39 @@
     }
     body.dark .invite-row { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.25); }
     .invite-left .invite-code-lbl { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
-    .invite-left .invite-code-val { font-size: .95rem; font-weight: 800; letter-spacing: 2px; color: var(--green); font-family: 'DM Sans', sans-serif; }
+    .invite-left .invite-code-val { font-size: .95rem; font-weight: 800; letter-spacing: 2px; color: var(--green); }
     .invite-right { display: flex; gap: 8px; }
+
+    /* Pending info row */
+    .pending-row {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(244,160,53,.07); border: 1px solid rgba(244,160,53,.2);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: .8rem; color: #92400e;
+    }
+    body.dark .pending-row { background: rgba(244,160,53,.1); border-color: rgba(244,160,53,.3); color: #fcd34d; }
+    .pending-row i { font-size: 16px; flex-shrink: 0; color: var(--amber); }
+
+    /* Rejected info row */
+    .rejected-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: rgba(242,92,125,.06); border: 1px solid rgba(242,92,125,.18);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: .8rem; color: #991b1b;
+    }
+    body.dark .rejected-row { background: rgba(242,92,125,.1); border-color: rgba(242,92,125,.3); color: #fca5a5; }
+    .rejected-row i { font-size: 16px; flex-shrink: 0; color: var(--rose); }
+    .retry-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 8px;
+      background: rgba(242,92,125,.12); border: 1px solid rgba(242,92,125,.3);
+      color: var(--rose); font-size: .74rem; font-weight: 700;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap;
+      transition: all .18s;
+    }
+    .retry-btn:hover { background: rgba(242,92,125,.2); }
+    .retry-btn i { font-size: 12px; }
+
     .mini-btn {
       display: flex; align-items: center; gap: 5px;
       padding: 6px 12px; border-radius: 8px;
@@ -266,18 +308,29 @@
     .mini-btn.view { background: linear-gradient(135deg, var(--green), var(--teal)); border-color: transparent; color: #fff; }
     .mini-btn.view:hover { opacity: .9; transform: translateY(-1px); }
 
-    /* Connected since tag */
     .connected-since {
       display: flex; align-items: center; gap: 5px;
       font-size: .72rem; color: var(--muted); margin-top: 10px;
     }
     .connected-since i { font-size: 12px; }
 
-    /* ── EMPTY STATE ── */
+    /* ── FILTER TABS ── */
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: .77rem; font-weight: 600;
+      border: 1.5px solid var(--border); background: var(--surface);
+      color: var(--muted); cursor: pointer; transition: all .18s; font-family: 'DM Sans', sans-serif;
+    }
+    .tab-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+    .tab-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
+    .tab-btn.pending-tab.active  { background: var(--amber); border-color: var(--amber); }
+    .tab-btn.rejected-tab.active { background: var(--rose);  border-color: var(--rose);  }
+
+    /* ── EMPTY ── */
     .empty-wrap {
       text-align: center; padding: 50px 20px;
       background: var(--surface); border: 1.5px dashed var(--border);
-      border-radius: var(--radius); margin-top: 4px;
+      border-radius: var(--radius);
     }
     .empty-wrap i { font-size: 52px; color: var(--muted); opacity: .3; display: block; margin: 0 auto 14px; }
     .empty-title { font-family: 'Fraunces', serif; font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
@@ -308,29 +361,6 @@
     #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
     body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
     body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
-
-    /* ── FILTER TABS ── */
-    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-    .tab-btn {
-      padding: 6px 14px; border-radius: 20px; font-size: .77rem; font-weight: 600;
-      border: 1.5px solid var(--border); background: var(--surface);
-      color: var(--muted); cursor: pointer; transition: all .18s; font-family: 'DM Sans', sans-serif;
-    }
-    .tab-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
-    .tab-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
-
-    /* ── SEARCH ── */
-    .search-wrap { position: relative; margin-bottom: 16px; }
-    .search-wrap input {
-      width: 100%; padding: 12px 16px 12px 44px;
-      border: 2px solid var(--border); border-radius: 14px;
-      font-size: .9rem; font-family: 'DM Sans', sans-serif;
-      background: var(--surface); color: var(--text); outline: none;
-      transition: border-color .2s; box-shadow: 0 2px 8px rgba(0,0,0,.04);
-    }
-    .search-wrap input:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(5,150,105,.1); }
-    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 17px; }
-    body.dark .search-wrap input { background: #052e1a; color: #c8f5e5; border-color: #0a4a28; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -370,12 +400,12 @@
       <div class="stat-lbl">Connected</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="statSpecialities">—</div>
-      <div class="stat-lbl">Specialities</div>
+      <div class="stat-val" id="statPending">—</div>
+      <div class="stat-lbl">Pending</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="statLatest">—</div>
-      <div class="stat-lbl">Latest</div>
+      <div class="stat-val" id="statTotal">—</div>
+      <div class="stat-lbl">Total</div>
     </div>
   </div>
 
@@ -400,30 +430,31 @@
     <div class="connect-msg" id="connectMsg"></div>
   </div>
 
+  <!-- FILTER TABS -->
+  <div class="filter-tabs" id="filterTabs" style="display:none;">
+    <button class="tab-btn active" data-filter="all"      onclick="setFilter('all', this)">All</button>
+    <button class="tab-btn"        data-filter="accepted" onclick="setFilter('accepted', this)">
+      <i class="ti ti-circle-check" style="font-size:12px"></i> Connected
+    </button>
+    <button class="tab-btn pending-tab"  data-filter="pending"  onclick="setFilter('pending', this)">
+      <i class="ti ti-clock" style="font-size:12px"></i> Pending
+    </button>
+    <button class="tab-btn rejected-tab" data-filter="rejected" onclick="setFilter('rejected', this)">
+      <i class="ti ti-x" style="font-size:12px"></i> Declined
+    </button>
+  </div>
+
   <!-- MY DOCTORS LIST -->
-  <div id="doctorsSection">
-
-    <div class="section-label">
-      <div class="section-label-title">
-        <i class="ti ti-users" aria-hidden="true"></i>
-        Connected Doctors
-      </div>
-      <span class="section-label-count" id="doctorCount">0</span>
+  <div class="section-label">
+    <div class="section-label-title">
+      <i class="ti ti-users" aria-hidden="true"></i>
+      <span id="listLabel">All Connections</span>
     </div>
+    <span class="section-label-count" id="doctorCount">0</span>
+  </div>
 
-    <!-- Search -->
-    <div class="search-wrap" id="searchWrap" style="display:none;">
-      <i class="ti ti-search search-icon" aria-hidden="true"></i>
-      <input type="text" id="searchInput" placeholder="Search by name or speciality…"
-             oninput="filterDoctors()">
-    </div>
-
-    <!-- Specialty filter tabs -->
-    <div class="filter-tabs" id="filterTabs" style="display:none;"></div>
-
-    <div id="doctorList">
-      <div class="loading-wrap"><div class="spinner"></div>Loading your doctors…</div>
-    </div>
+  <div id="doctorList">
+    <div class="loading-wrap"><div class="spinner"></div>Loading your doctors…</div>
   </div>
 
 </div>
@@ -433,11 +464,10 @@ const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
 if (!user || !user.id) window.location.href = "login.html";
 
-let allDoctors   = [];
-let activeSpec   = "All";
-let searchQuery  = "";
+let allDoctors  = [];
+let activeFilter = "all";
 
-// ── Toast ─────────────────────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────
 let _tt = null;
 function showToast(text, type = "success") {
   const t = document.getElementById("dhasToast");
@@ -462,7 +492,165 @@ function copyCode(code, btn) {
   }).catch(() => showToast("Code: " + code));
 }
 
-// ── Connect to doctor ─────────────────────────────────────
+// ── Retry (re-send request after rejection) ───────────────
+async function retryConnect(inviteCode) {
+  try {
+    const res  = await fetch(`${BASE}/doctor/connect`, {
+      method: "POST",
+      headers: window.getAuthHeaders(),
+      body: JSON.stringify({ invite_code: inviteCode })
+    });
+    const data = await res.json();
+    showToast(data.message || (data.success ? "Request re-sent!" : "Failed."),
+              data.success ? "success" : "error");
+    if (data.success) await loadDoctors();
+  } catch {
+    showToast("Cannot connect to server.", "error");
+  }
+}
+
+// ── Filter ─────────────────────────────────────────────────
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  const labels = {
+    all: "All Connections",
+    accepted: "Connected Doctors",
+    pending: "Pending Requests",
+    rejected: "Declined Requests"
+  };
+  document.getElementById("listLabel").textContent = labels[filter] || "All Connections";
+  renderList();
+}
+
+// ── Build doctor card HTML ─────────────────────────────────
+function buildCard(d, idx) {
+  const status   = d.status || "accepted";
+  const initials = (d.name || "D").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const avatar   = d.profile_photo
+    ? `<img src="${d.profile_photo}" alt="${d.name}">`
+    : initials;
+  const verifiedBadge = d.is_verified
+    ? `<div class="verified-dot"><i class="ti ti-check" aria-hidden="true"></i></div>` : "";
+
+  const statusLabels = {
+    accepted: `<div class="status-badge accepted"><i class="ti ti-circle-check"></i> Connected</div>`,
+    pending:  `<div class="status-badge pending"><i class="ti ti-clock"></i> Pending Approval</div>`,
+    rejected: `<div class="status-badge rejected"><i class="ti ti-x"></i> Declined</div>`
+  };
+
+  const metaItems = [
+    d.experience_years ? `<span class="doc-meta-item"><i class="ti ti-clock" aria-hidden="true"></i>${d.experience_years} yrs</span>` : "",
+    d.city             ? `<span class="doc-meta-item"><i class="ti ti-map-pin" aria-hidden="true"></i>${d.city}</span>` : "",
+    d.hospital         ? `<span class="doc-meta-item"><i class="ti ti-building-hospital" aria-hidden="true"></i>${d.hospital}</span>` : "",
+  ].filter(Boolean).join("");
+
+  // Bottom row depends on status
+  let bottomRow = "";
+  if (status === "accepted") {
+    const connDate = d.connected_at
+      ? new Date(d.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      : "";
+    bottomRow = `
+      <div class="invite-row">
+        <div class="invite-left">
+          <div class="invite-code-lbl">Invite Code</div>
+          <div class="invite-code-val">${d.invite_code}</div>
+        </div>
+        <div class="invite-right">
+          <button class="mini-btn copy" onclick="copyCode('${d.invite_code}', this)">
+            <i class="ti ti-copy" aria-hidden="true"></i> Copy
+          </button>
+          <a href="doctor_profile_public.html?id=${d.id}" class="mini-btn view">
+            <i class="ti ti-user" aria-hidden="true"></i> Profile
+          </a>
+        </div>
+      </div>
+      ${connDate ? `<div class="connected-since"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Connected since ${connDate}</div>` : ""}`;
+  } else if (status === "pending") {
+    const reqDate = d.requested_at
+      ? new Date(d.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      : "";
+    bottomRow = `
+      <div class="pending-row">
+        <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+        <span>Request sent${reqDate ? " on " + reqDate : ""}. Waiting for Dr. ${(d.name||"").split(" ")[0]}'s approval.</span>
+      </div>`;
+  } else if (status === "rejected") {
+    const respDate = d.responded_at
+      ? new Date(d.responded_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      : "";
+    bottomRow = `
+      <div class="rejected-row">
+        <i class="ti ti-circle-x" aria-hidden="true"></i>
+        <span>Request declined${respDate ? " on " + respDate : ""}.</span>
+        <button class="retry-btn" onclick="retryConnect('${d.invite_code}')">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Re-request
+        </button>
+      </div>`;
+  }
+
+  return `
+    <div class="doctor-card ${status}" style="animation-delay:${idx * 50}ms">
+      <div class="card-accent-bar ${status}"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="doc-avatar">
+            ${avatar}
+            ${verifiedBadge}
+          </div>
+          <div class="doc-info">
+            <div class="doc-name-row">
+              <div class="doc-name">Dr. ${d.name || ""}</div>
+              ${statusLabels[status] || ""}
+            </div>
+            <div class="doc-spec">
+              <i class="ti ti-stethoscope" aria-hidden="true"></i>
+              ${d.speciality || "General Physician"}
+            </div>
+            ${metaItems ? `<div class="doc-meta">${metaItems}</div>` : ""}
+          </div>
+        </div>
+        ${bottomRow}
+      </div>
+    </div>`;
+}
+
+// ── Render list ────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById("doctorList");
+  let filtered = allDoctors;
+
+  if (activeFilter !== "all") {
+    filtered = filtered.filter(d => (d.status || "accepted") === activeFilter);
+  }
+
+  document.getElementById("doctorCount").textContent = filtered.length;
+
+  if (!filtered.length) {
+    const msgs = {
+      all:      { title: "No connections yet", sub: "Connect with a doctor using their invite code, or browse the directory." },
+      accepted: { title: "No connected doctors", sub: "Your accepted connections will appear here." },
+      pending:  { title: "No pending requests", sub: "Requests waiting for doctor approval will appear here." },
+      rejected: { title: "No declined requests", sub: "Declined connection requests will appear here." }
+    };
+    const m = msgs[activeFilter] || msgs.all;
+    list.innerHTML = `
+      <div class="empty-wrap">
+        <i class="ti ti-stethoscope" aria-hidden="true"></i>
+        <div class="empty-title">${m.title}</div>
+        <div class="empty-sub">${m.sub}</div>
+        ${activeFilter === "all" ? `<a href="find_doctor.html" class="browse-btn"><i class="ti ti-search" aria-hidden="true"></i> Browse Doctors</a>` : ""}
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((d, i) => buildCard(d, i)).join("");
+}
+
+// ── Connect to doctor ──────────────────────────────────────
 async function connectToDoctor() {
   const code  = document.getElementById("inviteCodeInput").value.trim();
   const msgEl = document.getElementById("connectMsg");
@@ -487,13 +675,14 @@ async function connectToDoctor() {
     });
     const data = await res.json();
 
-    msgEl.textContent = data.message || (data.success ? "Connected!" : "Connection failed.");
-    msgEl.className   = "connect-msg " + (data.success ? "success" : "error");
+    const msgType = data.success ? (data.pending ? "pending" : "success") : "error";
+    msgEl.textContent = data.message || (data.success ? "Request sent!" : "Connection failed.");
+    msgEl.className   = "connect-msg " + msgType;
     msgEl.style.display = "block";
 
     if (data.success) {
       document.getElementById("inviteCodeInput").value = "";
-      setTimeout(() => { msgEl.style.display = "none"; }, 4000);
+      setTimeout(() => { msgEl.style.display = "none"; }, 5000);
       await loadDoctors();
     }
   } catch {
@@ -504,122 +693,6 @@ async function connectToDoctor() {
     btn.disabled = false;
     btn.innerHTML = '<i class="ti ti-link"></i> Connect';
   }
-}
-
-// ── Filter / Search ────────────────────────────────────────
-function filterDoctors() {
-  searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
-  renderList();
-}
-
-function filterSpec(spec, btn) {
-  activeSpec = spec;
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  renderList();
-}
-
-function buildFilterTabs() {
-  if (allDoctors.length < 2) { document.getElementById("filterTabs").style.display = "none"; return; }
-  const specs = [...new Set(allDoctors.map(d => d.speciality || "General Physician"))].sort();
-  if (specs.length < 2) { document.getElementById("filterTabs").style.display = "none"; return; }
-
-  const tabsEl = document.getElementById("filterTabs");
-  tabsEl.style.display = "flex";
-  tabsEl.innerHTML = `<button class="tab-btn active" onclick="filterSpec('All', this)">All</button>`;
-  specs.forEach(spec => {
-    const btn = document.createElement("button");
-    btn.className = "tab-btn";
-    btn.textContent = spec;
-    btn.onclick = () => filterSpec(spec, btn);
-    tabsEl.appendChild(btn);
-  });
-}
-
-// ── Render doctor list ─────────────────────────────────────
-function renderList() {
-  const list = document.getElementById("doctorList");
-  let filtered = allDoctors;
-
-  if (activeSpec !== "All") {
-    filtered = filtered.filter(d => (d.speciality || "General Physician") === activeSpec);
-  }
-  if (searchQuery) {
-    filtered = filtered.filter(d =>
-      (d.name || "").toLowerCase().includes(searchQuery) ||
-      (d.speciality || "").toLowerCase().includes(searchQuery) ||
-      (d.city || "").toLowerCase().includes(searchQuery)
-    );
-  }
-
-  if (!filtered.length) {
-    list.innerHTML = `
-      <div class="empty-wrap">
-        <i class="ti ti-search" aria-hidden="true"></i>
-        <div class="empty-title">No results found</div>
-        <div class="empty-sub">Try a different search or filter.</div>
-      </div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map((d, i) => buildCard(d, i)).join("");
-}
-
-function buildCard(d, idx) {
-  const initials = (d.name || "D").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  const avatar   = d.profile_photo
-    ? `<img src="${d.profile_photo}" alt="${d.name}">`
-    : initials;
-  const verifiedBadge = d.is_verified
-    ? `<div class="verified-dot"><i class="ti ti-check" aria-hidden="true"></i></div>` : "";
-  const connDate = d.connected_at
-    ? new Date(d.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-    : "";
-
-  const metaItems = [
-    d.experience_years ? `<span class="doc-meta-item"><i class="ti ti-clock" aria-hidden="true"></i>${d.experience_years} yrs</span>` : "",
-    d.city ? `<span class="doc-meta-item"><i class="ti ti-map-pin" aria-hidden="true"></i>${d.city}</span>` : "",
-    d.hospital ? `<span class="doc-meta-item"><i class="ti ti-building-hospital" aria-hidden="true"></i>${d.hospital}</span>` : "",
-  ].filter(Boolean).join("");
-
-  return `
-    <div class="doctor-card" style="animation-delay:${idx * 50}ms">
-      <div class="card-accent-bar"></div>
-      <div class="card-body">
-        <div class="card-top">
-          <div class="doc-avatar">
-            ${avatar}
-            ${verifiedBadge}
-          </div>
-          <div class="doc-info">
-            <div class="doc-name">Dr. ${d.name || ""}</div>
-            <div class="doc-spec">
-              <i class="ti ti-stethoscope" aria-hidden="true"></i>
-              ${d.speciality || "General Physician"}
-            </div>
-            ${metaItems ? `<div class="doc-meta">${metaItems}</div>` : ""}
-          </div>
-        </div>
-
-        <div class="invite-row">
-          <div class="invite-left">
-            <div class="invite-code-lbl">Invite Code</div>
-            <div class="invite-code-val">${d.invite_code}</div>
-          </div>
-          <div class="invite-right">
-            <button class="mini-btn copy" id="copyBtn_${d.id}"
-                    onclick="copyCode('${d.invite_code}', this)">
-              <i class="ti ti-copy" aria-hidden="true"></i> Copy
-            </button>
-            <a href="doctor_profile_public.html?id=${d.id}" class="mini-btn view">
-              <i class="ti ti-user" aria-hidden="true"></i> Profile
-            </a>
-          </div>
-        </div>
-
-        ${connDate ? `<div class="connected-since"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Connected since ${connDate}</div>` : ""}
-      </div>
-    </div>`;
 }
 
 // ── Load doctors ───────────────────────────────────────────
@@ -635,41 +708,22 @@ async function loadDoctors() {
   }
 
   // Stats
-  const specs = new Set(allDoctors.map(d => d.speciality || "General Physician"));
-  document.getElementById("statConnected").textContent   = allDoctors.length;
-  document.getElementById("statSpecialities").textContent = specs.size || "—";
-  document.getElementById("doctorCount").textContent     = allDoctors.length;
+  const accepted = allDoctors.filter(d => (d.status || "accepted") === "accepted").length;
+  const pending  = allDoctors.filter(d => d.status === "pending").length;
 
-  if (allDoctors.length > 0 && allDoctors[0].connected_at) {
-    const latest = new Date(allDoctors[0].connected_at);
-    document.getElementById("statLatest").textContent =
-      latest.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-  } else {
-    document.getElementById("statLatest").textContent = "—";
-  }
+  document.getElementById("statConnected").textContent = accepted;
+  document.getElementById("statPending").textContent   = pending;
+  document.getElementById("statTotal").textContent     = allDoctors.length;
+  document.getElementById("doctorCount").textContent   = allDoctors.length;
 
-  // Show/hide search
-  document.getElementById("searchWrap").style.display = allDoctors.length >= 4 ? "block" : "none";
-
-  buildFilterTabs();
-
-  if (!allDoctors.length) {
-    document.getElementById("doctorList").innerHTML = `
-      <div class="empty-wrap">
-        <i class="ti ti-stethoscope" aria-hidden="true"></i>
-        <div class="empty-title">No doctors connected yet</div>
-        <div class="empty-sub">Connect with your doctor using their invite code, or browse the directory to find one.</div>
-        <a href="find_doctor.html" class="browse-btn">
-          <i class="ti ti-search" aria-hidden="true"></i> Browse Doctors
-        </a>
-      </div>`;
-    return;
-  }
+  // Show filter tabs only if there's more than one status type
+  const statuses = new Set(allDoctors.map(d => d.status || "accepted"));
+  document.getElementById("filterTabs").style.display = statuses.size > 1 ? "flex" : "none";
 
   renderList();
 }
 
-// ── Init ───────────────────────────────────────────────────
+// ── spin keyframe ──────────────────────────────────────────
 const spinStyle = document.createElement("style");
 spinStyle.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
 document.head.appendChild(spinStyle);

@@ -162,7 +162,7 @@ const getPublicDoctor = async (req, res) => {
                     d.experience_years, d.hospital,
                     d.city, d.state, d.languages, d.bio, d.expertise,
                     d.profile_photo, d.is_verified,
-                    (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id) AS patient_count
+                    (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id AND status = 'accepted') AS patient_count
              FROM doctors d
              WHERE d.id = ? AND d.is_verified = 1`,
             [doctorId]
@@ -184,7 +184,7 @@ const getAllDoctors = async (req, res) => {
             `SELECT d.id, d.name, d.speciality, d.invite_code, d.created_at,
                     d.experience_years, d.hospital,
                     d.city, d.state, d.languages, d.bio, d.profile_photo, d.is_verified,
-                    (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id) AS patient_count
+                    (SELECT COUNT(*) FROM doctor_patient_connections WHERE doctor_id = d.id AND status = 'accepted') AS patient_count
              FROM doctors d
              WHERE d.is_verified = 1
              ORDER BY d.name ASC`
@@ -196,26 +196,154 @@ const getAllDoctors = async (req, res) => {
     }
 };
 
-/* ── GET CONNECTED PATIENTS (doctor view) ── */
+/* ── GET CONNECTED PATIENTS (doctor view — accepted only) ── */
 const getPatients = async (req, res) => {
     const doctorId = req.doctorId;
     try {
         const [rows] = await db.promise().query(`
             SELECT u.id, u.name, u.email, u.created_at,
                    p.blood_group, p.conditions, p.height, p.weight,
-                   dpc.connected_at,
+                   dpc.connected_at, dpc.status, dpc.id AS connection_id,
                    (SELECT COUNT(*) FROM symptoms WHERE user_id = u.id) AS symptom_count,
                    (SELECT COUNT(*) FROM reports  WHERE user_id = u.id) AS report_count
             FROM doctor_patient_connections dpc
             JOIN users         u ON u.id = dpc.patient_id
             LEFT JOIN user_profiles p ON p.user_id = u.id
-            WHERE dpc.doctor_id = ?
+            WHERE dpc.doctor_id = ? AND dpc.status = 'accepted'
             ORDER BY dpc.connected_at DESC
         `, [doctorId]);
         res.json({ success: true, data: rows });
     } catch (err) {
         console.error("getPatients error:", err.message);
         res.json({ success: false, message: "Failed to load patients." });
+    }
+};
+
+/* ── GET PENDING CONNECTION REQUESTS (doctor view) ── */
+const getPendingRequests = async (req, res) => {
+    const doctorId = req.doctorId;
+    try {
+        const [rows] = await db.promise().query(`
+            SELECT dpc.id AS connection_id,
+                   u.id AS patient_id, u.name, u.email, u.created_at AS joined_at,
+                   p.blood_group, p.conditions, p.profile_image,
+                   dpc.requested_at
+            FROM doctor_patient_connections dpc
+            JOIN users u ON u.id = dpc.patient_id
+            LEFT JOIN user_profiles p ON p.user_id = u.id
+            WHERE dpc.doctor_id = ? AND dpc.status = 'pending'
+            ORDER BY dpc.requested_at DESC
+        `, [doctorId]);
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        console.error("getPendingRequests error:", err.message);
+        res.json({ success: false, message: "Failed to load pending requests." });
+    }
+};
+
+/* ── ACCEPT CONNECTION REQUEST (doctor action) ── */
+const acceptConnection = async (req, res) => {
+    const doctorId     = req.doctorId;
+    const connectionId = parseInt(req.params.connection_id);
+
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT * FROM doctor_patient_connections WHERE id = ? AND doctor_id = ? AND status = 'pending'",
+            [connectionId, doctorId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Pending request not found." });
+        }
+
+        await db.promise().query(
+            "UPDATE doctor_patient_connections SET status = 'accepted', connected_at = NOW(), responded_at = NOW() WHERE id = ?",
+            [connectionId]
+        );
+
+        res.json({ success: true, message: "Connection accepted." });
+    } catch (err) {
+        console.error("acceptConnection error:", err.message);
+        res.json({ success: false, message: "Failed to accept connection." });
+    }
+};
+
+/* ── REJECT CONNECTION REQUEST (doctor action) ── */
+const rejectConnection = async (req, res) => {
+    const doctorId     = req.doctorId;
+    const connectionId = parseInt(req.params.connection_id);
+
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT * FROM doctor_patient_connections WHERE id = ? AND doctor_id = ? AND status = 'pending'",
+            [connectionId, doctorId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Pending request not found." });
+        }
+
+        await db.promise().query(
+            "UPDATE doctor_patient_connections SET status = 'rejected', responded_at = NOW() WHERE id = ?",
+            [connectionId]
+        );
+
+        res.json({ success: true, message: "Connection declined." });
+    } catch (err) {
+        console.error("rejectConnection error:", err.message);
+        res.json({ success: false, message: "Failed to decline connection." });
+    }
+};
+
+/* ── DISCONNECT (doctor removes a patient) ── */
+const disconnectPatient = async (req, res) => {
+    const doctorId    = req.doctorId;
+    const connectionId = parseInt(req.params.connection_id);
+
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT * FROM doctor_patient_connections WHERE id = ? AND doctor_id = ? AND status = 'accepted'",
+            [connectionId, doctorId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Connection not found." });
+        }
+
+        await db.promise().query(
+            "DELETE FROM doctor_patient_connections WHERE id = ?",
+            [connectionId]
+        );
+
+        res.json({ success: true, message: "Patient disconnected." });
+    } catch (err) {
+        console.error("disconnectPatient error:", err.message);
+        res.json({ success: false, message: "Failed to disconnect." });
+    }
+};
+
+/* ── GET CONNECTION STATUS (patient view — all their requests) ── */
+const getConnectionStatus = async (req, res) => {
+    const requestedId = parseInt(req.params.user_id);
+
+    if (parseInt(req.userId) !== requestedId) {
+        return res.status(403).json({ success: false, message: "Access denied." });
+    }
+
+    try {
+        const [rows] = await db.promise().query(
+            `SELECT dpc.id AS connection_id, dpc.status, dpc.requested_at, dpc.responded_at,
+                    d.id AS doctor_id, d.name, d.speciality, d.invite_code, d.profile_photo
+             FROM doctor_patient_connections dpc
+             JOIN doctors d ON d.id = dpc.doctor_id
+             WHERE dpc.patient_id = ?
+             ORDER BY dpc.requested_at DESC`,
+            [requestedId]
+        );
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        console.error("getConnectionStatus error:", err.message);
+        res.json({ success: false, message: "Failed to load connection status." });
     }
 };
 
@@ -226,7 +354,7 @@ const getPatientDetail = async (req, res) => {
 
     try {
         const [conn] = await db.promise().query(
-            "SELECT id FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ?",
+            "SELECT id FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ? AND status = 'accepted'",
             [doctorId, patientId]
         );
         if (conn.length === 0)
@@ -255,7 +383,7 @@ const getPatientDetail = async (req, res) => {
     }
 };
 
-/* ── CONNECT PATIENT TO DOCTOR (called by patient) ── */
+/* ── CONNECT PATIENT TO DOCTOR (patient action — sets pending) ── */
 const connectDoctor = async (req, res) => {
     const patientId   = req.userId;
     const { invite_code } = req.body;
@@ -274,20 +402,41 @@ const connectDoctor = async (req, res) => {
         const doctor = doctors[0];
 
         const [existing] = await db.promise().query(
-            "SELECT id FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ?",
+            "SELECT id, status FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ?",
             [doctor.id, patientId]
         );
-        if (existing.length > 0)
-            return res.json({ success: false, message: `You are already connected to Dr. ${doctor.name}.` });
 
+        if (existing.length > 0) {
+            const status = existing[0].status;
+            if (status === 'accepted')
+                return res.json({ success: false, message: `You are already connected to Dr. ${doctor.name}.` });
+            if (status === 'pending')
+                return res.json({ success: false, message: `Your request to Dr. ${doctor.name} is already pending approval.` });
+            if (status === 'rejected') {
+                // Allow re-request after rejection
+                await db.promise().query(
+                    "UPDATE doctor_patient_connections SET status = 'pending', requested_at = NOW(), responded_at = NULL WHERE id = ?",
+                    [existing[0].id]
+                );
+                return res.json({
+                    success: true,
+                    pending: true,
+                    message: `Connection request re-sent to Dr. ${doctor.name}. Waiting for approval.`,
+                    doctor
+                });
+            }
+        }
+
+        // New request — insert as pending
         await db.promise().query(
-            "INSERT INTO doctor_patient_connections (doctor_id, patient_id) VALUES (?, ?)",
+            "INSERT INTO doctor_patient_connections (doctor_id, patient_id, status, requested_at) VALUES (?, ?, 'pending', NOW())",
             [doctor.id, patientId]
         );
 
         res.json({
             success: true,
-            message: `Successfully connected to Dr. ${doctor.name}${doctor.speciality ? ' (' + doctor.speciality + ')' : ''}.`,
+            pending: true,
+            message: `Connection request sent to Dr. ${doctor.name}. Waiting for their approval.`,
             doctor
         });
     } catch (err) {
@@ -296,11 +445,37 @@ const connectDoctor = async (req, res) => {
     }
 };
 
-/* ── GET MY DOCTORS (patient view — their connected doctors) ── */
+/* ── DISCONNECT (patient removes a doctor) ── */
+const disconnectDoctor = async (req, res) => {
+    const patientId    = req.userId;
+    const connectionId = parseInt(req.params.connection_id);
+
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT * FROM doctor_patient_connections WHERE id = ? AND patient_id = ?",
+            [connectionId, patientId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Connection not found." });
+        }
+
+        await db.promise().query(
+            "DELETE FROM doctor_patient_connections WHERE id = ?",
+            [connectionId]
+        );
+
+        res.json({ success: true, message: "Disconnected successfully." });
+    } catch (err) {
+        console.error("disconnectDoctor error:", err.message);
+        res.json({ success: false, message: "Failed to disconnect." });
+    }
+};
+
+/* ── GET MY DOCTORS (patient view — all statuses) ── */
 const getMyDoctors = async (req, res) => {
     const requestedId = parseInt(req.params.user_id);
 
-    // Security: patients can only fetch their own doctor list
     if (parseInt(req.userId) !== requestedId) {
         return res.status(403).json({ success: false, message: "Access denied." });
     }
@@ -310,11 +485,12 @@ const getMyDoctors = async (req, res) => {
             `SELECT d.id, d.name, d.speciality, d.invite_code,
                     d.hospital, d.city, d.state, d.experience_years,
                     d.languages, d.bio, d.profile_photo, d.is_verified,
-                    dpc.connected_at
+                    dpc.connected_at, dpc.status, dpc.requested_at, dpc.responded_at,
+                    dpc.id AS connection_id
              FROM doctor_patient_connections dpc
              JOIN doctors d ON d.id = dpc.doctor_id
              WHERE dpc.patient_id = ?
-             ORDER BY dpc.connected_at DESC`,
+             ORDER BY dpc.requested_at DESC`,
             [requestedId]
         );
         res.json({ success: true, data: rows });
@@ -408,5 +584,7 @@ module.exports = {
     getDoctorProfile, updateDoctorProfile, getPublicDoctor,
     getAllDoctors, getPatients, getPatientDetail,
     connectDoctor, googleAuthDoctor, deleteDoctorAccount,
-    getMyDoctors
+    getMyDoctors,
+    getPendingRequests, acceptConnection, rejectConnection, getConnectionStatus,
+    disconnectPatient, disconnectDoctor
 };
