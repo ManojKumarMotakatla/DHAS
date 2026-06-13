@@ -690,6 +690,19 @@ function buildCard(r, i) {
   const doseLbl = r.dosesLabel || r.doses_label || "";
   const dur     = r.duration === "forever" ? "Ongoing" : `${r.duration} day(s)`;
   const times   = r.times || [];
+  // startDate: use server value, fall back to createdAt so old records always show a date
+  const _rawStart = r.startDate || r.start_date
+    || (r.createdAt ? r.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]);
+  const startDateLabel = new Date(_rawStart + "T00:00:00")
+    .toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+
+  // End date chip — only for fixed-duration reminders
+  let endDateLabel = "";
+  if (r.duration && r.duration !== "forever") {
+    const endD = new Date(_rawStart + "T00:00:00");
+    endD.setDate(endD.getDate() + parseInt(r.duration));
+    endDateLabel = endD.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+  }
   const accent  = accentClass(i);
   const chipCol = chipColor(sched);
 
@@ -722,12 +735,25 @@ function buildCard(r, i) {
             </div>
           </div>
           <div class="rem-chips">
-            <span class="chip ${chipCol}"><i class="ti ti-calendar" aria-hidden="true"></i>${schedLbl}</span>
-            ${doseLbl ? `<span class="chip chip-blue"><i class="ti ti-repeat" aria-hidden="true"></i>${doseLbl}</span>` : ""}
-            <span class="chip chip-purple"><i class="ti ti-hourglass" aria-hidden="true"></i>${dur}</span>
-            ${dayChips}
-          </div>
-          ${times.length ? `<div class="rem-times">${timeBadges}</div>` : ""}
+  <span class="chip ${chipCol}"><i class="ti ti-calendar"></i>${schedLbl}</span>
+  ${doseLbl ? `<span class="chip chip-blue"><i class="ti ti-repeat"></i>${doseLbl}</span>` : ""}
+  <span class="chip chip-purple"><i class="ti ti-hourglass"></i>${dur}</span>
+  ${dayChips}
+</div>
+
+${times.length ? `<div class="rem-times">${timeBadges}</div>` : ""}
+
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+  <span class="chip" style="background:rgba(42,108,246,.13);color:#7aafff;border:1px solid rgba(42,108,246,.25);">
+    <i class="ti ti-calendar-event" style="font-size:11px"></i>
+    Started: ${startDateLabel}
+  </span>
+  ${endDateLabel ? `<span class="chip" style="background:rgba(244,160,53,.13);color:#fbbf6a;border:1px solid rgba(244,160,53,.25);">
+    <i class="ti ti-calendar-x" style="font-size:11px"></i>
+    Ends: ${endDateLabel}
+  </span>` : ""}
+</div>
+          
         </div>
       </div>
     </div>`;
@@ -804,6 +830,58 @@ function filterReminders(filter, btn) {
   renderList(filtered);
 }
 
+// Auto-delete fully-expired fixed-duration reminders
+// For same-day reminders: also wait until last alarm time has passed
+async function purgeSavedExpired() {
+  const now           = new Date();
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+
+  const toDelete = allReminders.filter(r => {
+    if (!r.duration || r.duration === "forever") return false;
+    const base = r.startDate
+      ? new Date(r.startDate + "T00:00:00")
+      : (r.createdAt ? new Date(r.createdAt) : new Date());
+    base.setHours(0,0,0,0);
+
+    const daysSince = Math.floor((todayMidnight - base) / 86400000);
+    const dur       = parseInt(r.duration);
+
+    // Well past the window — delete immediately
+    if (daysSince > dur) return true;
+
+    // On or after the last day (daysSince >= dur means the duration has been
+    // fully used: e.g. 1-day reminder started day 0, today is day 1 → daysSince=1, dur=1)
+    // Delete only after all alarms have fired + 5 min grace
+    if (daysSince >= dur) {
+      const times = r.times || [];
+      if (!times.length) return true;
+      const latestMinute = Math.max(...times.map(t => {
+        let h = parseInt(t.h); const m = parseInt(t.m);
+        if (t.ampm === "PM" && h !== 12) h += 12;
+        if (t.ampm === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+      }));
+      return (now.getHours() * 60 + now.getMinutes()) >= latestMinute + 5;
+    }
+
+    return false;
+  });
+
+  for (const r of toDelete) {
+    try {
+      await fetch(`${BASE}/reminders/delete/${r.id}`, {
+        method:"DELETE", headers: window.getAuthHeaders()
+      });
+      allReminders = allReminders.filter(x => x.id !== r.id);
+      showMsg(`"${r.medicine}" (${r.duration}-day reminder) has been automatically removed.`, "success", 5000);
+    } catch(e) { console.warn("purge failed for", r.id, e); }
+  }
+  if (toDelete.length) {
+    updateStats(allReminders);
+    filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
+  }
+}
+
 async function loadReminders() {
   try {
     // ── FIXED: auth headers on load ──
@@ -822,7 +900,12 @@ async function loadReminders() {
     }
 
     const data = await res.json();
-    if (data.success) allReminders = data.data || [];
+    if (data.success) {
+      allReminders = data.data || [];
+      console.log("REMINDERS:", allReminders);
+      // Auto-delete reminders whose duration has fully expired
+      await purgeSavedExpired();
+    }
     else showMsg(data.message || "Failed to load reminders.", "error");
   } catch(e) {
     console.error("Load reminders failed:", e);
@@ -833,6 +916,103 @@ async function loadReminders() {
 }
 
 loadReminders();
+
+// ── Alarm ticker for saved_reminders page ──────────────────────
+// Fires alarms even when user is viewing this page instead of reminder.html
+(function initSRAlarmTicker() {
+    let _audioCtxSR = null;
+    function _getACtxSR() {
+        if (!_audioCtxSR) _audioCtxSR = new (window.AudioContext || window.webkitAudioContext)();
+        return _audioCtxSR;
+    }
+    ["click","touchstart","keydown"].forEach(ev =>
+        document.addEventListener(ev, () => {
+            try { const c=_getACtxSR(); if(c.state==="suspended") c.resume(); } catch(e){}
+        }, { passive:true })
+    );
+    function _playT(ctx,notes,type){
+        notes.forEach(({freq,dur,delay,gain})=>{
+            const o=ctx.createOscillator(),g=ctx.createGain();
+            o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+delay);
+            g.gain.setValueAtTime(0,ctx.currentTime+delay);
+            g.gain.linearRampToValueAtTime(gain,ctx.currentTime+delay+.02);
+            g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+dur);
+            o.connect(g);g.connect(ctx.destination);
+            o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+dur+.05);
+        });
+    }
+    const _SND={
+        bell:  c=>_playT(c,[{freq:880,dur:.3,delay:0,gain:.6},{freq:660,dur:.3,delay:.35,gain:.5},{freq:880,dur:.5,delay:.7,gain:.7}],"sine"),
+        chime: c=>[523,659,784,1047,784,659,523].forEach((f,i)=>_playT(c,[{freq:f,dur:.25,delay:i*.18,gain:.45}],"sine")),
+        beep:  c=>[0,.35,.7].forEach(d=>_playT(c,[{freq:1000,dur:.2,delay:d,gain:.5}],"square")),
+        gentle:c=>_playT(c,[{freq:440,dur:.8,delay:0,gain:.3},{freq:550,dur:.8,delay:.5,gain:.25},{freq:440,dur:.8,delay:1,gain:.2}],"sine"),
+        alarm: c=>{for(let i=0;i<6;i++)_playT(c,[{freq:i%2===0?880:660,dur:.18,delay:i*.2,gain:.6}],"sawtooth");}
+    };
+    function _playSound(key){
+        try{const c=_getACtxSR();if(c.state==="suspended")c.resume().then(()=>(_SND[key]||_SND.bell)(c));else(_SND[key]||_SND.bell)(c);}catch(e){}
+    }
+    function _to24(h,m,ampm){
+        let hr=parseInt(h,10);
+        if(ampm==="PM"&&hr!==12)hr+=12;
+        if(ampm==="AM"&&hr===12)hr=0;
+        return[hr,parseInt(m,10)];
+    }
+    function _shouldFire(r){
+        const now=new Date(),dow=now.getDay(),dom=now.getDate();
+        const mid=new Date();mid.setHours(0,0,0,0);
+        if(r.startDate){const s=new Date(r.startDate+"T00:00:00");if(mid<s)return false;}
+        if(r.duration&&r.duration!=="forever"){
+            const base=r.startDate?new Date(r.startDate+"T00:00:00"):(r.createdAt?new Date(r.createdAt):new Date());
+            base.setHours(0,0,0,0);
+            if(Math.floor((mid-base)/86400000)>=parseInt(r.duration))return false;
+        }
+        switch(r.sched||"daily"){
+            case "daily":return true;
+            case "alternate":{
+                if(!r.altBase)return true;
+                const base=new Date(r.altBase),today=new Date();today.setHours(0,0,0,0);
+                return Math.round((today-new Date(base.getFullYear(),base.getMonth(),base.getDate()))/86400000)%2===0;
+            }
+            case "weekly":case "twice_week":case "three_week":case "custom":
+                return(r.days||[]).map(Number).includes(dow);
+            case "monthly":return dom===(parseInt(r.monthDay)||1);
+            default:return false;
+        } 
+    }
+    const _fired={};
+    function _tick(){
+        if(!allReminders||!allReminders.length)return;
+        const now=new Date(),hh=now.getHours(),mm=now.getMinutes();
+        allReminders.forEach(r=>{
+            if(!_shouldFire(r))return;
+            (r.times||[]).forEach(t=>{
+                const[aH,aM]=_to24(t.h,t.m,t.ampm);
+                if(isNaN(aH)||isNaN(aM))return;
+                if((hh*60+mm)!==(aH*60+aM))return;
+                const key=`${r.id}-${t.label}-${aH}-${aM}`;
+                if(_fired[key])return;
+                _fired[key]=true;
+                setTimeout(()=>delete _fired[key],5*60*1000);
+                _playSound(r.sound||"bell");
+                showMsg(`💊 Time for <strong>${r.medicine}</strong> — ${t.label}: ${t.display||""}`, "success", 30000);
+                if(Notification.permission==="granted"){
+                    navigator.serviceWorker?.ready.then(reg=>reg.showNotification(r.medicine,{
+                        body:`${t.label}: ${t.display||""}\n${r.scheduleLabel||""}`,
+                        icon:"/favicon.ico",vibrate:[300,100,300],requireInteraction:true,
+                        tag:`dhas-${r.id}-${t.label}`
+                    }));
+                }
+            });
+        });
+    }
+    // Aligned minute ticker: fires at xx:yy:00 so exact match never misses
+    setTimeout(_tick, 500);
+    (function scheduleMinuteTick(){
+        const now=new Date();
+        const msLeft=(60-now.getSeconds())*1000-now.getMilliseconds()+200;
+        setTimeout(()=>{ _tick(); setInterval(_tick,60000); },msLeft);
+    })();
+})();
 </script>
 </body>
 </html>

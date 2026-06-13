@@ -99,7 +99,8 @@ const getReminders = (req, res) => {
             }
 
             const data = rows.map(r => {
-                const rawStart = r.start_date;
+                // Prefer start_date; fall back to created_at so old records still show a date
+                const rawStart = r.start_date || r.created_at;
                 const startStr = rawStart
                     ? (rawStart instanceof Date
                         ? rawStart.toISOString().split("T")[0]
@@ -123,7 +124,8 @@ const getReminders = (req, res) => {
                     createdAt:     r.created_at ? new Date(r.created_at).toISOString() : null
                 };
             });
-
+console.log("REMINDERS FROM DB:");
+console.log(data);
             res.json({ success: true, data });
         }
     );

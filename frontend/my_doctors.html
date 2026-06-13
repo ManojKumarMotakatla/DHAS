@@ -205,6 +205,8 @@
       box-shadow: var(--shadow); margin-bottom: 12px;
       transition: border-color .2s, box-shadow .2s, transform .18s;
       animation: slideIn .3s ease both;
+      /* Needed for the absolute disconnect button */
+      position: relative;
     }
     @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .doctor-card:hover { box-shadow: var(--shadow-md); }
@@ -263,7 +265,7 @@
     body.dark .invite-row { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.25); }
     .invite-left .invite-code-lbl { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
     .invite-left .invite-code-val { font-size: .95rem; font-weight: 800; letter-spacing: 2px; color: var(--green); }
-    .invite-right { display: flex; gap: 8px; }
+    .invite-right { display: flex; gap: 8px; align-items: center; }
 
     /* Pending info row */
     .pending-row {
@@ -308,6 +310,17 @@
     .mini-btn.view { background: linear-gradient(135deg, var(--green), var(--teal)); border-color: transparent; color: #fff; }
     .mini-btn.view:hover { opacity: .9; transform: translateY(-1px); }
 
+    /* DISCONNECT mini button — only on accepted cards */
+    .mini-btn.disconnect {
+      background: rgba(242,92,125,.08);
+      border-color: rgba(242,92,125,.25);
+      color: var(--rose);
+    }
+    .mini-btn.disconnect:hover {
+      background: rgba(242,92,125,.18);
+      border-color: var(--rose);
+    }
+
     .connected-since {
       display: flex; align-items: center; gap: 5px;
       font-size: .72rem; color: var(--muted); margin-top: 10px;
@@ -347,7 +360,6 @@
     /* ── LOADING ── */
     .loading-wrap { text-align: center; padding: 50px 20px; color: var(--muted); }
     .spinner { width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 14px; border: 3px solid var(--border); border-top-color: var(--green); animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── TOAST ── */
     #dhasToast {
@@ -362,13 +374,71 @@
     body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
     body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    /* ── CONFIRM MODAL ── */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 99998; padding: 20px; backdrop-filter: blur(4px);
+    }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box {
+      background: var(--surface); width: 100%; max-width: 380px;
+      border-radius: 20px; padding: 28px 24px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      animation: popIn .25s cubic-bezier(.4,0,.2,1);
+    }
+    body.dark .confirm-box { background: #052e1a; border: 1px solid #0a4a28; }
+    @keyframes popIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+    .confirm-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      margin: 0 auto 16px; display: flex; align-items: center;
+      justify-content: center; font-size: 26px;
+    }
+    .confirm-icon.danger { background: #fee2e2; color: #dc2626; }
+    .confirm-title {
+      font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .confirm-msg { font-size: .84rem; color: var(--muted); line-height: 1.65; margin-bottom: 22px; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-cancel {
+      flex: 1; padding: 11px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: var(--bg);
+      color: var(--text); font-weight: 600; font-size: .88rem;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+    }
+    .confirm-cancel:hover { border-color: var(--muted); }
+    .confirm-ok {
+      flex: 1; padding: 11px; border-radius: var(--radius-sm);
+      border: none; font-weight: 700; font-size: .88rem;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s;
+    }
+    .confirm-ok.danger { background: #dc2626; color: #fff; }
+    .confirm-ok:hover { opacity: .9; }
+    .confirm-ok:disabled { opacity: .6; cursor: not-allowed; }
+
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
 <div id="dhasToast" role="status" aria-live="polite"></div>
+
+<!-- CONFIRM MODAL — for disconnect confirmation -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon danger" id="confirmIcon">
+      <i class="ti ti-user-minus"></i>
+    </div>
+    <div class="confirm-title" id="confirmTitle">Disconnect Doctor?</div>
+    <div class="confirm-msg"  id="confirmMsg">Are you sure you want to disconnect from this doctor?</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="confirmResolve(false)">Cancel</button>
+      <button class="confirm-ok danger" id="confirmOkBtn" onclick="confirmResolve(true)">Disconnect</button>
+    </div>
+  </div>
+</div>
 
 <header class="topbar">
   <a href="dashboard.html" class="back-btn">
@@ -464,13 +534,13 @@ const BASE = window.API_BASE;
 const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
 if (!user || !user.id) window.location.href = "login.html";
 
-let allDoctors  = [];
+let allDoctors   = [];
 let activeFilter = "all";
 
-// ── Toast ──────────────────────────────────────────────────
+/* ── TOAST ─────────────────────────────────────────────────── */
 let _tt = null;
 function showToast(text, type = "success") {
-  const t = document.getElementById("dhasToast");
+  const t  = document.getElementById("dhasToast");
   const ic = type === "success" ? "ti-circle-check" : "ti-alert-circle";
   t.className = type;
   t.innerHTML = `<i class="ti ${ic}" style="font-size:15px;flex-shrink:0"></i><span>${text}</span>`;
@@ -479,7 +549,24 @@ function showToast(text, type = "success") {
   _tt = setTimeout(() => { t.style.display = "none"; }, 3500);
 }
 
-// ── Copy invite code ───────────────────────────────────────
+/* ── CONFIRM MODAL ──────────────────────────────────────────── */
+let _confirmResolve = null;
+function showConfirm({ title, msg }) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent   = msg;
+    document.getElementById("confirmOkBtn").disabled    = false;
+    document.getElementById("confirmOkBtn").textContent = "Disconnect";
+    document.getElementById("confirmOverlay").classList.add("show");
+  });
+}
+function confirmResolve(result) {
+  document.getElementById("confirmOverlay").classList.remove("show");
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+
+/* ── COPY INVITE CODE ─────────────────────────────────────── */
 function copyCode(code, btn) {
   navigator.clipboard.writeText(code).then(() => {
     btn.classList.add("copied");
@@ -492,13 +579,50 @@ function copyCode(code, btn) {
   }).catch(() => showToast("Code: " + code));
 }
 
-// ── Retry (re-send request after rejection) ───────────────
+/* ── DISCONNECT FROM DOCTOR (patient action) ────────────────
+   Only available on accepted cards.
+   Calls DELETE /api/doctors/patient-connections/:connection_id
+   Backend verifies: patient_id matches + status = 'accepted'
+── */
+async function disconnectFromDoctor(connectionId, doctorName) {
+  const ok = await showConfirm({
+    title: "Disconnect from Dr. " + doctorName + "?",
+    msg:   "You will lose access to their care. You can reconnect using their invite code at any time."
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled    = true;
+  btn.textContent = "Disconnecting…";
+
+  try {
+    const res  = await fetch(`${BASE}/doctor/patient-connections/${connectionId}`, {
+      method:  "DELETE",
+      headers: window.getAuthHeaders()
+    });
+    const data = await res.json();
+
+    confirmResolve(false); // close modal
+
+    if (data.success) {
+      showToast("Disconnected from Dr. " + doctorName + ".", "success");
+      await loadDoctors(); // refresh list
+    } else {
+      showToast(data.message || "Failed to disconnect.", "error");
+    }
+  } catch {
+    confirmResolve(false);
+    showToast("Cannot connect to server.", "error");
+  }
+}
+
+/* ── RETRY (re-send request after rejection) ─────────────── */
 async function retryConnect(inviteCode) {
   try {
     const res  = await fetch(`${BASE}/doctor/connect`, {
-      method: "POST",
+      method:  "POST",
       headers: window.getAuthHeaders(),
-      body: JSON.stringify({ invite_code: inviteCode })
+      body:    JSON.stringify({ invite_code: inviteCode })
     });
     const data = await res.json();
     showToast(data.message || (data.success ? "Request re-sent!" : "Failed."),
@@ -509,23 +633,26 @@ async function retryConnect(inviteCode) {
   }
 }
 
-// ── Filter ─────────────────────────────────────────────────
+/* ── FILTER ───────────────────────────────────────────────── */
 function setFilter(filter, btn) {
   activeFilter = filter;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 
   const labels = {
-    all: "All Connections",
+    all:      "All Connections",
     accepted: "Connected Doctors",
-    pending: "Pending Requests",
+    pending:  "Pending Requests",
     rejected: "Declined Requests"
   };
   document.getElementById("listLabel").textContent = labels[filter] || "All Connections";
   renderList();
 }
 
-// ── Build doctor card HTML ─────────────────────────────────
+/* ── BUILD DOCTOR CARD HTML ───────────────────────────────────
+   Disconnect button is added ONLY for status === 'accepted'.
+   It sits inside .invite-right alongside copy and profile buttons.
+── */
 function buildCard(d, idx) {
   const status   = d.status || "accepted";
   const initials = (d.name || "D").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
@@ -549,10 +676,13 @@ function buildCard(d, idx) {
 
   // Bottom row depends on status
   let bottomRow = "";
+
   if (status === "accepted") {
     const connDate = d.connected_at
       ? new Date(d.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
       : "";
+    // Escape doctor name for safe use in onclick attribute
+    const safeName = (d.name || "").replace(/'/g, "\\'");
     bottomRow = `
       <div class="invite-row">
         <div class="invite-left">
@@ -566,9 +696,18 @@ function buildCard(d, idx) {
           <a href="doctor_profile_public.html?id=${d.id}" class="mini-btn view">
             <i class="ti ti-user" aria-hidden="true"></i> Profile
           </a>
+          <button
+            class="mini-btn disconnect"
+            title="Disconnect from this doctor"
+            aria-label="Disconnect from Dr. ${d.name}"
+            onclick="disconnectFromDoctor(${d.connection_id}, '${safeName}')"
+          >
+            <i class="ti ti-minus" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
       ${connDate ? `<div class="connected-since"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Connected since ${connDate}</div>` : ""}`;
+
   } else if (status === "pending") {
     const reqDate = d.requested_at
       ? new Date(d.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -578,6 +717,7 @@ function buildCard(d, idx) {
         <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
         <span>Request sent${reqDate ? " on " + reqDate : ""}. Waiting for Dr. ${(d.name||"").split(" ")[0]}'s approval.</span>
       </div>`;
+
   } else if (status === "rejected") {
     const respDate = d.responded_at
       ? new Date(d.responded_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -618,7 +758,7 @@ function buildCard(d, idx) {
     </div>`;
 }
 
-// ── Render list ────────────────────────────────────────────
+/* ── RENDER LIST ──────────────────────────────────────────── */
 function renderList() {
   const list = document.getElementById("doctorList");
   let filtered = allDoctors;
@@ -650,7 +790,7 @@ function renderList() {
   list.innerHTML = filtered.map((d, i) => buildCard(d, i)).join("");
 }
 
-// ── Connect to doctor ──────────────────────────────────────
+/* ── CONNECT TO DOCTOR ────────────────────────────────────── */
 async function connectToDoctor() {
   const code  = document.getElementById("inviteCodeInput").value.trim();
   const msgEl = document.getElementById("connectMsg");
@@ -669,9 +809,9 @@ async function connectToDoctor() {
 
   try {
     const res  = await fetch(`${BASE}/doctor/connect`, {
-      method: "POST",
+      method:  "POST",
       headers: window.getAuthHeaders(),
-      body: JSON.stringify({ invite_code: code })
+      body:    JSON.stringify({ invite_code: code })
     });
     const data = await res.json();
 
@@ -695,7 +835,7 @@ async function connectToDoctor() {
   }
 }
 
-// ── Load doctors ───────────────────────────────────────────
+/* ── LOAD DOCTORS ─────────────────────────────────────────── */
 async function loadDoctors() {
   try {
     const res  = await fetch(`${BASE}/doctor/my-doctors/${user.id}`, {
@@ -707,7 +847,6 @@ async function loadDoctors() {
     allDoctors = [];
   }
 
-  // Stats
   const accepted = allDoctors.filter(d => (d.status || "accepted") === "accepted").length;
   const pending  = allDoctors.filter(d => d.status === "pending").length;
 
@@ -716,17 +855,12 @@ async function loadDoctors() {
   document.getElementById("statTotal").textContent     = allDoctors.length;
   document.getElementById("doctorCount").textContent   = allDoctors.length;
 
-  // Show filter tabs only if there's more than one status type
+  // Show filter tabs only when more than one status type exists
   const statuses = new Set(allDoctors.map(d => d.status || "accepted"));
   document.getElementById("filterTabs").style.display = statuses.size > 1 ? "flex" : "none";
 
   renderList();
 }
-
-// ── spin keyframe ──────────────────────────────────────────
-const spinStyle = document.createElement("style");
-spinStyle.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
-document.head.appendChild(spinStyle);
 
 loadDoctors();
 </script>

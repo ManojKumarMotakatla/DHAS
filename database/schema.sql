@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     name             VARCHAR(100)   NOT NULL,
     email            VARCHAR(100)   UNIQUE NOT NULL,
-    password         VARCHAR(255)   NULL DEFAULT NULL,
+    password         VARCHAR(255)   NULL DEFAULT NULL ,
     google_id        VARCHAR(100)   NULL UNIQUE,
     invite_code      VARCHAR(20)    UNIQUE NOT NULL,
 
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     profile_photo    MEDIUMTEXT     NULL DEFAULT NULL,
 
     -- Default 1: every new doctor is immediately verified / visible
-    is_verified      TINYINT(1)     NOT NULL DEFAULT 1,
+    is_verified      TINYINT(1)     NOT NULL DEFAULT 0,
 
     created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
 );

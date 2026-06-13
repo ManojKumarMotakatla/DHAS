@@ -1,12 +1,12 @@
 /**
- * DHAS — sw.js  (v9 — network-first HTML, proper cache busting)
+ * DHAS — sw.js  (v8 — fixed navigation fallback + API cache isolation)
  * Place at project ROOT (same level as server.js)
  */
 
-const CACHE_VERSION = "dhas-v9";
-const API_CACHE     = "dhas-api-v9";
-const FONT_CACHE    = "dhas-fonts-v9";
-const CDN_CACHE     = "dhas-cdn-v9";
+const CACHE_VERSION = "dhas-v10";
+const API_CACHE     = "dhas-api-v8";
+const FONT_CACHE    = "dhas-fonts-v8";
+const CDN_CACHE     = "dhas-cdn-v8";
 
 const CORE_ASSETS = [
   "/",
@@ -37,6 +37,7 @@ const CORE_ASSETS = [
   "/js/health-data.js",
   "/js/symptom.js",
   "/js/reminder.js",
+  "/js/alarm-engine.js",
   "/js/steps.js",
   "/js/report.js",
   "/js/severity.js",
@@ -45,7 +46,7 @@ const CORE_ASSETS = [
   "/manifest.json"
 ];
 
-// API path prefixes — never serve as HTML navigation fallbacks
+// API path prefixes — these must NEVER be served as HTML navigation fallbacks
 const API_PREFIXES = [
   "/profile",
   "/symptoms",
@@ -55,63 +56,40 @@ const API_PREFIXES = [
   "/register",
   "/auth",
   "/reminder-logs",
-  "/doctor",
   "/test"
 ];
-
-// HTML pages — always network-first so changes show immediately
-const HTML_EXTENSIONS = [".html", "/"];
 
 function isAPIPath(pathname) {
   return API_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
-function isHTMLRequest(request) {
-  const url = new URL(request.url);
-  const { pathname } = url;
-  return (
-    request.mode === "navigate" ||
-    pathname.endsWith(".html") ||
-    pathname === "/" ||
-    (!pathname.includes(".") && !isAPIPath(pathname))
-  );
-}
-
-// ── INSTALL: cache core assets ────────────────────────────────
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then(async cache => {
       const results = await Promise.allSettled(
         CORE_ASSETS.map(url =>
-          fetch(url, { cache: "reload" })
+          fetch(url, { cache: "no-cache" })
             .then(response => { if (response.ok) return cache.put(url, response); })
             .catch(() => {})
         )
       );
       const ok = results.filter(r => r.status === "fulfilled").length;
-      console.log(`[SW v9] Cached ${ok}/${CORE_ASSETS.length} assets`);
+      console.log(`[SW v8] Cached ${ok}/${CORE_ASSETS.length} assets`);
     }).then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: clear old caches ────────────────────────────────
 self.addEventListener("activate", event => {
   const validCaches = [CACHE_VERSION, API_CACHE, FONT_CACHE, CDN_CACHE];
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys
-          .filter(k => !validCaches.includes(k))
-          .map(k => {
-            console.log(`[SW v9] Removing old cache: ${k}`);
-            return caches.delete(k);
-          })
+        keys.filter(k => !validCaches.includes(k)).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH ─────────────────────────────────────────────────────
 self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
@@ -125,7 +103,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // CDN assets — cache first (they're versioned externally)
+  // CDN assets — cache first
   if (
     url.hostname.includes("cdn.jsdelivr.net") ||
     url.hostname.includes("cdnjs.cloudflare.com") ||
@@ -136,58 +114,32 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // API calls — network first, short cache for offline
+  // API calls — network first, fallback to cache when offline
+  // These are handled separately so their cached responses are
+  // NEVER served as HTML navigation fallbacks
   if (isAPIPath(url.pathname)) {
     event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  // HTML pages — ALWAYS network first so updates show immediately
-  if (isHTMLRequest(request)) {
-    event.respondWith(networkFirstHTML(request));
-    return;
-  }
-
-  // JS/CSS/images — cache first with network fallback
+  // Everything else (HTML, CSS, JS) — cache first
   event.respondWith(cacheFirst(request, CACHE_VERSION));
 });
 
-// ── STRATEGIES ────────────────────────────────────────────────
-
-// Network first for HTML — show fresh content, fall back to cache offline
-async function networkFirstHTML(request) {
-  const cache = await caches.open(CACHE_VERSION);
-  try {
-    const response = await fetch(request, { cache: "no-cache" });
-    if (response.ok) {
-      // Update cache with fresh copy
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    // Offline: serve from cache
-    const cached = await cache.match(request);
-    if (cached) return cached;
-
-    // Ultimate fallback
-    const fallback =
-      (await cache.match("/404.html")) ||
-      (await cache.match("/dashboard.html")) ||
-      (await cache.match("/"));
-    if (fallback) return fallback;
-
-    return new Response("<h1>Offline</h1><p>Please check your connection.</p>", {
-      status: 503,
-      headers: { "Content-Type": "text/html" }
-    });
-  }
-}
-
-// Cache first for static assets
 async function cacheFirst(request, cacheName) {
+  const url    = new URL(request.url);
+  const isAPI  = isAPIPath(url.pathname);
+
   const cache  = await caches.open(cacheName);
   const cached = await cache.match(request);
-  if (cached) return cached;
+  if (cached) {
+    // Safety check: never serve a cached API JSON response as a page navigation
+    if (request.mode === "navigate" && isAPI) {
+      // Fall through to network
+    } else {
+      return cached;
+    }
+  }
 
   try {
     const response = await fetch(request);
@@ -196,11 +148,22 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    return new Response("", { status: 503 });
+    // Offline fallback — only serve HTML pages for navigation requests,
+    // and only when the request is NOT an API call
+    if (request.mode === "navigate" && !isAPI) {
+      const fallback =
+        (await cache.match("/404.html")) ||
+        (await cache.match("/dashboard.html")) ||
+        (await cache.match("/"));
+      if (fallback) return fallback;
+    }
+    return new Response(
+      JSON.stringify({ success: false, message: "You are offline. Please check your connection." }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
 
-// Network first for API
 async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   try {
@@ -217,7 +180,6 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-// Stale while revalidate for fonts
 async function staleWhileRevalidate(request, cacheName) {
   const cache        = await caches.open(cacheName);
   const cached       = await cache.match(request);
@@ -227,14 +189,125 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || (await fetchPromise) || new Response("", { status: 204 });
 }
 
-// ── MESSAGE HANDLER ───────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════════════
+   DHAS ALARM ENGINE — runs inside the Service Worker
+   Fires system notifications even when screen is off / browser minimised.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// In-SW reminder store (populated by the page via postMessage)
+let _swReminders = [];
+let _swAlarmInterval = null;
+
+function _sw_to24(h, m, ampm) {
+    let hr = parseInt(h, 10);
+    if (ampm === "PM" && hr !== 12) hr += 12;
+    if (ampm === "AM" && hr === 12) hr = 0;
+    return [hr, parseInt(m, 10)];
+}
+
+function _sw_shouldFireToday(r) {
+    const now = new Date(), dow = now.getDay(), dom = now.getDate();
+    const mid = new Date(); mid.setHours(0, 0, 0, 0);
+    if (r.startDate) {
+        const s = new Date(r.startDate + "T00:00:00");
+        if (mid < s) return false;
+    }
+    if (r.duration && r.duration !== "forever") {
+        const base = r.startDate
+            ? new Date(r.startDate + "T00:00:00")
+            : (r.createdAt ? new Date(r.createdAt) : new Date());
+        base.setHours(0, 0, 0, 0);
+        if (Math.floor((mid - base) / 86400000) >= parseInt(r.duration)) return false;
+    }
+    switch (r.sched || "daily") {
+        case "daily":     return true;
+        case "alternate": {
+            if (!r.altBase) return true;
+            const base = new Date(r.altBase);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const bDay = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+            return Math.round((today - bDay) / 86400000) % 2 === 0;
+        }
+        case "weekly": case "twice_week": case "three_week": case "custom":
+            return (r.days || []).map(Number).includes(dow);
+        case "monthly": return dom === (parseInt(r.monthDay) || 1);
+        default: return false;
+    }
+}
+
+// SW-side dedup — simple in-memory map (cleared on SW restart, that's fine)
+const _swFired = {};
+
+function _sw_checkAlarms() {
+    if (!_swReminders.length) return;
+    const now = new Date(), hh = now.getHours(), mm = now.getMinutes();
+
+    _swReminders.forEach(r => {
+        if (!_sw_shouldFireToday(r)) return;
+        (r.times || []).forEach(t => {
+            const [aH, aM] = _sw_to24(t.h, t.m, t.ampm);
+            if (isNaN(aH) || isNaN(aM)) return;
+            if ((hh * 60 + mm) !== (aH * 60 + aM)) return;
+            const key = `${r.id}-${t.label}-${aH}-${aM}`;
+            if (_swFired[key] && (Date.now() - _swFired[key]) < 5 * 60 * 1000) return;
+            _swFired[key] = Date.now();
+
+            // Show system notification (works with screen off)
+            self.registration.showNotification(`💊 ${r.medicine}`, {
+                body:    `${t.label}: ${t.display || ""}\n${r.scheduleLabel || ""}`,
+                icon:    "/icons/icon-192.svg",
+                badge:   "/icons/icon-96.svg",
+                vibrate: [300, 100, 300, 100, 300],
+                requireInteraction: true,
+                tag:     `dhas-${r.id}-${t.label}`,
+                data:    { url: "/reminder.html" }
+            });
+
+            // Also wake the page (if open) so it can play the in-app sound
+            self.clients.matchAll({ type: "window" }).then(clients => {
+                clients.forEach(c => c.postMessage({ type: "DHAS_CHECK_NOW" }));
+            });
+        });
+    });
+}
+
+function _sw_startTicker() {
+    if (_swAlarmInterval) clearInterval(_swAlarmInterval);
+    // Align to the top of each minute so exact-minute match is always caught
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 200;
+    _sw_checkAlarms(); // immediate check
+    setTimeout(() => {
+        _sw_checkAlarms();
+        _swAlarmInterval = setInterval(_sw_checkAlarms, 60 * 1000);
+    }, msUntilNextMinute);
+}
+
 self.addEventListener("message", event => {
+  // Page sends updated reminder list
+  if (event.data?.type === "DHAS_SET_REMINDERS") {
+    _swReminders = event.data.reminders || [];
+    console.log(`[SW] Loaded ${_swReminders.length} reminders for alarm checking`);
+    _sw_startTicker();
+  }
+
+  // Legacy ping from old reminder.js
   if (event.data?.type === "CHECK_ALARMS") {
     self.clients.matchAll().then(clients =>
       clients.forEach(c => c.postMessage({ type: "WAKE_CHECK" }))
     );
   }
+
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("periodicsync", event => {
+  if (event.tag === "dhas-alarm-check") {
+    event.waitUntil((async () => {
+      console.log("[SW] Periodic background sync — checking alarms");
+      _sw_checkAlarms();
+    })());
+  }
 });
 
 self.addEventListener("notificationclick", event => {

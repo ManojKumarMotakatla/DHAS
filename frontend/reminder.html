@@ -276,13 +276,15 @@
 
   </div>
 
+  <!-- Hidden reminderList needed by reminder.js displayReminders() -->
+  <div id="reminderList" style="display:none"></div>
   <script src="js/reminder.js"></script>
 
   <!-- View Reminders Button -->
-  <a href="saved_reminders.html" style="position:fixed;bottom:20px;right:20px;z-index:999;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(42,108,246,.35);transition:all .2s ease;">
+  <button onclick="window.location.href='saved_reminders.html'" style="position:fixed;bottom:20px;right:20px;z-index:999;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;border:none;cursor:pointer;padding:12px 18px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(42,108,246,.35);transition:all .2s ease;">
     <i class="ti ti-list-details" style="font-size:16px" aria-hidden="true"></i>
     View Reminders
-  </a>
+  </button>
 
 </body>
 </html>

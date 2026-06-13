@@ -1,4 +1,5 @@
-const API = (window.API_BASE || "http://localhost:3006") + "/reminders";
+console.log("REMINDER JS LOADED");
+const API = (window.API_BASE || "http://localhost:3007") + "/reminders";
 
 function getUserId() {
     const flatKeys = ["user_id","userId","uid","dhas_user_id","dhas_userId","id","user"];
@@ -25,6 +26,26 @@ function getUserId() {
 
 let remindersCache = [];
 function getReminders() { return remindersCache; }
+
+// Normalize a reminder from the server so alarm engine fields are always correct
+function normalizeReminder(r) {
+    return {
+        ...r,
+        doseCount: String(r.doseCount || r.dose_count || 1),
+        times: (r.times || []).map(t => ({
+            ...t,
+            h:    String(t.h    || "8"),
+            m:    String(t.m    || "00"),
+            ampm: String(t.ampm || "AM"),
+            display: t.display || `${t.h}:${String(t.m).padStart(2,"0")} ${t.ampm}`
+        })),
+        days:     Array.isArray(r.days) ? r.days.map(Number) : [],
+        monthDay: parseInt(r.monthDay || r.month_day || 1),
+        duration: String(r.duration || "forever"),
+        sound:    r.sound || "bell",
+        sched:    r.sched || "daily",
+    };
+}
 
 // ── Bottom-left toast ─────────────────────────────────────────
 (function injectToastStyles() {
@@ -139,6 +160,15 @@ function getAudioCtx() {
     return audioCtx;
 }
 
+// Pre-warm AudioContext on every user interaction.
+// Browsers suspend audio created outside a user gesture — this keeps it alive.
+function _warmAudioCtx() {
+    try { const ctx = getAudioCtx(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
+}
+["click","touchstart","keydown","pointerdown"].forEach(ev =>
+    document.addEventListener(ev, _warmAudioCtx, { passive: true })
+);
+
 const SOUNDS = {
     bell:   { label:"Bell",   play(ctx){ playTone(ctx,[{freq:880,dur:0.3,delay:0,gain:0.6},{freq:660,dur:0.3,delay:0.35,gain:0.5},{freq:880,dur:0.5,delay:0.7,gain:0.7}],"sine"); } },
     chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playTone(ctx,[{freq:f,dur:0.25,delay:i*0.18,gain:0.45}],"sine")); } },
@@ -161,9 +191,13 @@ function playTone(ctx, notes, type) {
     });
 }
 
-function playSound(soundKey) {
+async function playSound(soundKey) {
     const s = SOUNDS[soundKey] || SOUNDS.bell;
-    try { s.play(getAudioCtx()); } catch (e) { console.warn("Audio:", e); }
+    try {
+        const ctx = getAudioCtx();
+        if (ctx.state === "suspended") await ctx.resume();
+        s.play(ctx);
+    } catch (e) { console.warn("Audio:", e); }
 }
 
 window.previewSound = function () {
@@ -228,11 +262,16 @@ function checkAlarms() {
         if (!shouldFireToday(r, dow, dom)) return;
         (r.times || []).forEach(t => {
             const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
-            if (alarmH !== hh || alarmM !== mm) return;
-            const key = `${r.id}-${t.label}-${hh}-${mm}`;
+            // Guard: skip if time parsing failed
+            if (isNaN(alarmH) || isNaN(alarmM)) return;
+            const nowMinutes   = hh * 60 + mm;
+            const alarmMinutes = alarmH * 60 + alarmM;
+            // Widen to ±4 minutes to survive page load delays and slow ticks
+            
+            const key = `${r.id}-${t.label}-${alarmH}-${alarmM}`;
             if (lastFiredKey[key]) return;
             lastFiredKey[key] = true;
-            setTimeout(() => delete lastFiredKey[key], 90000);
+            setTimeout(() => delete lastFiredKey[key], 5 * 60 * 1000);
             triggerAlarm(r, t);
         });
     });
@@ -251,6 +290,66 @@ function triggerAlarm(reminder, timeSlot) {
             })
         );
     }
+
+    // After the last alarm of the day fires, schedule a post-alarm purge (5 min grace)
+    if (reminder.duration && reminder.duration !== "forever") {
+        schedulePostAlarmPurge(reminder, timeSlot);
+    }
+}
+
+// Checks if this timeSlot is the last one for today; if so, deletes the reminder after 5 min
+function schedulePostAlarmPurge(reminder, timeSlot) {
+    const times = reminder.times || [];
+    if (!times.length) return;
+
+    // Find the latest alarm minute across all time slots
+    const latestMinute = Math.max(...times.map(t => {
+        let h = parseInt(t.h); const m = parseInt(t.m);
+        if (t.ampm === "PM" && h !== 12) h += 12;
+        if (t.ampm === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+    }));
+
+    // Convert this slot to minutes
+    let slotH = parseInt(timeSlot.h); const slotM = parseInt(timeSlot.m);
+    if (timeSlot.ampm === "PM" && slotH !== 12) slotH += 12;
+    if (timeSlot.ampm === "AM" && slotH === 12) slotH = 0;
+    const thisSlotMinute = slotH * 60 + slotM;
+
+    // Only schedule purge when the LAST time slot fires
+    if (thisSlotMinute !== latestMinute) return;
+
+    // Check if this is the last day (duration days have elapsed including today)
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+    const base = reminder.startDate
+        ? new Date(reminder.startDate + "T00:00:00")
+        : (reminder.createdAt ? new Date(reminder.createdAt) : new Date());
+    base.setHours(0,0,0,0);
+    const daysSince = Math.floor((todayMidnight - base) / 86400000);
+    const dur = parseInt(reminder.duration);
+
+    // For a 1-day reminder: daysSince === 0, dur - 1 === 0 → this is the last day
+    if (daysSince < dur) return;
+
+    console.log(`[DHAS] Scheduling auto-delete for "${reminder.medicine}" in 5 minutes (last alarm fired).`);
+
+    setTimeout(async () => {
+        try {
+            const res  = await fetch(`${API}/delete/${reminder.id}`, {
+                method: "DELETE",
+                headers: window.getAuthHeaders()
+            });
+            const data = await res.json();
+            if (data.success) {
+                remindersCache = remindersCache.filter(x => x.id !== reminder.id);
+                displayReminders();
+                showPageMsg(`"${reminder.medicine}" reminder completed and removed automatically.`, "success", 6000);
+                console.log(`[DHAS] Auto-deleted reminder id=${reminder.id} after last alarm.`);
+            }
+        } catch (err) {
+            console.warn("[DHAS] Post-alarm purge failed:", err);
+        }
+    }, 5 * 60 * 1000); // 5 minute grace period
 }
 
 function showAlarmCard(reminder, timeSlot) {
@@ -298,6 +397,8 @@ function showAlarmCard(reminder, timeSlot) {
 
 // ── Schedule helpers ──────────────────────────────────────────
 function shouldFireToday(r, dow, dom) {
+    // Allow calling without args (defaults to now)
+    if (dow === undefined) { const n = new Date(); dow = n.getDay(); dom = n.getDate(); }
     const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
     if (r.startDate) {
         const start = new Date(r.startDate + "T00:00:00");
@@ -306,6 +407,7 @@ function shouldFireToday(r, dow, dom) {
     if (r.duration && r.duration !== "forever") {
         const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
         base.setHours(0,0,0,0);
+        // >= means: after the last valid day, don't fire
         if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
     }
     switch (r.sched) {
@@ -318,8 +420,8 @@ function shouldFireToday(r, dow, dom) {
             return Math.round((today - bDay) / 86400000) % 2 === 0;
         }
         case "weekly": case "twice_week": case "three_week": case "custom":
-            return (r.days || []).includes(dow);
-        case "monthly": return dom === (r.monthDay || 1);
+            return (r.days || []).map(Number).includes(dow);
+        case "monthly": return dom === (parseInt(r.monthDay) || 1);
         default: return false;
     }
 }
@@ -332,8 +434,22 @@ function to24(h, m, ampm) {
 }
 
 function startAlarmTicker() {
-    checkAlarms();
-    setInterval(checkAlarms, 30 * 1000);
+    // Align ticker to fire at the START of every minute (xx:yy:00)
+    // This guarantees checkAlarms() always runs when hh:mm changes,
+    // so an exact-minute match never gets skipped.
+    function scheduleNextMinuteTick() {
+        const now = new Date();
+        // ms remaining until the next whole minute + 200ms buffer
+        const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 200;
+        setTimeout(() => {
+            checkAlarms();
+            // After the first aligned tick, repeat every 60 s exactly
+            setInterval(checkAlarms, 60 * 1000);
+        }, msUntilNextMinute);
+    }
+    // Also do an immediate check in case we loaded right at alarm time
+    setTimeout(checkAlarms, 500);
+    scheduleNextMinuteTick();
 }
 
 // ── Constants ─────────────────────────────────────────────────
@@ -544,9 +660,49 @@ async function loadRemindersFromServer() {
             headers: window.getAuthHeaders()
         });
         const data = await res.json();
-        if (data.success) remindersCache = data.data || [];
+        if (data.success) {
+            remindersCache = (data.data || []).map(normalizeReminder);
+            await purgeExpiredReminders();
+        }
     } catch (err) { console.error("loadReminders error:", err); }
     displayReminders();
+}
+
+async function purgeExpiredReminders() {
+    const now = new Date();
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+    const toDelete = remindersCache.filter(r => {
+        if (!r.duration || r.duration === "forever") return false;
+        const base = r.startDate
+            ? new Date(r.startDate + "T00:00:00")
+            : (r.createdAt ? new Date(r.createdAt) : new Date());
+        base.setHours(0,0,0,0);
+        const daysSince = Math.floor((todayMidnight - base) / 86400000);
+        const dur = parseInt(r.duration);
+        // daysSince > dur: clearly past — delete immediately
+        if (daysSince > dur) return true;
+        // daysSince === dur: last day has passed; delete only after all alarms + 5 min grace
+        if (daysSince === dur) {
+            const times = r.times || [];
+            if (!times.length) return true;
+            const latestMin = Math.max(...times.map(t => {
+                let h = parseInt(t.h); const m = parseInt(t.m);
+                if (t.ampm === "PM" && h !== 12) h += 12;
+                if (t.ampm === "AM" && h === 12) h = 0;
+                return h * 60 + m;
+            }));
+            return (now.getHours() * 60 + now.getMinutes()) >= latestMin + 5;
+        }
+        return false;
+    });
+    for (const r of toDelete) {
+        try {
+            await fetch(`${API}/delete/${r.id}`, { method:"DELETE", headers:window.getAuthHeaders() });
+            remindersCache = remindersCache.filter(x => x.id !== r.id);
+            showPageMsg(`"${r.medicine}" reminder completed and removed.`, "success", 5000);
+        } catch(e) { console.warn("purge failed", r.id, e); }
+    }
+    if (toDelete.length) { console.log(`Purged ${toDelete.length} expired reminder(s).`); }
 }
 
 // ── Save reminder ─────────────────────────────────────────────
@@ -629,7 +785,7 @@ window.addReminder = async function () {
         document.getElementById("alarmSound").value   = "bell";
         document.getElementById("reminderPreview").style.display = "none";
         renderScheduleUI();
-
+        
     } catch (err) {
         console.error("addReminder error:", err);
         showPageMsg("Network error — could not save reminder. Is the server running?", "error");
@@ -1038,6 +1194,16 @@ function displayReminders() {
 
     list.innerHTML = reminders.map(r => {
         const durationLabel = r.duration==="forever" ? "Continuous" : `${r.duration} Day(s)`;
+        const _sd = r.startDate
+            || (r.createdAt ? r.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]);
+        const startDateLabel = new Date(_sd + "T00:00:00")
+            .toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+        let endDateLabel = "";
+        if (r.duration && r.duration !== "forever") {
+            const endD = new Date(_sd + "T00:00:00");
+            endD.setDate(endD.getDate() + parseInt(r.duration));
+            endDateLabel = endD.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+        }
         const chips = (r.times||[]).map(t =>
             `<span style="background:#f0f7ff;border:1px solid #bfdbfe;color:#1e40af;
                           border-radius:20px;padding:3px 10px;font-size:0.78rem;font-weight:600;
@@ -1069,6 +1235,16 @@ function displayReminders() {
                   </span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${chips}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+                  <span class="sched-chip" style="background:rgba(42,108,246,.15);color:#7aafff;border:1px solid rgba(42,108,246,.3);">
+                    <i class="ti ti-calendar-event" style="font-size:11px" aria-hidden="true"></i>
+                    Started: ${startDateLabel}
+                  </span>
+                  ${endDateLabel ? `<span class="sched-chip" style="background:rgba(244,160,53,.15);color:#fbbf24;border:1px solid rgba(244,160,53,.3);">
+                    <i class="ti ti-calendar-x" style="font-size:11px" aria-hidden="true"></i>
+                    Ends: ${endDateLabel}
+                  </span>` : ""}
+                </div>
               </div>
               <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;align-items:flex-end;">
                 <button class="edit-btn" onclick="openEditReminder(${r.id})">
@@ -1087,15 +1263,29 @@ function goBack() { window.location.href = "dashboard.html"; }
 
 // ── Init ──────────────────────────────────────────────────────
 window.onload = async function () {
-    await registerSW();
-    updateNotifBanner(await requestNotifPermission());
+    // ── 1. DOM setup FIRST — before any async calls that could pause execution ──
     buildMonthDayOptions();
     renderScheduleUI();
 
     const today = new Date().toISOString().split("T")[0];
     const startDateEl = document.getElementById("startDate");
-    if (startDateEl) { startDateEl.min = today; startDateEl.value = today; }
+    if (startDateEl) {
+        startDateEl.min   = today;
+        startDateEl.value = today;
+    }
 
+    // Force-render time slots directly in case renderScheduleUI ran too early
+    const doseEl = document.getElementById("doseCount");
+    const tsEl   = document.getElementById("timeSlots");
+    if (doseEl && tsEl && tsEl.innerHTML.trim() === "") {
+        renderTimeSlots(doseEl.value || "1");
+    }
+
+    // ── 2. Async: SW + notifications (won't block DOM) ──
+    registerSW();  // fire-and-forget — no await so SW install never blocks UI
+    requestNotifPermission().then(granted => updateNotifBanner(granted));
+
+    // ── 3. Load data + start alarm ticker ──
     await loadRemindersFromServer();
     startAlarmTicker();
 };

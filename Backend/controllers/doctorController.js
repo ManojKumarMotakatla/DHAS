@@ -13,6 +13,48 @@ function generateInviteCode() {
     return code;
 }
 
+// ── REQUIRED FIELDS for profile verification ───────────────────
+// A doctor is marked is_verified=1 only when ALL of these are filled.
+// Doctors are created with is_verified=0 and auto-promoted when they
+// complete their profile via Edit Profile.
+const REQUIRED_PROFILE_FIELDS = [
+    "speciality",
+    "experience_years",
+    "hospital",
+    "city",
+    "state",
+    "languages",
+    "bio"
+];
+
+/**
+ * Checks the doctor's current DB row and sets is_verified accordingly.
+ * Called after every profile update.
+ */
+async function syncVerifiedStatus(doctorId) {
+    const [rows] = await db.promise().query(
+        `SELECT speciality, experience_years, hospital, city, state, languages, bio
+         FROM doctors WHERE id = ?`,
+        [doctorId]
+    );
+    if (rows.length === 0) return;
+
+    const d = rows[0];
+    const isComplete =
+        d.speciality       && String(d.speciality).trim()       !== "" &&
+        d.experience_years !== null && d.experience_years        !== "" &&
+        d.hospital         && String(d.hospital).trim()         !== "" &&
+        d.city             && String(d.city).trim()             !== "" &&
+        d.state            && String(d.state).trim()            !== "" &&
+        d.languages        && String(d.languages).trim()        !== "" &&
+        d.bio              && String(d.bio).trim()              !== "";
+
+    await db.promise().query(
+        "UPDATE doctors SET is_verified = ? WHERE id = ?",
+        [isComplete ? 1 : 0, doctorId]
+    );
+}
+
 /* ── REGISTER ── */
 const registerDoctor = async (req, res) => {
     const { name, email, password, speciality } = req.body;
@@ -32,12 +74,13 @@ const registerDoctor = async (req, res) => {
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
 
+        // is_verified = 0 on registration — doctor must complete profile first
         await db.promise().query(
-            "INSERT INTO doctors (name, email, password, speciality, invite_code, is_verified) VALUES (?, ?, ?, ?, ?, 1)",
+            "INSERT INTO doctors (name, email, password, speciality, invite_code, is_verified) VALUES (?, ?, ?, ?, ?, 0)",
             [name.trim(), email.toLowerCase(), hash, speciality, invite_code]
         );
 
-        res.json({ success: true, message: "Doctor account created! Please login." });
+        res.json({ success: true, message: "Doctor account created! Please login and complete your profile to appear in the directory." });
     } catch (err) {
         console.error("Doctor register error:", err.message);
         res.json({ success: false, message: "Registration failed. Please try again." });
@@ -138,6 +181,10 @@ const updateDoctorProfile = async (req, res) => {
             values
         );
 
+        // ── Auto-sync verified status based on profile completeness ──
+        await syncVerifiedStatus(doctorId);
+
+        // ── Return fresh profile ──
         const [rows] = await db.promise().query(
             `SELECT id, name, email, speciality, invite_code, created_at,
                     experience_years, hospital, city, state,
@@ -168,7 +215,7 @@ const getPublicDoctor = async (req, res) => {
             [doctorId]
         );
         if (rows.length === 0)
-            return res.status(404).json({ success: false, message: "Doctor not found or not yet verified." });
+            return res.status(404).json({ success: false, message: "Doctor not found or profile not yet complete." });
 
         res.json({ success: true, doctor: rows[0] });
     } catch (err) {
@@ -178,6 +225,7 @@ const getPublicDoctor = async (req, res) => {
 };
 
 /* ── GET ALL VERIFIED DOCTORS (public) ── */
+// Only returns doctors with is_verified = 1 (profile fully completed)
 const getAllDoctors = async (req, res) => {
     try {
         const [rows] = await db.promise().query(
@@ -295,19 +343,31 @@ const rejectConnection = async (req, res) => {
     }
 };
 
-/* ── DISCONNECT (doctor removes a patient) ── */
+/* ── DISCONNECT PATIENT (doctor removes an accepted patient) ── */
 const disconnectPatient = async (req, res) => {
-    const doctorId    = req.doctorId;
+    const doctorId     = req.doctorId;
     const connectionId = parseInt(req.params.connection_id);
 
+    if (isNaN(connectionId)) {
+        return res.status(400).json({ success: false, message: "Invalid connection ID." });
+    }
+
     try {
-        const [rows] = await db.promise().query(
-            "SELECT * FROM doctor_patient_connections WHERE id = ? AND doctor_id = ? AND status = 'accepted'",
-            [connectionId, doctorId]
+        const [anyRow] = await db.promise().query(
+            "SELECT id, doctor_id, status FROM doctor_patient_connections WHERE id = ?",
+            [connectionId]
         );
 
-        if (rows.length === 0) {
+        if (anyRow.length === 0) {
             return res.status(404).json({ success: false, message: "Connection not found." });
+        }
+
+        if (anyRow[0].doctor_id !== doctorId) {
+            return res.status(403).json({ success: false, message: "You are not authorized to remove this connection." });
+        }
+
+        if (anyRow[0].status !== "accepted") {
+            return res.status(400).json({ success: false, message: "Only accepted connections can be disconnected." });
         }
 
         await db.promise().query(
@@ -315,10 +375,49 @@ const disconnectPatient = async (req, res) => {
             [connectionId]
         );
 
-        res.json({ success: true, message: "Patient disconnected." });
+        res.json({ success: true, message: "Connection removed successfully." });
     } catch (err) {
         console.error("disconnectPatient error:", err.message);
-        res.json({ success: false, message: "Failed to disconnect." });
+        res.json({ success: false, message: "Failed to disconnect. Please try again." });
+    }
+};
+
+/* ── DISCONNECT DOCTOR (patient removes an accepted doctor) ── */
+const disconnectDoctor = async (req, res) => {
+    const patientId    = req.userId;
+    const connectionId = parseInt(req.params.connection_id);
+
+    if (isNaN(connectionId)) {
+        return res.status(400).json({ success: false, message: "Invalid connection ID." });
+    }
+
+    try {
+        const [anyRow] = await db.promise().query(
+            "SELECT id, patient_id, status FROM doctor_patient_connections WHERE id = ?",
+            [connectionId]
+        );
+
+        if (anyRow.length === 0) {
+            return res.status(404).json({ success: false, message: "Connection not found." });
+        }
+
+        if (anyRow[0].patient_id !== patientId) {
+            return res.status(403).json({ success: false, message: "You are not authorized to remove this connection." });
+        }
+
+        if (anyRow[0].status !== "accepted") {
+            return res.status(400).json({ success: false, message: "Only accepted connections can be disconnected." });
+        }
+
+        await db.promise().query(
+            "DELETE FROM doctor_patient_connections WHERE id = ?",
+            [connectionId]
+        );
+
+        res.json({ success: true, message: "Connection removed successfully." });
+    } catch (err) {
+        console.error("disconnectDoctor error:", err.message);
+        res.json({ success: false, message: "Failed to disconnect. Please try again." });
     }
 };
 
@@ -413,7 +512,6 @@ const connectDoctor = async (req, res) => {
             if (status === 'pending')
                 return res.json({ success: false, message: `Your request to Dr. ${doctor.name} is already pending approval.` });
             if (status === 'rejected') {
-                // Allow re-request after rejection
                 await db.promise().query(
                     "UPDATE doctor_patient_connections SET status = 'pending', requested_at = NOW(), responded_at = NULL WHERE id = ?",
                     [existing[0].id]
@@ -427,7 +525,6 @@ const connectDoctor = async (req, res) => {
             }
         }
 
-        // New request — insert as pending
         await db.promise().query(
             "INSERT INTO doctor_patient_connections (doctor_id, patient_id, status, requested_at) VALUES (?, ?, 'pending', NOW())",
             [doctor.id, patientId]
@@ -442,33 +539,6 @@ const connectDoctor = async (req, res) => {
     } catch (err) {
         console.error("connectDoctor error:", err.message);
         res.json({ success: false, message: "Failed to connect. Please try again." });
-    }
-};
-
-/* ── DISCONNECT (patient removes a doctor) ── */
-const disconnectDoctor = async (req, res) => {
-    const patientId    = req.userId;
-    const connectionId = parseInt(req.params.connection_id);
-
-    try {
-        const [rows] = await db.promise().query(
-            "SELECT * FROM doctor_patient_connections WHERE id = ? AND patient_id = ?",
-            [connectionId, patientId]
-        );
-
-        if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: "Connection not found." });
-        }
-
-        await db.promise().query(
-            "DELETE FROM doctor_patient_connections WHERE id = ?",
-            [connectionId]
-        );
-
-        res.json({ success: true, message: "Disconnected successfully." });
-    } catch (err) {
-        console.error("disconnectDoctor error:", err.message);
-        res.json({ success: false, message: "Failed to disconnect." });
     }
 };
 
@@ -538,10 +608,11 @@ const googleAuthDoctor = async (req, res) => {
             [codeCheck] = await db.promise().query("SELECT id FROM doctors WHERE invite_code = ?", [invite_code]);
         }
 
+        // is_verified = 0 — must complete profile first
         const [result] = await db.promise().query(
             `INSERT INTO doctors
              (name, email, password, speciality, invite_code, google_id, is_verified)
-             VALUES (?, ?, NULL, ?, ?, ?, 1)`,
+             VALUES (?, ?, NULL, ?, ?, ?, 0)`,
             [name || "Doctor", email.toLowerCase(), "General Physician", invite_code, google_id]
         );
 

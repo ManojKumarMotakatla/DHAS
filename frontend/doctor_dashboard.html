@@ -73,6 +73,7 @@
     .confirm-ok { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none; font-weight: 700; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
     .confirm-ok.danger  { background: #dc2626; color: #fff; }
     .confirm-ok.warning { background: var(--amber); color: #fff; }
+    .confirm-ok.success { background: var(--green); color: #fff; }
     .confirm-ok:hover { opacity: .9; }
     .confirm-ok:disabled { opacity: .6; cursor: not-allowed; }
 
@@ -156,11 +157,74 @@
     .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
 
     .sec-head { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 12px; }
-    .sec-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    .sec-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
     .sec-link { font-size: .78rem; color: var(--green); font-weight: 600; cursor: pointer; }
 
+    /* PENDING BADGE */
+    .pending-count-badge {
+      background: rgba(244,160,53,.15);
+      border: 1px solid rgba(244,160,53,.35);
+      color: var(--amber);
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 20px;
+      margin-left: 4px;
+    }
+    body.dark .pending-count-badge {
+      background: rgba(244,160,53,.2);
+      border-color: rgba(244,160,53,.4);
+    }
+
+    /* PENDING REQUEST CARD */
+    .pending-req-card {
+      background: var(--surface);
+      border: 1.5px solid rgba(244,160,53,.35);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: fadeUp .3s ease both;
+    }
+    body.dark .pending-req-card { border-color: rgba(244,160,53,.3); }
+    .pending-avatar {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--amber), #fcd34d);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff;
+    }
+    .pending-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .accept-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: 8px;
+      border: none; background: var(--green); color: #fff;
+      font-size: .78rem; font-weight: 700; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s;
+    }
+    .accept-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .reject-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: 8px;
+      border: 1.5px solid rgba(242,92,125,.3);
+      background: rgba(242,92,125,.08); color: var(--rose);
+      font-size: .78rem; font-weight: 700; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s;
+    }
+    .reject-btn:hover { background: rgba(242,92,125,.18); border-color: var(--rose); }
+
     /* PATIENTS */
-    .patient-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; display: flex; align-items: center; gap: 14px; transition: border-color .2s, transform .18s, box-shadow .18s; animation: fadeUp .3s ease both; }
+    .patient-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+      box-shadow: var(--shadow); cursor: pointer;
+      display: flex; align-items: center; gap: 14px;
+      transition: border-color .2s, transform .18s, box-shadow .18s;
+      animation: fadeUp .3s ease both;
+      position: relative;
+    }
     .patient-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .patient-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: #fff; }
     .patient-name { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 3px; }
@@ -169,6 +233,18 @@
     .patient-meta i { font-size: 12px; }
     .patient-arrow { margin-left: auto; color: var(--muted); font-size: 1.1rem; }
     .patient-card:hover .patient-arrow { color: var(--green); }
+
+    /* DISCONNECT BUTTON */
+    .disconnect-btn {
+      position: absolute; top: 10px; right: 10px;
+      width: 28px; height: 28px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      color: var(--muted); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0;
+    }
+    .disconnect-btn:hover { background: #fee2e2; border-color: var(--rose); color: var(--rose); }
+    body.dark .disconnect-btn { background: #031a10; border-color: #0a4a28; }
+    body.dark .disconnect-btn:hover { background: rgba(242,92,125,.15); border-color: var(--rose); color: var(--rose); }
 
     /* DETAIL */
     .detail-back { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s; }
@@ -213,7 +289,6 @@
     .prof-body { margin-top: -36px; position: relative; z-index: 10; }
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
 
-    /* VERIFIED BANNER — same pattern as DHAS patient "Health Snapshot" complete banner */
     .v-banner { display: flex; align-items: center; gap: 12px; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 14px; }
     .v-banner.verified   { background: #d1fae5; border: 1px solid #6ee7b7; }
     .v-banner.unverified { background: #fffbeb; border: 1px solid #fcd34d; }
@@ -415,11 +490,23 @@
         <div class="stat-card"><div class="stat-val" id="statRep"><span class="skeleton" style="width:36px;height:32px;border-radius:6px;"></span></div><div class="stat-lbl">Reports</div></div>
       </div>
 
+      <!-- PENDING REQUESTS SECTION -->
+      <div class="sec-head" id="pendingHead" style="display:none;">
+        <div class="sec-title">
+          <i class="ti ti-clock" style="color:var(--amber);font-size:16px;"></i>
+          Pending Requests
+          <span class="pending-count-badge" id="pendingBadge"></span>
+        </div>
+      </div>
+      <div id="pendingRequestList"></div>
+
+      <!-- CONNECTED PATIENTS SECTION -->
       <div class="sec-head">
         <div class="sec-title">Connected Patients</div>
         <span class="sec-link" onclick="showView('patients')">View all →</span>
       </div>
       <div id="dashPatientList"><div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div></div>
+
       <p class="disclaimer">DHAS Doctor Portal · Patient data is private &amp; encrypted.</p>
     </div>
 
@@ -462,10 +549,6 @@
           <div class="stat-card"><div class="stat-val" id="vStatRep">0</div><div class="stat-lbl">Reports</div></div>
         </div>
 
-        <!--
-          VERIFIED BANNER — shown/hidden by JS based on is_verified from API.
-          Both start hidden; JS shows the correct one after loadProfile().
-        -->
         <div class="v-banner verified" id="verifiedBanner" style="display:none;">
           <div class="vb-icon"><i class="ti ti-circle-check"></i></div>
           <div class="vb-content">
@@ -644,6 +727,7 @@ function showConfirm({ title, msg, okLabel = "Confirm", okType = "danger", icon 
     const btn = document.getElementById("confirmOkBtn");
     btn.textContent = okLabel;
     btn.className   = "confirm-ok " + okType;
+    btn.disabled    = false;
     document.getElementById("confirmOverlay").classList.add("show");
   });
 }
@@ -692,42 +776,20 @@ function setAvatar(elId, src, name) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   IS_VERIFIED — THE FIX
-   
-   MySQL TINYINT(1) is returned by mysql2 as:
-   - JavaScript number: 1 or 0
-   - NEVER as boolean true/false (that's a common misconception)
-   - NEVER as string "1" or "0" via mysql2
-   
-   So parseInt(val) === 1 is the safest check.
-   We also guard against unexpected string values just in case.
-═══════════════════════════════════════════════════════════ */
+/* ── IS_VERIFIED CHECK ── */
 function checkVerified(val) {
   if (val === null || val === undefined) return false;
-  // Number: 1 → true, 0 → false
   if (typeof val === "number")  return val === 1;
-  // Boolean (unlikely from mysql2 but safe to handle)
   if (typeof val === "boolean") return val === true;
-  // String (if somehow serialised)
   if (typeof val === "string")  return val === "1" || val.toLowerCase() === "true";
   return false;
 }
 
-/* ── APPLY VERIFIED STATUS TO UI ──
-   Called after loadProfile() once we have the API response.
-   Updates BOTH the profile hero pill AND the banner.
-── */
 function applyVerifiedUI(verified) {
-  // Hero status pill
   document.getElementById("profSdot").style.background = verified ? "var(--green)" : "var(--amber)";
   document.getElementById("profStatus").textContent    = verified ? "Verified Doctor" : "Pending Verification";
-
-  // Banner: show the correct one, hide the other
   document.getElementById("verifiedBanner").style.display   = verified ? "flex" : "none";
   document.getElementById("unverifiedBanner").style.display = verified ? "none" : "flex";
-
-  // Topbar dropdown badge
   document.getElementById("dropBadge").style.display = verified ? "inline-flex" : "none";
 }
 
@@ -744,7 +806,6 @@ async function loadProfile() {
     if (data.success && data.doctor) {
       d = data.doctor;
     } else {
-      // fallback to localStorage — but this won't have is_verified reliably
       d = doctor;
       console.warn("Profile API failed, using localStorage fallback:", data.message);
     }
@@ -755,30 +816,24 @@ async function loadProfile() {
 
   _profileData = d;
 
-  // ── Update topbar & dropdown ──
   document.getElementById("dropName").textContent  = "Dr. " + (d.name || "");
   document.getElementById("dropEmail").textContent = d.email || "";
   setAvatar("avatarBtn", d.profile_photo, d.name);
-  // Re-add online dot (setAvatar may have replaced children)
   const ab = document.getElementById("avatarBtn");
   if (!ab.querySelector(".online-dot")) { const dot = document.createElement("div"); dot.className = "online-dot"; ab.appendChild(dot); }
 
-  // ── Hero card ──
   document.getElementById("heroName").textContent   = "Dr. " + (d.name || "");
   document.getElementById("heroSpec").textContent   = d.speciality || "General Physician";
   document.getElementById("inviteCode").textContent = d.invite_code || doctor.invite_code || "";
   setAvatar("heroAvatar", d.profile_photo, d.name);
 
-  // ── Profile view hero ──
   document.getElementById("profName").textContent  = "Dr. " + (d.name || "");
   document.getElementById("profEmail").textContent = d.email || "";
   setAvatar("profAvatar", d.profile_photo, d.name);
 
-  // ── VERIFIED STATUS — use checkVerified() helper ──
   const verified = checkVerified(d.is_verified);
   applyVerifiedUI(verified);
 
-  // ── Info rows ──
   sv("vi-spec",      d.speciality || "General Physician");
   sv("vi-hospital",  d.hospital);
   sv("vi-exp",       d.experience_years ? d.experience_years + " years experience" : null);
@@ -787,7 +842,6 @@ async function loadProfile() {
   sv("vi-provider",  d.google_id ? "Google Account" : "Email & Password");
   sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : null);
 
-  // ── Edit form prefill ──
   document.getElementById("fSpec").value      = d.speciality || "General Physician";
   document.getElementById("fExpYears").value  = d.experience_years || "";
   document.getElementById("fHospital").value  = d.hospital || "";
@@ -811,7 +865,104 @@ function sv(id, val) {
   else     { el.textContent = "Not set"; el.classList.add("empty"); }
 }
 
-/* ── PATIENTS ── */
+/* ═══════════════════════════════════════════════════
+   PENDING REQUESTS — LOAD & RENDER
+   Fetches GET /doctor/pending-requests and renders
+   accept / decline buttons for each request.
+   Called on init and refreshed after any action.
+═══════════════════════════════════════════════════ */
+async function loadPendingRequests() {
+  const res = await fetch(window.API_BASE + "/doctor/pending-requests", { headers: getDoctorHeaders() })
+    .then(r => r.json()).catch(() => ({ success: false, data: [] }));
+
+  const requests = res.success ? (res.data || []) : [];
+
+  const head  = document.getElementById("pendingHead");
+  const list  = document.getElementById("pendingRequestList");
+  const badge = document.getElementById("pendingBadge");
+
+  if (!requests.length) {
+    head.style.display = "none";
+    list.innerHTML     = "";
+    return;
+  }
+
+  head.style.display  = "flex";
+  badge.textContent   = requests.length;
+
+  list.innerHTML = requests.map((r, idx) => {
+    const initials = (r.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const reqDate  = new Date(r.requested_at).toLocaleDateString("en-IN",
+                      { day: "numeric", month: "short", year: "numeric" });
+    const safeName = (r.name || "").replace(/'/g, "\\'");
+    return `
+      <div class="pending-req-card" style="animation-delay:${idx * 40}ms">
+        <div class="pending-avatar">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="patient-name">${r.name}</div>
+          <div class="patient-meta">
+            <span><i class="ti ti-mail"></i>${r.email}</span>
+            ${r.blood_group ? `<span><i class="ti ti-droplet"></i>${r.blood_group}</span>` : ""}
+            <span><i class="ti ti-calendar"></i>Requested ${reqDate}</span>
+          </div>
+        </div>
+        <div class="pending-actions">
+          <button class="accept-btn" onclick="handleConnection(${r.connection_id}, 'accept', '${safeName}')">
+            <i class="ti ti-check" style="font-size:13px"></i> Accept
+          </button>
+          <button class="reject-btn" onclick="handleConnection(${r.connection_id}, 'reject', '${safeName}')">
+            <i class="ti ti-x" style="font-size:13px"></i> Decline
+          </button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/* ── ACCEPT / REJECT CONNECTION ── */
+async function handleConnection(connectionId, action, patientName) {
+  const isAccept = action === "accept";
+  const ok = await showConfirm({
+    title:   isAccept ? `Accept ${patientName}?` : `Decline ${patientName}?`,
+    msg:     isAccept
+               ? `${patientName} will be added to your patient list.`
+               : `${patientName}'s request will be declined. They can re-request at any time.`,
+    okLabel: isAccept ? "Accept" : "Decline",
+    okType:  isAccept ? "success" : "danger",
+    icon:    isAccept ? "ti-user-check" : "ti-user-x"
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled    = true;
+  btn.textContent = isAccept ? "Accepting…" : "Declining…";
+
+  const endpoint = isAccept
+    ? `${window.API_BASE}/doctor/accept/${connectionId}`
+    : `${window.API_BASE}/doctor/reject/${connectionId}`;
+
+  try {
+    const res  = await fetch(endpoint, { method: "POST", headers: getDoctorHeaders() });
+    const data = await res.json();
+    confirmResolve(false);
+    if (data.success) {
+      showToast(
+        isAccept ? `${patientName} has been accepted!` : `${patientName}'s request was declined.`,
+        isAccept ? "success" : "info"
+      );
+      await loadPendingRequests();
+      await loadPatients();
+    } else {
+      showToast(data.message || "Action failed.", "error");
+    }
+  } catch {
+    confirmResolve(false);
+    showToast("Cannot connect to server.", "error");
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PATIENTS — LOAD & RENDER
+═══════════════════════════════════════════════════════════ */
 let _patients = [];
 let _prevFromView = "patients";
 
@@ -845,8 +996,14 @@ function renderPatientList(containerId, patients) {
     const initials = (p.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     const connDate = new Date(p.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     return `<div class="patient-card" style="animation-delay:${idx * 40}ms" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
+      <button
+        class="disconnect-btn"
+        title="Disconnect patient"
+        aria-label="Disconnect ${p.name}"
+        onclick="event.stopPropagation(); disconnectPatient(${p.connection_id}, '${p.name}', '${containerId}')"
+      ><i class="ti ti-minus"></i></button>
       <div class="patient-avatar">${initials}</div>
-      <div style="flex:1;min-width:0;">
+      <div style="flex:1;min-width:0;padding-right:36px;">
         <div class="patient-name">${p.name}</div>
         <div class="patient-meta">
           <span><i class="ti ti-mail"></i>${p.email}</span>
@@ -859,6 +1016,40 @@ function renderPatientList(containerId, patients) {
       <i class="ti ti-chevron-right patient-arrow"></i>
     </div>`;
   }).join("");
+}
+
+/* ── DISCONNECT PATIENT (doctor removes an accepted patient) ── */
+async function disconnectPatient(connectionId, patientName, sourceContainerId) {
+  const ok = await showConfirm({
+    title:   "Disconnect Patient?",
+    msg:     `Remove ${patientName} from your patient list? They can reconnect using your invite code at any time.`,
+    okLabel: "Disconnect",
+    okType:  "danger",
+    icon:    "ti-user-minus"
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled    = true;
+  btn.textContent = "Disconnecting…";
+
+  try {
+    const res  = await fetch(`${window.API_BASE}/doctor/connections/${connectionId}`, {
+      method:  "DELETE",
+      headers: getDoctorHeaders()
+    });
+    const data = await res.json();
+    confirmResolve(false);
+    if (data.success) {
+      showToast(`${patientName} has been disconnected.`, "success");
+      await loadPatients();
+    } else {
+      showToast(data.message || "Failed to disconnect.", "error");
+    }
+  } catch {
+    confirmResolve(false);
+    showToast("Cannot connect to server.", "error");
+  }
 }
 
 function goBackFromDetail() { showView(_prevFromView); }
@@ -886,7 +1077,7 @@ async function loadPatientDetail(patientId, fromView) {
   ].filter(Boolean).join("");
 
   const symptomsHTML = symptoms.length ? symptoms.map(s => {
-    const sev = (s.severity || "").toLowerCase();
+    const sev   = (s.severity || "").toLowerCase();
     const level = sev.includes("high") ? "high" : sev.includes("medium") ? "medium" : "low";
     const dotColor = level === "high" ? "#ef4444" : level === "medium" ? "#f59e0b" : "#10b981";
     let syms = "";
@@ -1079,6 +1270,7 @@ async function doDeleteAccount() {
 /* ── INIT ── */
 loadProfile();
 loadPatients();
+loadPendingRequests();
 </script>
 </body>
 </html>
