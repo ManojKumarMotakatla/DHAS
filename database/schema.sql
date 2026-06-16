@@ -285,7 +285,115 @@ CALL dhas_add_index('doctors', 'idx_doctors_is_verified',  'is_verified');
 
 -- Cleanup
 DROP PROCEDURE IF EXISTS dhas_add_index;
+-- ============================================================
+-- DHAS Chat System — chat_schema.sql
+-- Run this AFTER your existing schema.sql
+-- ============================================================
 
+USE dhas_db;
+
+-- ── chat_rooms ──────────────────────────────────────────────────
+-- One room per accepted doctor-patient pair.
+-- Keyed by the connection row so deletion cascades automatically.
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    connection_id  INT          NOT NULL UNIQUE,   -- FK → doctor_patient_connections
+    doctor_id      INT          NOT NULL,
+    patient_id     INT          NOT NULL,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (connection_id) REFERENCES doctor_patient_connections(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)     REFERENCES doctors(id)  ON DELETE CASCADE,
+    FOREIGN KEY (patient_id)    REFERENCES users(id)    ON DELETE CASCADE
+);
+
+-- ── chat_messages ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    room_id        INT          NOT NULL,
+    sender_type    ENUM('doctor','patient') NOT NULL,
+    sender_id      INT          NOT NULL,
+    message_type   ENUM('text','image','pdf','symptom_share','report_share') NOT NULL DEFAULT 'text',
+    content        TEXT         NULL,          -- plain text body
+    file_name      VARCHAR(255) NULL,          -- original filename (attachments)
+    file_size      VARCHAR(20)  NULL,
+    file_mime      VARCHAR(80)  NULL,
+    file_data      LONGTEXT     NULL,          -- base64 dataURL (same pattern as reports)
+    metadata       JSON         NULL,          -- extra JSON for symptom/report payloads
+    status         ENUM('sent','delivered','read') NOT NULL DEFAULT 'sent',
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (room_id) REFERENCES chat_rooms(id) ON DELETE CASCADE
+);
+
+-- Indexes for fast room-based queries
+DROP PROCEDURE IF EXISTS dhas_chat_add_index;
+DELIMITER //
+CREATE PROCEDURE dhas_chat_add_index(
+    IN p_table VARCHAR(64),
+    IN p_index VARCHAR(64),
+    IN p_cols  VARCHAR(200)
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name   = p_table
+          AND index_name   = p_index
+    ) THEN
+        SET @sql = CONCAT('ALTER TABLE `', p_table, '` ADD INDEX `', p_index, '` (', p_cols, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+
+CALL dhas_chat_add_index('chat_messages', 'idx_chat_msg_room_id',    'room_id');
+CALL dhas_chat_add_index('chat_messages', 'idx_chat_msg_created_at', 'created_at');
+CALL dhas_chat_add_index('chat_rooms',    'idx_chat_rooms_doctor',   'doctor_id');
+CALL dhas_chat_add_index('chat_rooms',    'idx_chat_rooms_patient',  'patient_id');
+
+DROP PROCEDURE IF EXISTS dhas_chat_add_index;
+
+-- ── Migration: add status column to existing connections ─────────
+-- (doctor_patient_connections may not have a status column in old DBs)
+DROP PROCEDURE IF EXISTS dhas_chat_migrate;
+DELIMITER //
+CREATE PROCEDURE dhas_chat_migrate()
+BEGIN
+    -- Ensure connections table has status column (should already exist)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'doctor_patient_connections'
+          AND column_name  = 'status'
+    ) THEN
+        ALTER TABLE doctor_patient_connections
+            ADD COLUMN status       VARCHAR(20) NOT NULL DEFAULT 'accepted',
+            ADD COLUMN requested_at TIMESTAMP   NULL,
+            ADD COLUMN responded_at TIMESTAMP   NULL,
+            ADD COLUMN connected_at TIMESTAMP   NULL DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+
+    -- Auto-create chat rooms for all currently accepted connections
+    INSERT IGNORE INTO chat_rooms (connection_id, doctor_id, patient_id)
+    SELECT id, doctor_id, patient_id
+    FROM doctor_patient_connections
+    WHERE status = 'accepted';
+END //
+DELIMITER ;
+CALL dhas_chat_migrate();
+DROP PROCEDURE IF EXISTS dhas_chat_migrate;
+
+-- ============================================================
+-- NOTES:
+--   • file_data stores base64 (same approach as your reports table)
+--   • metadata JSON stores:
+--       symptom_share → { symptoms:[], condition_name, severity, checked_at }
+--       report_share  → { report_id, filename, filetype }
+--   • status progression: sent → delivered (other side connects) → read
+--   • chat_rooms are created automatically when a connection is accepted
+--   • Deleting the connection cascades and deletes the room + all messages
+-- ============================================================
 
 -- ============================================================
 -- NOTES (v8):
