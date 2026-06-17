@@ -1,14 +1,18 @@
 // ============================================================
 // Backend/config/socket.js
 //
-// Socket.IO server. Reuses the SAME JWTs as the REST API (no
-// separate chat login). All persistence (INSERT into chat_messages)
-// happens here, on `send_message` — the REST /chat/upload route
-// only stores the file on disk and hands back a URL; the actual
-// message row + delivery/read tracking is centralised in this file.
-//
-// Call initSocket(httpServer, allowedOriginRegexes) once from
-// server.js (see INTEGRATION_GUIDE.md).
+// CHANGED FOR E2E ENCRYPTION:
+//   - send_message payload may now include is_encrypted, iv,
+//     file_iv. The server stores these columns AS-IS and relays
+//     them in new_message - it never attempts to decrypt content
+//     or file_data. For "text" messages, when is_encrypted=1,
+//     `content` is base64 ciphertext rather than plain text, and
+//     buildMessageRow() applies a looser length check since
+//     ciphertext length isn't directly comparable to plaintext
+//     length - see buildMessageRow() comments below.
+//   - symptom_share / report_share messages are NOT encrypted
+//     (they reference existing DB rows the server must read to
+//     validate ownership), so those two types are unaffected.
 // ============================================================
 
 const { Server } = require("socket.io");
@@ -18,7 +22,6 @@ const { verifyRoomAccess, otherParty } = require("../utils/chatAccess");
 
 let io = null;
 
-// "role:id" -> Set<socket.id>   — who is currently online
 const onlineUsers = new Map();
 const presenceKey = (role, id) => `${role}:${id}`;
 
@@ -47,31 +50,46 @@ function partnerSocketsInRoom(roomId, partner) {
 
 function safeParseJSON(v) { try { return JSON.parse(v); } catch { return v; } }
 
-/* Builds the column values for a chat_messages insert based on
-   message_type, re-validating ownership of any referenced data
-   against the DB rather than trusting the client payload outright. */
+/* Builds the column values for a chat_messages insert. For
+   "text"/"image"/"pdf" we now trust the client's is_encrypted flag:
+   when true, content/file_data are opaque ciphertext (base64) and
+   we store them verbatim plus the iv/file_iv nonces. We still cap
+   length to stop abuse, just looser than the old "must be readable
+   prose" check since base64 ciphertext is naturally longer than the
+   plaintext it represents. */
 async function buildMessageRow(role, partyId, payload) {
+    const isEncrypted = !!payload.is_encrypted;
+
     switch (payload.message_type) {
         case "text": {
             const text = (payload.content || "").trim();
             if (!text) return { error: "Message cannot be empty." };
-            if (text.length > 4000) return { error: "Message is too long." };
-            return { content: text };
+            // Ciphertext (base64) runs longer than plaintext for the same
+            // message, so the cap is generous; this just stops abuse.
+            const maxLen = isEncrypted ? 8000 : 4000;
+            if (text.length > maxLen) return { error: "Message is too long." };
+            if (isEncrypted && !payload.iv) return { error: "Missing encryption nonce." };
+            return { content: text, is_encrypted: isEncrypted ? 1 : 0, iv: payload.iv || null };
         }
 
         case "image":
         case "pdf": {
             if (!payload.file_url || !payload.file_name) return { error: "File information missing." };
+            if (isEncrypted && !payload.file_iv) return { error: "Missing file encryption nonce." };
             return {
-                content:   payload.content ? String(payload.content).trim().slice(0, 500) : null, // optional caption
-                file_name: payload.file_name,
-                file_size: payload.file_size || null,
-                file_mime: payload.file_mime || null,
-                file_data: payload.file_url // re-using file_data column to store the authenticated download URL
+                content:      payload.content ? String(payload.content).trim().slice(0, 500) : null,
+                file_name:    payload.file_name,
+                file_size:    payload.file_size || null,
+                file_mime:    payload.file_mime || null,
+                file_data:    payload.file_url, // authenticated download URL; bytes behind it are ciphertext
+                is_encrypted: isEncrypted ? 1 : 0,
+                file_iv:      payload.file_iv || null
             };
         }
 
         case "symptom_share": {
+            // Not E2E encrypted: server must read the real symptom row to
+            // validate it belongs to this patient before sharing it.
             const symptomId = parseInt(payload.metadata?.symptom_id, 10);
             if (!symptomId) return { error: "No symptom record selected." };
             const [rows] = await db.promise().query(
@@ -92,6 +110,7 @@ async function buildMessageRow(role, partyId, payload) {
         }
 
         case "report_share": {
+            // Not E2E encrypted, same reasoning as symptom_share.
             const reportId = parseInt(payload.metadata?.report_id, 10);
             if (!reportId) return { error: "No report selected." };
             const [rows] = await db.promise().query(
@@ -121,10 +140,9 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
             },
             credentials: true
         },
-        maxHttpBufferSize: 2 * 1024 * 1024 // text-only payloads; files go through /chat/upload first
+        maxHttpBufferSize: 2 * 1024 * 1024
     });
 
-    // ── Auth handshake — same JWT_SECRET as the REST API ──
     io.use((socket, next) => {
         const token = socket.handshake.auth?.token;
         if (!token) return next(new Error("Authentication required."));
@@ -146,7 +164,7 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
     io.on("connection", (socket) => {
         const { role, partyId } = socket;
         addPresence(role, partyId, socket.id);
-        socket.join(`user:${role}:${partyId}`); // personal channel for contact-list / cross-room pings
+        socket.join(`user:${role}:${partyId}`);
 
         socket.on("join_room", async ({ room_id } = {}, ack) => {
             try {
@@ -189,7 +207,6 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
                     return ack?.({ success: false, message: "Unsupported message type." });
                 }
 
-                // Only patients can share their own health records
                 if ((payload.message_type === "symptom_share" || payload.message_type === "report_share") && role !== "patient") {
                     return ack?.({ success: false, message: "Only patients can share symptom history or reports." });
                 }
@@ -203,13 +220,15 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
                 const [result] = await db.promise().query(
                     `INSERT INTO chat_messages
                         (room_id, sender_type, sender_id, message_type, content,
-                         file_name, file_size, file_mime, file_data, metadata, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         file_name, file_size, file_mime, file_data, metadata,
+                         is_encrypted, iv, file_iv, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         room.id, role, partyId, payload.message_type, built.content || null,
                         built.file_name || null, built.file_size || null,
                         built.file_mime || null, built.file_data || null,
                         built.metadata ? JSON.stringify(built.metadata) : null,
+                        built.is_encrypted || 0, built.iv || null, built.file_iv || null,
                         status
                     ]
                 );
@@ -257,9 +276,6 @@ function relayTyping(socket, isTyping) {
     });
 }
 
-/* Called from doctorController.js (disconnectPatient / disconnectDoctor)
-   right after a connection row is deleted, so any open chat window
-   closes immediately instead of waiting for the next failed action. */
 function notifyConnectionTerminated(roomId) {
     if (!io || !roomId) return;
     io.to(`room:${roomId}`).emit("connection_terminated", { room_id: roomId });

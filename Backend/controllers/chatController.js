@@ -1,15 +1,21 @@
 // ============================================================
 // Backend/controllers/chatController.js
 //
-// REST surface for chat. Real-time delivery (the actual sending
-// of a message) happens over Socket.IO (see Backend/config/socket.js)
-// so persistence + broadcast logic lives in exactly one place.
-// This controller only handles:
-//   - contact list (with last message + unread count)
-//   - paginated message history
-//   - marking a room as read (REST fallback for the socket event)
-//   - file upload (multer) + authenticated file download
-//   - fetching a report that was shared inside a specific room
+// CHANGED FOR E2E ENCRYPTION:
+//   - getMessages / getContacts now also select is_encrypted, iv,
+//     file_iv. The server does NOT decrypt anything - content and
+//     file_data may be ciphertext (base64) when is_encrypted = 1.
+//     Decryption happens only in the browser (frontend/js/crypto.js).
+//   - uploadChatFile now accepts an already-ENCRYPTED file from the
+//     browser (multer just stores bytes - it has no idea they're
+//     ciphertext, which is exactly the point: the server never sees
+//     plaintext file content either).
+//   - getSharedReport is UNCHANGED in shape, but note: shared
+//     reports (existing medical reports table) are NOT E2E
+//     encrypted in this version, since reports.html stores them
+//     server-side as plain base64 (existing app behaviour) and
+//     encrypting that flow is a bigger lift outside this chat
+//     migration. This is flagged in the integration summary.
 // ============================================================
 
 const path = require("path");
@@ -26,9 +32,7 @@ function formatBytes(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-/* ── GET /chat/contacts ───────────────────────────────────────
-   Every accepted chat partner for the caller, with room id,
-   last-message preview and unread count. */
+/* -- GET /chat/contacts ----------------------------------------- */
 const getContacts = async (req, res) => {
     const { role } = req;
     const id = myId(req);
@@ -40,6 +44,7 @@ const getContacts = async (req, res) => {
                 SELECT u.id AS partner_id, u.name, u.profile_image AS avatar,
                        cr.id AS room_id, dpc.connected_at,
                        lm.content AS last_message, lm.message_type AS last_message_type,
+                       lm.is_encrypted AS last_message_encrypted,
                        lm.created_at AS last_message_at,
                        (SELECT COUNT(*) FROM chat_messages
                          WHERE room_id = cr.id AND sender_type = 'patient' AND status != 'read') AS unread_count
@@ -56,6 +61,7 @@ const getContacts = async (req, res) => {
                 SELECT d.id AS partner_id, d.name, d.speciality, d.profile_photo AS avatar,
                        cr.id AS room_id, dpc.connected_at,
                        lm.content AS last_message, lm.message_type AS last_message_type,
+                       lm.is_encrypted AS last_message_encrypted,
                        lm.created_at AS last_message_at,
                        (SELECT COUNT(*) FROM chat_messages
                          WHERE room_id = cr.id AND sender_type = 'doctor' AND status != 'read') AS unread_count
@@ -76,8 +82,7 @@ const getContacts = async (req, res) => {
     }
 };
 
-/* ── GET /chat/messages/:room_id?before_id=&limit= ─────────────
-   Paginated history, returned oldest → newest. */
+/* -- GET /chat/messages/:room_id?before_id=&limit= --------------- */
 const getMessages = async (req, res) => {
     const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
     if (!room) return res.status(403).json({ success: false, message: "You no longer have access to this conversation." });
@@ -94,7 +99,6 @@ const getMessages = async (req, res) => {
 
         const [rows] = await db.promise().query(sql, params);
 
-        // Whatever was addressed to me is now at least "delivered"
         await db.promise().query(
             `UPDATE chat_messages SET status = 'delivered'
              WHERE room_id = ? AND sender_type != ? AND status = 'sent'`,
@@ -108,7 +112,7 @@ const getMessages = async (req, res) => {
     }
 };
 
-/* ── PATCH /chat/read/:room_id ──────────────────────────────── */
+/* -- PATCH /chat/read/:room_id ----------------------------------- */
 const markRead = async (req, res) => {
     const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
     if (!room) return res.status(403).json({ success: false, message: "Access denied." });
@@ -132,11 +136,13 @@ const markRead = async (req, res) => {
     }
 };
 
-/* ── POST /chat/upload  (multer field name: "file") ─────────────
-   Stores the file on disk and returns metadata only. The actual
-   chat_messages row is created via the `send_message` socket event,
-   referencing this returned file_url — keeping persistence in one
-   place and avoiding orphaned DB rows if the socket emit fails. */
+/* -- POST /chat/upload  (multer field name: "file") --------------
+   The browser ENCRYPTS the file with AES-256-GCM before this point
+   (see frontend/js/chat.js -> encryptAndUploadFile). What multer
+   receives and writes to disk is already ciphertext bytes - the
+   server has no way to view the original image/PDF content.
+   req.body.file_iv carries the AES-GCM nonce, forwarded back to the
+   client via the socket message row so it can decrypt on download. */
 const uploadChatFile = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: "No file received." });
@@ -154,30 +160,33 @@ const uploadChatFile = async (req, res) => {
             file_name: req.file.originalname,
             file_size: formatBytes(req.file.size),
             file_mime: req.file.mimetype,
-            file_url:  `/chat/file/${room.id}/${req.file.filename}`
+            file_url:  `/chat/file/${room.id}/${req.file.filename}`,
+            file_iv:   req.body.file_iv || null
         }
     });
 };
 
-/* ── GET /chat/file/:room_id/:filename ───────────────────────── */
+/* -- GET /chat/file/:room_id/:filename ----------------------------
+   Returns raw (ciphertext) bytes. Decryption happens in the browser
+   using the file_iv stored on the message + the room's shared key. */
 const serveFile = async (req, res) => {
     const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
     if (!room) return res.status(403).json({ success: false, message: "Access denied." });
 
-    const filename = path.basename(req.params.filename); // strips any path traversal attempt
+    const filename = path.basename(req.params.filename);
     const resolved = path.join(UPLOAD_ROOT, String(room.id), filename);
 
     if (!fs.existsSync(resolved)) {
         return res.status(404).json({ success: false, message: "File not found." });
     }
+    // Deliberately NOT res.sendFile() with content-type sniffing -
+    // ciphertext isn't a real image/pdf, so we always serve as a generic
+    // binary stream; the browser only ever treats it as bytes-to-decrypt.
+    res.setHeader("Content-Type", "application/octet-stream");
     res.sendFile(resolved);
 };
 
-/* ── GET /chat/report/:room_id/:report_id ────────────────────────
-   Lets a doctor (or the patient themself) open a report — but ONLY
-   if that exact report_id was actually shared inside this room.
-   Prevents a doctor from fetching arbitrary report IDs just because
-   the patient shared a different one. */
+/* -- GET /chat/report/:room_id/:report_id ------------------------ */
 const getSharedReport = async (req, res) => {
     const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
     if (!room) return res.status(403).json({ success: false, message: "Access denied." });
@@ -208,16 +217,7 @@ const getSharedReport = async (req, res) => {
     }
 };
 
-/* ── GET /chat/room/:partner_id ──────────────────────────────
-   Resolves (and lazily creates) the chat room id for an ACCEPTED
-   connection between the caller and `partner_id`.
-
-   This is what powers the "Chat" buttons added directly to the
-   doctor cards in my_doctors.html and the patient cards in
-   doctor_dashboard.html — clicking Chat never has to land on a
-   generic inbox first; it jumps straight into that one conversation.
-   If the pair isn't (or is no longer) connected, this 403s, which
-   is what guarantees "only chat after connecting". */
+/* -- GET /chat/room/:partner_id ----------------------------------- */
 const getRoomForPartner = async (req, res) => {
     const myRole    = req.role;
     const id         = myId(req);
