@@ -242,10 +242,20 @@
       color: var(--muted); display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0;
     }
+
     .disconnect-btn:hover { background: #fee2e2; border-color: var(--rose); color: var(--rose); }
     body.dark .disconnect-btn { background: #031a10; border-color: #0a4a28; }
     body.dark .disconnect-btn:hover { background: rgba(242,92,125,.15); border-color: var(--rose); color: var(--rose); }
-
+.chat-icon-btn {
+  position: absolute; top: 10px; right: 46px;
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0;
+}
+.chat-icon-btn:hover { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+body.dark .chat-icon-btn { background: #031a10; border-color: #0a4a28; }
+body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color: var(--blue); color: var(--blue); }
     /* DETAIL */
     .detail-back { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s; }
     .detail-back:hover { color: var(--green); border-color: var(--green); }
@@ -984,7 +994,6 @@ async function loadPatients() {
   renderPatientList("dashPatientList", _patients.slice(0, 3));
   renderPatientList("allPatientList",  _patients);
 }
-
 function renderPatientList(containerId, patients) {
   const list = document.getElementById(containerId);
   if (!list) return;
@@ -997,13 +1006,19 @@ function renderPatientList(containerId, patients) {
     const connDate = new Date(p.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     return `<div class="patient-card" style="animation-delay:${idx * 40}ms" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
       <button
+        class="chat-icon-btn"
+        title="Chat with ${p.name}"
+        aria-label="Chat with ${p.name}"
+        onclick="event.stopPropagation(); window.location.href='chat.html?partner=${p.id}'"
+      ><i class="ti ti-message-circle-2"></i></button>
+      <button
         class="disconnect-btn"
         title="Disconnect patient"
         aria-label="Disconnect ${p.name}"
         onclick="event.stopPropagation(); disconnectPatient(${p.connection_id}, '${p.name}', '${containerId}')"
       ><i class="ti ti-minus"></i></button>
       <div class="patient-avatar">${initials}</div>
-      <div style="flex:1;min-width:0;padding-right:36px;">
+      <div style="flex:1;min-width:0;padding-right:64px;">
         <div class="patient-name">${p.name}</div>
         <div class="patient-meta">
           <span><i class="ti ti-mail"></i>${p.email}</span>
@@ -1017,7 +1032,6 @@ function renderPatientList(containerId, patients) {
     </div>`;
   }).join("");
 }
-
 /* ── DISCONNECT PATIENT (doctor removes an accepted patient) ── */
 async function disconnectPatient(connectionId, patientName, sourceContainerId) {
   const ok = await showConfirm({

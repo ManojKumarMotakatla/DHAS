@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat — DHAS</title>
+<script src="js/config.js"></script>
+<script src="theme.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  :root {
+    --navy:#0b1437; --navy-mid:#112057; --blue:#2a6cf6; --blue-lt:#4f8ef9;
+    --teal:#00c9b1; --amber:#f4a035; --rose:#f25c7d; --green:#22d07a;
+    --bg:#f4f6fc; --surface:#ffffff; --border:#e4e9f4; --text:#0d1b3e; --muted:#6b7fa3;
+    --radius:18px; --radius-sm:10px; --shadow:0 2px 20px rgba(42,108,246,.09);
+  }
+  html.dark body, body.dark {
+    --bg:#080f28; --surface:#111c3c; --border:#1e2e58; --text:#e8efff; --muted:#7d93c3;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;transition:background .35s,color .35s}
+
+  .topbar{height:60px;display:flex;align-items:center;padding:0 18px;gap:12px;background:linear-gradient(145deg,var(--navy-mid),var(--navy));flex-shrink:0}
+  .topbar-back{color:#fff;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px;text-decoration:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:6px 14px;border-radius:20px}
+  .topbar-title{font-family:'Fraunces',serif;color:#fff;font-weight:700;font-size:1.05rem;flex:1;text-align:center}
+
+  .chat-shell{display:flex;height:calc(100vh - 60px);position:relative}
+
+  /* ── Contact list pane ── */
+  .pane-list{width:340px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;transition:background .35s}
+  .pane-list-head{padding:14px 16px;font-family:'Fraunces',serif;font-weight:700;font-size:1rem;border-bottom:1px solid var(--border)}
+  .contact-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+  .contact-row:hover, .contact-row.active{background:var(--bg)}
+  .contact-avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;overflow:hidden}
+  .contact-info{flex:1;min-width:0}
+  .contact-top{display:flex;justify-content:space-between;gap:8px}
+  .contact-name{font-weight:700;font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .contact-time{font-size:.7rem;color:var(--muted);flex-shrink:0}
+  .contact-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+  .contact-preview{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .unread-badge{background:var(--blue);color:#fff;font-size:.68rem;font-weight:700;border-radius:20px;padding:1px 7px;flex-shrink:0}
+  .empty-contacts{padding:40px 20px;text-align:center;color:var(--muted);font-size:.88rem}
+
+  /* ── Conversation pane ── */
+  .pane-chat{flex:1;display:flex;flex-direction:column;min-width:0}
+  .chat-empty-state{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;flex-direction:column;gap:10px}
+  .chat-empty-state i{font-size:48px;opacity:.3}
+
+  .chat-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .back-to-list{display:none;background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:0 4px}
+  .chat-header .contact-avatar{width:40px;height:40px}
+  .chat-header-name{font-weight:700;font-size:.95rem}
+  .chat-header-sub{font-size:.74rem;color:var(--muted)}
+
+  .terminated-banner{display:none;align-items:center;gap:8px;background:#fee2e2;color:#991b1b;padding:9px 16px;font-size:.82rem;font-weight:600}
+  body.dark .terminated-banner{background:rgba(239,68,68,.15);color:#fca5a5}
+
+  .message-area{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
+  .loading-msgs{text-align:center;color:var(--muted);padding:30px;font-size:.85rem}
+
+  .msg-row{display:flex;margin-bottom:2px}
+  .msg-row.mine{justify-content:flex-end}
+  .bubble{max-width:64%;background:var(--surface);border-radius:14px;padding:9px 12px;box-shadow:var(--shadow);position:relative}
+  .msg-row.mine .bubble{background:linear-gradient(135deg,#dbeafe,#e0f2fe)}
+  body.dark .msg-row.mine .bubble{background:rgba(42,108,246,.18)}
+  .bubble-text{font-size:.88rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .bubble-meta{font-size:.65rem;color:var(--muted);text-align:right;margin-top:3px;display:flex;justify-content:flex-end;gap:4px;align-items:center}
+  .bubble-meta .tick i{font-size:13px}
+  .bubble-image{max-width:220px;border-radius:10px;display:block}
+  .bubble-caption{font-size:.82rem;margin-top:6px}
+  .bubble-file{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+  .bubble-file i{font-size:28px;color:var(--rose)}
+  .bf-name{font-size:.84rem;font-weight:700;word-break:break-all}
+  .bf-size{font-size:.7rem;color:var(--muted)}
+  .bubble-card{min-width:200px}
+  .bc-head{display:flex;align-items:center;gap:6px;font-weight:700;font-size:.82rem;color:var(--blue);margin-bottom:6px}
+  .bc-row{font-size:.82rem;margin-bottom:2px}
+  .bubble-card-link{cursor:pointer}
+  .bubble-card-link:hover{opacity:.85}
+
+  .typing-indicator{display:none;align-items:center;gap:6px;padding:4px 20px;font-size:.78rem;color:var(--muted)}
+
+  .composer{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);position:relative}
+  .composer textarea{flex:1;resize:none;border:1.5px solid var(--border);border-radius:20px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--text);background:var(--bg);outline:none;max-height:90px}
+  .composer textarea:focus{border-color:var(--blue)}
+  .icon-btn{width:40px;height:40px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:18px;transition:all .18s}
+  .icon-btn:hover{color:var(--blue);background:#eff6ff}
+  .send-btn{background:linear-gradient(135deg,var(--blue),var(--blue-lt));color:#fff}
+  .send-btn:hover{color:#fff;opacity:.9}
+
+  .attach-menu{display:none;position:absolute;bottom:62px;left:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.18);overflow:hidden;min-width:220px;z-index:50}
+  .attach-menu.open{display:block}
+  .attach-item{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--text)}
+  .attach-item:hover{background:var(--bg)}
+  .attach-item i{font-size:18px;color:var(--blue)}
+
+  /* ── Share picker modal ── */
+  .share-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px}
+  .share-modal{background:var(--surface);width:100%;max-width:380px;max-height:70vh;border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+  .sm-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-family:'Fraunces',serif}
+  .sm-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted)}
+  .sm-body{overflow-y:auto;padding:6px}
+  .sm-item{padding:12px 14px;border-radius:10px;cursor:pointer}
+  .sm-item:hover{background:var(--bg)}
+  .sm-item-title{font-weight:700;font-size:.88rem}
+  .sm-item-sub{font-size:.74rem;color:var(--muted);margin-top:2px}
+  .sm-empty{padding:30px;text-align:center;color:var(--muted);font-size:.85rem}
+
+  #chatToast{position:fixed;bottom:20px;left:20px;z-index:9999;padding:12px 18px;border-radius:12px;font-size:.85rem;font-weight:600;display:none;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+  #chatToast.success{background:#d1fae5;color:#166534;border:1px solid #86efac}
+  #chatToast.error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+
+  @media (max-width: 760px) {
+    .pane-list{position:absolute;inset:0;width:100%;z-index:5}
+    .pane-chat{position:absolute;inset:0;width:100%;transform:translateX(100%);transition:transform .25s ease;background:var(--bg)}
+    .chat-shell.show-chat .pane-chat{transform:translateX(0);z-index:10}
+    .chat-shell.show-chat .pane-list{display:none}
+    .back-to-list{display:flex}
+    .bubble{max-width:80%}
+  }
+</style>
+</head>
+<body>
+
+<div id="chatToast" role="status" aria-live="polite"></div>
+<div id="shareModalRoot"></div>
+
+<header class="topbar">
+  <a href="dashboard.html" class="topbar-back" id="topBackLink"><i class="ti ti-chevron-left" aria-hidden="true"></i> Back</a>
+  <div class="topbar-title">Messages</div>
+  <div style="width:80px"></div>
+</header>
+
+<div class="chat-shell" id="chatShell">
+
+  <aside class="pane-list" id="contactListPane">
+    <div class="pane-list-head">Conversations</div>
+    <div id="contactList"><div class="empty-contacts">Loading…</div></div>
+  </aside>
+
+  <section class="pane-chat" id="chatPane">
+    <div class="chat-empty-state" id="chatEmptyState">
+      <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+      <div>Select a conversation to start chatting</div>
+    </div>
+
+    <div class="chat-header" id="chatHeader" style="display:none;">
+      <button class="back-to-list" id="backToListBtn" aria-label="Back to list"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <div class="contact-avatar" id="chatPartnerAvatar"></div>
+      <div>
+        <div class="chat-header-name" id="chatPartnerName">—</div>
+        <div class="chat-header-sub" id="chatPartnerSub"></div>
+      </div>
+    </div>
+
+    <div class="terminated-banner" id="terminatedBanner">
+      <i class="ti ti-link-off" aria-hidden="true"></i>
+      This connection has ended. You can no longer send messages here.
+    </div>
+
+    <div class="message-area" id="messageArea"></div>
+
+    <div class="typing-indicator" id="typingIndicator">
+      <i class="ti ti-dots" aria-hidden="true"></i> typing…
+    </div>
+
+    <div class="composer" id="composerWrap" style="display:none;">
+      <button class="icon-btn" id="attachBtn" title="Attach" aria-label="Attach">
+        <i class="ti ti-paperclip" aria-hidden="true"></i>
+      </button>
+      <div class="attach-menu" id="attachMenu">
+        <div class="attach-item" id="optShareSymptom"><i class="ti ti-stethoscope" aria-hidden="true"></i> Share Symptom History</div>
+        <div class="attach-item" id="optShareReport"><i class="ti ti-file-report" aria-hidden="true"></i> Share Existing Reports</div>
+        <div class="attach-item" id="optUploadFile"><i class="ti ti-upload" aria-hidden="true"></i> Upload New File</div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none">
+      <textarea id="messageInput" rows="1" placeholder="Type a message…"></textarea>
+      <button class="icon-btn send-btn" id="sendBtn" aria-label="Send"><i class="ti ti-send" aria-hidden="true"></i></button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Doctors and patients land back on different dashboards.
+  (function(){
+    const isDoctor = !!localStorage.getItem("dhas_doctor_token");
+    document.getElementById("topBackLink").href = isDoctor ? "doctor_dashboard.html" : "dashboard.html";
+  })();
+</script>
+<script src="js/chat.js"></script>
+</body>
+</html>

@@ -265,7 +265,7 @@
     body.dark .invite-row { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.25); }
     .invite-left .invite-code-lbl { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
     .invite-left .invite-code-val { font-size: .95rem; font-weight: 800; letter-spacing: 2px; color: var(--green); }
-    .invite-right { display: flex; gap: 8px; align-items: center; }
+    .invite-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
     /* Pending info row */
     .pending-row {
@@ -309,6 +309,14 @@
     .mini-btn.copy.copied { background: var(--green); border-color: var(--green); color: #fff; }
     .mini-btn.view { background: linear-gradient(135deg, var(--green), var(--teal)); border-color: transparent; color: #fff; }
     .mini-btn.view:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* CHAT mini button — only on accepted cards */
+    .mini-btn.chat {
+      background: linear-gradient(135deg, var(--blue), #4f8ef9);
+      border-color: transparent;
+      color: #fff;
+    }
+    .mini-btn.chat:hover { opacity: .9; transform: translateY(-1px); color: #fff; }
 
     /* DISCONNECT mini button — only on accepted cards */
     .mini-btn.disconnect {
@@ -650,8 +658,12 @@ function setFilter(filter, btn) {
 }
 
 /* ── BUILD DOCTOR CARD HTML ───────────────────────────────────
-   Disconnect button is added ONLY for status === 'accepted'.
-   It sits inside .invite-right alongside copy and profile buttons.
+   Chat + Disconnect buttons are added ONLY for status === 'accepted'.
+   They sit inside .invite-right alongside copy and profile buttons.
+   Chat links straight into chat.html?partner=<doctor_id> — the chat
+   server re-verifies the connection is still accepted before
+   opening anything, so this link is harmless even if status has
+   changed since the page last loaded.
 ── */
 function buildCard(d, idx) {
   const status   = d.status || "accepted";
@@ -693,6 +705,9 @@ function buildCard(d, idx) {
           <button class="mini-btn copy" onclick="copyCode('${d.invite_code}', this)">
             <i class="ti ti-copy" aria-hidden="true"></i> Copy
           </button>
+          <a href="chat.html?partner=${d.id}" class="mini-btn chat" title="Chat with Dr. ${d.name}" aria-label="Chat with Dr. ${d.name}">
+            <i class="ti ti-message-circle-2" aria-hidden="true"></i> Chat
+          </a>
           <a href="doctor_profile_public.html?id=${d.id}" class="mini-btn view">
             <i class="ti ti-user" aria-hidden="true"></i> Profile
           </a>
