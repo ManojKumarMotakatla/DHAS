@@ -147,7 +147,10 @@
     </div>
 
     <div class="chat-header" id="chatHeader" style="display:none;">
-      <button class="back-to-list" id="backToListBtn" aria-label="Back to list"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+     <!-- Replace the existing backToListBtn button with: -->
+<button class="back-to-list" id="backToListBtn" aria-label="Back to list">
+  <i class="ti ti-chevron-left" aria-hidden="true"></i>
+</button>
       <div class="contact-avatar" id="chatPartnerAvatar"></div>
       <div>
         <div class="chat-header-name" id="chatPartnerName">—</div>
@@ -182,14 +185,15 @@
   </section>
 
 </div>
-
+<!-- REPLACE the existing two script tags at the bottom of chat.html body with these three: -->
 <script>
-  // Doctors and patients land back on different dashboards.
   (function(){
     const isDoctor = !!localStorage.getItem("dhas_doctor_token");
     document.getElementById("topBackLink").href = isDoctor ? "doctor_dashboard.html" : "dashboard.html";
   })();
 </script>
+<script src="js/crypto.js"></script>
 <script src="js/chat.js"></script>
+
 </body>
 </html>
