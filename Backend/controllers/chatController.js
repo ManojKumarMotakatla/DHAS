@@ -1,21 +1,12 @@
 // ============================================================
 // Backend/controllers/chatController.js
 //
-// CHANGED FOR E2E ENCRYPTION:
-//   - getMessages / getContacts now also select is_encrypted, iv,
-//     file_iv. The server does NOT decrypt anything - content and
-//     file_data may be ciphertext (base64) when is_encrypted = 1.
-//     Decryption happens only in the browser (frontend/js/crypto.js).
-//   - uploadChatFile now accepts an already-ENCRYPTED file from the
-//     browser (multer just stores bytes - it has no idea they're
-//     ciphertext, which is exactly the point: the server never sees
-//     plaintext file content either).
-//   - getSharedReport is UNCHANGED in shape, but note: shared
-//     reports (existing medical reports table) are NOT E2E
-//     encrypted in this version, since reports.html stores them
-//     server-side as plain base64 (existing app behaviour) and
-//     encrypting that flow is a bigger lift outside this chat
-//     migration. This is flagged in the integration summary.
+// FIXED:
+//   - getContacts now auto-creates chat rooms for accepted connections
+//     that don't have one yet (was causing "Loading..." to hang forever
+//     because the INNER JOIN on chat_rooms returned zero rows)
+//   - Both patient and doctor queries now LEFT JOIN chat_rooms and call
+//     ensureRoomForConnection() so every accepted connection has a room
 // ============================================================
 
 const path = require("path");
@@ -38,44 +29,102 @@ const getContacts = async (req, res) => {
     const id = myId(req);
 
     try {
-        let rows;
+        let connections;
+
         if (role === "doctor") {
-            [rows] = await db.promise().query(`
-                SELECT u.id AS partner_id, u.name, u.profile_image AS avatar,
-                       cr.id AS room_id, dpc.connected_at,
-                       lm.content AS last_message, lm.message_type AS last_message_type,
-                       lm.is_encrypted AS last_message_encrypted,
-                       lm.created_at AS last_message_at,
-                       (SELECT COUNT(*) FROM chat_messages
-                         WHERE room_id = cr.id AND sender_type = 'patient' AND status != 'read') AS unread_count
+            // Get all accepted patients for this doctor
+            [connections] = await db.promise().query(`
+                SELECT
+                    dpc.id AS connection_id,
+                    dpc.doctor_id,
+                    dpc.patient_id,
+                    u.id AS partner_id,
+                    u.name,
+                    u.profile_image AS avatar,
+                    NULL AS speciality
                 FROM doctor_patient_connections dpc
-                JOIN users u       ON u.id = dpc.patient_id
-                JOIN chat_rooms cr ON cr.connection_id = dpc.id
-                LEFT JOIN chat_messages lm
-                       ON lm.id = (SELECT id FROM chat_messages WHERE room_id = cr.id ORDER BY created_at DESC LIMIT 1)
+                JOIN users u ON u.id = dpc.patient_id
                 WHERE dpc.doctor_id = ? AND dpc.status = 'accepted'
-                ORDER BY (lm.created_at IS NULL) ASC, lm.created_at DESC
             `, [id]);
         } else {
-            [rows] = await db.promise().query(`
-                SELECT d.id AS partner_id, d.name, d.speciality, d.profile_photo AS avatar,
-                       cr.id AS room_id, dpc.connected_at,
-                       lm.content AS last_message, lm.message_type AS last_message_type,
-                       lm.is_encrypted AS last_message_encrypted,
-                       lm.created_at AS last_message_at,
-                       (SELECT COUNT(*) FROM chat_messages
-                         WHERE room_id = cr.id AND sender_type = 'doctor' AND status != 'read') AS unread_count
+            // Get all accepted doctors for this patient
+            [connections] = await db.promise().query(`
+                SELECT
+                    dpc.id AS connection_id,
+                    dpc.doctor_id,
+                    dpc.patient_id,
+                    d.id AS partner_id,
+                    d.name,
+                    d.profile_photo AS avatar,
+                    d.speciality
                 FROM doctor_patient_connections dpc
-                JOIN doctors d     ON d.id = dpc.doctor_id
-                JOIN chat_rooms cr ON cr.connection_id = dpc.id
-                LEFT JOIN chat_messages lm
-                       ON lm.id = (SELECT id FROM chat_messages WHERE room_id = cr.id ORDER BY created_at DESC LIMIT 1)
+                JOIN doctors d ON d.id = dpc.doctor_id
                 WHERE dpc.patient_id = ? AND dpc.status = 'accepted'
-                ORDER BY (lm.created_at IS NULL) ASC, lm.created_at DESC
             `, [id]);
         }
 
-        res.json({ success: true, data: rows });
+        if (!connections.length) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // Ensure every accepted connection has a chat room (auto-create if missing)
+        const roomIds = [];
+        for (const conn of connections) {
+            const roomId = await ensureRoomForConnection(
+                conn.connection_id,
+                conn.doctor_id,
+                conn.patient_id
+            );
+            roomIds.push(roomId);
+        }
+
+        // Now fetch full contact data with last message info
+        const result = [];
+        for (let i = 0; i < connections.length; i++) {
+            const conn = connections[i];
+            const roomId = roomIds[i];
+
+            // Get last message for this room
+            const [lastMsgRows] = await db.promise().query(`
+                SELECT content, message_type, is_encrypted, created_at, status
+                FROM chat_messages
+                WHERE room_id = ?
+                ORDER BY created_at DESC LIMIT 1
+            `, [roomId]);
+
+            // Get unread count
+            const senderType = role === "doctor" ? "patient" : "doctor";
+            const [unreadRows] = await db.promise().query(`
+                SELECT COUNT(*) AS cnt
+                FROM chat_messages
+                WHERE room_id = ? AND sender_type = ? AND status != 'read'
+            `, [roomId, senderType]);
+
+            const lastMsg = lastMsgRows[0] || null;
+            result.push({
+                connection_id:           conn.connection_id,
+                partner_id:              conn.partner_id,
+                name:                    conn.name,
+                avatar:                  conn.avatar,
+                speciality:              conn.speciality || null,
+                room_id:                 roomId,
+                last_message:            lastMsg ? (lastMsg.is_encrypted ? null : lastMsg.content) : null,
+                last_message_type:       lastMsg ? lastMsg.message_type : null,
+                last_message_encrypted:  lastMsg ? !!lastMsg.is_encrypted : false,
+                last_message_at:         lastMsg ? lastMsg.created_at : null,
+                unread_count:            unreadRows[0].cnt || 0
+            });
+        }
+
+        // Sort by last message date descending (newest first), no-message contacts last
+        result.sort((a, b) => {
+            if (!a.last_message_at && !b.last_message_at) return 0;
+            if (!a.last_message_at) return 1;
+            if (!b.last_message_at) return -1;
+            return new Date(b.last_message_at) - new Date(a.last_message_at);
+        });
+
+        res.json({ success: true, data: result });
     } catch (err) {
         console.error("getContacts error:", err.message);
         res.status(500).json({ success: false, message: "Failed to load chats." });
@@ -127,7 +176,7 @@ const markRead = async (req, res) => {
         try {
             const { getIO } = require("../config/socket");
             getIO()?.to(`room:${room.id}`).emit("messages_read", { room_id: room.id, reader: req.role });
-        } catch (_) { /* socket layer may not be initialised yet, that's fine */ }
+        } catch (_) {}
 
         res.json({ success: true });
     } catch (err) {
@@ -136,13 +185,7 @@ const markRead = async (req, res) => {
     }
 };
 
-/* -- POST /chat/upload  (multer field name: "file") --------------
-   The browser ENCRYPTS the file with AES-256-GCM before this point
-   (see frontend/js/chat.js -> encryptAndUploadFile). What multer
-   receives and writes to disk is already ciphertext bytes - the
-   server has no way to view the original image/PDF content.
-   req.body.file_iv carries the AES-GCM nonce, forwarded back to the
-   client via the socket message row so it can decrypt on download. */
+/* -- POST /chat/upload ------------------------------------------ */
 const uploadChatFile = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: "No file received." });
@@ -166,9 +209,7 @@ const uploadChatFile = async (req, res) => {
     });
 };
 
-/* -- GET /chat/file/:room_id/:filename ----------------------------
-   Returns raw (ciphertext) bytes. Decryption happens in the browser
-   using the file_iv stored on the message + the room's shared key. */
+/* -- GET /chat/file/:room_id/:filename --------------------------- */
 const serveFile = async (req, res) => {
     const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
     if (!room) return res.status(403).json({ success: false, message: "Access denied." });
@@ -179,9 +220,6 @@ const serveFile = async (req, res) => {
     if (!fs.existsSync(resolved)) {
         return res.status(404).json({ success: false, message: "File not found." });
     }
-    // Deliberately NOT res.sendFile() with content-type sniffing -
-    // ciphertext isn't a real image/pdf, so we always serve as a generic
-    // binary stream; the browser only ever treats it as bytes-to-decrypt.
     res.setHeader("Content-Type", "application/octet-stream");
     res.sendFile(resolved);
 };
@@ -217,11 +255,11 @@ const getSharedReport = async (req, res) => {
     }
 };
 
-/* -- GET /chat/room/:partner_id ----------------------------------- */
+/* -- GET /chat/room/:partner_id ---------------------------------- */
 const getRoomForPartner = async (req, res) => {
     const myRole    = req.role;
-    const id         = myId(req);
-    const partnerId  = parseInt(req.params.partner_id, 10);
+    const id        = myId(req);
+    const partnerId = parseInt(req.params.partner_id, 10);
     if (!partnerId) return res.status(400).json({ success: false, message: "Invalid partner id." });
 
     const doctorId  = myRole === "doctor" ? id : partnerId;

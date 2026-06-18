@@ -40,7 +40,16 @@
   .contact-time{font-size:.7rem;color:var(--muted);flex-shrink:0}
   .contact-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
   .contact-preview{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .unread-badge{background:var(--blue);color:#fff;font-size:.68rem;font-weight:700;border-radius:20px;padding:1px 7px;flex-shrink:0}
+  .unread-badge{
+  background:#22c55e;
+  color:#fff;
+  font-size:.68rem;
+  font-weight:700;
+  border-radius:999px;
+  padding:2px 8px;
+  min-width:20px;
+  text-align:center;
+}
   .empty-contacts{padding:40px 20px;text-align:center;color:var(--muted);font-size:.88rem}
 
   /* ── Conversation pane ── */
@@ -62,9 +71,26 @@
 
   .msg-row{display:flex;margin-bottom:2px}
   .msg-row.mine{justify-content:flex-end}
-  .bubble{max-width:64%;background:var(--surface);border-radius:14px;padding:9px 12px;box-shadow:var(--shadow);position:relative}
-  .msg-row.mine .bubble{background:linear-gradient(135deg,#dbeafe,#e0f2fe)}
-  body.dark .msg-row.mine .bubble{background:rgba(42,108,246,.18)}
+  .bubble{max-width:70%;background:var(--surface);border-radius:14px;padding:9px 12px;box-shadow:var(--shadow);position:relative}
+  .msg-row.mine .bubble{
+  background:linear-gradient(
+      135deg,
+      #2a6cf6,
+      #4f8ef9
+  );
+  color:white;
+}
+.msg-row.mine .bubble .bubble-meta{
+  color:rgba(255,255,255,.8);
+}
+  body.dark .msg-row.mine .bubble{
+  background:linear-gradient(
+      135deg,
+      #2a6cf6,
+      #4f8ef9
+  );
+  color:white;
+}
   .bubble-text{font-size:.88rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
   .bubble-meta{font-size:.65rem;color:var(--muted);text-align:right;margin-top:3px;display:flex;justify-content:flex-end;gap:4px;align-items:center}
   .bubble-meta .tick i{font-size:13px}
@@ -107,11 +133,20 @@
   .sm-item-title{font-weight:700;font-size:.88rem}
   .sm-item-sub{font-size:.74rem;color:var(--muted);margin-top:2px}
   .sm-empty{padding:30px;text-align:center;color:var(--muted);font-size:.85rem}
-
+.typing-indicator i{
+  font-size:14px;
+}
   #chatToast{position:fixed;bottom:20px;left:20px;z-index:9999;padding:12px 18px;border-radius:12px;font-size:.85rem;font-weight:600;display:none;box-shadow:0 6px 24px rgba(0,0,0,.18)}
   #chatToast.success{background:#d1fae5;color:#166534;border:1px solid #86efac}
   #chatToast.error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+#messageInput{
+  min-height:42px;
+}
 
+
+#messageInput{
+  scrollbar-width:none;
+}
   @media (max-width: 760px) {
     .pane-list{position:absolute;inset:0;width:100%;z-index:5}
     .pane-chat{position:absolute;inset:0;width:100%;transform:translateX(100%);transition:transform .25s ease;background:var(--bg)}
@@ -136,8 +171,19 @@
 <div class="chat-shell" id="chatShell">
 
   <aside class="pane-list" id="contactListPane">
-    <div class="pane-list-head">Conversations</div>
-    <div id="contactList"><div class="empty-contacts">Loading…</div></div>
+    <div class="pane-list-head">
+  <span>Conversations</span>
+  <span id="contactCountBadge"
+        style="display:none;background:var(--blue);color:#fff;
+               padding:2px 8px;border-radius:20px;
+               font-size:.72rem;">
+  </span>
+</div>
+  <div id="contactList">
+  <div class="empty-contacts">
+    Loading...
+  </div>
+</div>
   </aside>
 
   <section class="pane-chat" id="chatPane">
@@ -147,15 +193,47 @@
     </div>
 
     <div class="chat-header" id="chatHeader" style="display:none;">
-     <!-- Replace the existing backToListBtn button with: -->
+     
 <button class="back-to-list" id="backToListBtn" aria-label="Back to list">
   <i class="ti ti-chevron-left" aria-hidden="true"></i>
 </button>
-      <div class="contact-avatar" id="chatPartnerAvatar"></div>
-      <div>
-        <div class="chat-header-name" id="chatPartnerName">—</div>
-        <div class="chat-header-sub" id="chatPartnerSub"></div>
-      </div>
+    <div style="position:relative">
+
+  <div class="contact-avatar"
+       id="chatPartnerAvatar">
+  </div>
+
+  <span
+  id="onlineDot"
+  style="
+      display:none;
+      position:absolute;
+      right:0;
+      bottom:0;
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#22c55e;
+      border:2px solid var(--surface);
+  ">
+</span>
+
+</div>
+     <div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div class="chat-header-name"
+         id="chatPartnerName">—</div>
+
+    <i class="ti ti-lock"
+       style="color:var(--green);font-size:15px"
+       title="End-to-End Encrypted"></i>
+  </div>
+<div class="chat-header-sub"
+     id="chatPartnerSub">
+  Secure end-to-end encrypted chat
+</div>
+ 
+</div> 
     </div>
 
     <div class="terminated-banner" id="terminatedBanner">
@@ -165,20 +243,38 @@
 
     <div class="message-area" id="messageArea"></div>
 
-    <div class="typing-indicator" id="typingIndicator">
-      <i class="ti ti-dots" aria-hidden="true"></i> typing…
-    </div>
+   <div class="typing-indicator" id="typingIndicator">
+  <i class="ti ti-pencil"></i>
+  Someone is typing...
+</div> 
 
     <div class="composer" id="composerWrap" style="display:none;">
       <button class="icon-btn" id="attachBtn" title="Attach" aria-label="Attach">
         <i class="ti ti-paperclip" aria-hidden="true"></i>
       </button>
       <div class="attach-menu" id="attachMenu">
-        <div class="attach-item" id="optShareSymptom"><i class="ti ti-stethoscope" aria-hidden="true"></i> Share Symptom History</div>
-        <div class="attach-item" id="optShareReport"><i class="ti ti-file-report" aria-hidden="true"></i> Share Existing Reports</div>
-        <div class="attach-item" id="optUploadFile"><i class="ti ti-upload" aria-hidden="true"></i> Upload New File</div>
-      </div>
-      <input type="file" id="fileInput" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none">
+
+  <div class="attach-item" id="optUploadFile">
+    <i class="ti ti-upload"></i>
+    Upload File
+  </div>
+
+  <div class="attach-item" id="optShareSymptom">
+    <i class="ti ti-stethoscope"></i>
+    Share Symptom History
+  </div>
+
+  <div class="attach-item" id="optShareReport">
+    <i class="ti ti-file-report"></i>
+    Share Medical Report
+  </div>
+
+</div>
+     <input
+  type="file"
+  id="fileInput"
+  accept=".pdf,.jpg,.jpeg,.png,.webp, .doc ,.docx"
+  style="display:none"> 
       <textarea id="messageInput" rows="1" placeholder="Type a message…"></textarea>
       <button class="icon-btn send-btn" id="sendBtn" aria-label="Send"><i class="ti ti-send" aria-hidden="true"></i></button>
     </div>
@@ -189,7 +285,7 @@
 <script>
   (function(){
     const isDoctor = !!localStorage.getItem("dhas_doctor_token");
-    document.getElementById("topBackLink").href = isDoctor ? "doctor_dashboard.html" : "dashboard.html";
+    document.getElementById("topBackLink").href = isDoctor ? "doctor_dashboard.html" : "my_doctors.html";
   })();
 </script>
 <script src="js/crypto.js"></script>

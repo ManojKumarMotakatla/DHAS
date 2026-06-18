@@ -4,13 +4,23 @@
 // Requires: js/config.js and js/crypto.js loaded before this.
 // Socket.IO client script tag must also be loaded before this.
 //
-// CHANGES FROM PREVIOUS VERSION:
-//   - DHAS_CRYPTO.init() called on startup
-//   - sendText() encrypts before emitting
-//   - appendMessage() decrypts is_encrypted=1 messages
-//   - File upload pipeline: encrypt → upload → send with file_iv
-//   - File download pipeline: fetch bytes → decrypt → blob URL
-//   - Back button wired: mobile shows contact list, desktop goes dashboard
+// FIXES IN THIS VERSION:
+//   - loadContacts() now ALWAYS renders something (loading -> list
+//     or loading -> role-aware empty state). Previously a thrown
+//     error before render left the “Loading…” placeholder forever,
+//     which is exactly the symptom you saw (“still showing select
+//     a conversation…” because the LIST itself never finished).
+//   - Contact count badge in the list header.
+//   - Mobile back-to-list button: closes the room if one is open;
+//     if no room is open, falls through to the role-based dashboard
+//     (my_doctors.html for patients, doctor_dashboard.html for
+//     doctors) via window.DHAS_CHAT_GO_BACK (set in chat.html).
+//   - openByPartner() retries contacts once if the partner isn't
+//     found on the first pass (covers a race where the connection
+//     was only just accepted and the contacts list hasn't been
+//     fetched yet).
+//   - Defensive guards so a single failed fetch can't leave the UI
+//     stuck on "Loading…" forever.
 // ============================================================
 
 (function () {
@@ -37,6 +47,7 @@
 
   // ── State ────────────────────────────────────────────────────
   let contacts        = [];
+  let contactsLoaded   = false;
   let activeRoomId    = null;
   let activeContact   = null;
   let oldestLoadedId  = null;
@@ -46,6 +57,7 @@
   // ── DOM ──────────────────────────────────────────────────────
   const elShell            = document.getElementById("chatShell");
   const elList             = document.getElementById("contactList");
+  const elCountBadge       = document.getElementById("contactCountBadge");
   const elMessages         = document.getElementById("messageArea");
   const elHeaderName       = document.getElementById("chatPartnerName");
   const elHeaderSub        = document.getElementById("chatPartnerSub");
@@ -59,7 +71,10 @@
   const elAttachMenu       = document.getElementById("attachMenu");
   const elFileInput        = document.getElementById("fileInput");
   const elModalRoot        = document.getElementById("shareModalRoot");
-
+if (ME.role === "doctor") {
+  document.getElementById("optShareSymptom")?.remove();
+  document.getElementById("optShareReport")?.remove();
+}
   // ── Toast ─────────────────────────────────────────────────────
   let toastTimer = null;
   function toast(text, type = "success") {
@@ -120,14 +135,31 @@
   }
 
   // ── Contacts ──────────────────────────────────────────────────
+  // ALWAYS resolves to a render — never leaves the "Loading…" state
+  // hanging, even on network failure or an unexpected response shape.
   async function loadContacts(silent) {
     try {
       const res  = await fetch(`${BASE}/chat/contacts`, { headers: authHeaders() });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        contacts = [];
+        contactsLoaded = true;
+        renderContacts();
+        if (!silent) toast(err.message || "Failed to load chats.", "error");
+        return;
+      }
+
       const data = await res.json();
-      if (!data.success) { if (!silent) toast(data.message || "Failed to load chats.", "error"); return; }
-      contacts = data.data || [];
+      contacts = (data.success && Array.isArray(data.data)) ? data.data : [];
+      contactsLoaded = true;
       renderContacts();
+
     } catch (e) {
+      console.error("[Chat] loadContacts failed:", e);
+      contacts = [];
+      contactsLoaded = true;
+      renderContacts();
       if (!silent) toast("Cannot connect to server.", "error");
     }
   }
@@ -152,13 +184,26 @@
   }
 
   function renderContacts() {
+    const isDoctor = ME.role === "doctor";
+
     if (!contacts.length) {
-      elList.innerHTML = `<div class="empty-contacts">No connected ${ME.role === "doctor" ? "patients" : "doctors"} yet.</div>`;
+      elCountBadge.style.display = "none";
+      elList.innerHTML = `
+        <div class="empty-contacts">
+          <i class="ti ${isDoctor ? "ti-users" : "ti-stethoscope"}" aria-hidden="true"></i>
+          ${isDoctor
+            ? "No connected patients yet.<br>Accepted patients will appear here automatically."
+            : "No connected doctors yet.<br>Connect with a doctor first to start chatting."}
+        </div>`;
       return;
     }
+
+    elCountBadge.style.display = "inline-block";
+    elCountBadge.textContent = contacts.length;
+
     elList.innerHTML = contacts.map(c => {
-      const name    = ME.role === "doctor" ? c.name : ("Dr. " + c.name);
-      const sub     = ME.role === "doctor" ? "" : (c.speciality || "");
+      const name    = isDoctor ? c.name : ("Dr. " + c.name);
+      const sub     = isDoctor ? "" : (c.speciality || "");
       const time    = c.last_message_at ? new Date(c.last_message_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
       const preview = c.last_message_type && c.last_message_type !== "text"
         ? labelForType(c.last_message_type)
@@ -200,9 +245,10 @@
     if (elChatHeader) elChatHeader.style.display = "flex";
     if (elEmptyState) elEmptyState.style.display = "none";
 
-    const name = ME.role === "doctor" ? contact.name : ("Dr. " + contact.name);
+    const isDoctor = ME.role === "doctor";
+    const name = isDoctor ? contact.name : ("Dr. " + contact.name);
     elHeaderName.textContent  = name;
-    elHeaderSub.textContent   = ME.role === "doctor" ? "Patient" : (contact.speciality || "Doctor");
+    elHeaderSub.textContent   = isDoctor ? "Patient" : (contact.speciality || "Doctor");
     elHeaderAvatar.innerHTML  = avatarHTML(contact.avatar, name, "lg");
 
     renderContacts();
@@ -214,7 +260,7 @@
     });
 
     socket.emit("join_room", { room_id: roomId }, (ack) => {
-      if (!ack.success) {
+      if (!ack || !ack.success) {
         elTerminatedBanner.style.display = "flex";
         elComposerWrap.style.display     = "none";
       }
@@ -223,7 +269,7 @@
     try {
       const res  = await fetch(`${BASE}/chat/messages/${roomId}?limit=40`, { headers: authHeaders() });
       const data = await res.json();
-      if (!data.success) { toast(data.message || "Failed to load messages.", "error"); return; }
+      if (!data.success) { toast(data.message || "Failed to load messages.", "error"); elMessages.innerHTML = ""; return; }
       elMessages.innerHTML = "";
       for (const msg of data.data) {
         await appendMessage(msg);
@@ -304,7 +350,16 @@
       }
 
     } else if (m.message_type === "symptom_share") {
-      const meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata;
+      let meta = {};
+
+try {
+  meta = typeof m.metadata === "string"
+    ? JSON.parse(m.metadata)
+    : (m.metadata || {});
+} catch (err) {
+  console.error("Invalid metadata:", err);
+  meta = {};
+}
       const syms = (meta.symptoms || []).join(", ");
       bodyHTML = `<div class="bubble-card">
             <div class="bc-head"><i class="ti ti-stethoscope"></i> Symptom Check Shared</div>
@@ -313,7 +368,16 @@
             <div class="bc-row" style="color:var(--muted)">${escapeHTML(syms)}</div>
           </div>`;
     } else if (m.message_type === "report_share") {
-      const meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : m.metadata;
+     let meta = {};
+
+try {
+  meta = typeof m.metadata === "string"
+    ? JSON.parse(m.metadata)
+    : (m.metadata || {});
+} catch (err) {
+  console.error("Invalid metadata:", err);
+  meta = {};
+}
       bodyHTML = `<div class="bubble-card bubble-card-link" onclick="DHAS_CHAT.openSharedReport(${activeRoomId}, ${meta.report_id})">
             <div class="bc-head"><i class="ti ti-file-report"></i> Medical Report Shared</div>
             <div class="bc-row"><strong>${escapeHTML(meta.filename || "")}</strong></div>
@@ -364,7 +428,7 @@
           content:      ciphertext,
           is_encrypted: true,
           iv
-        }, (ack) => { if (!ack.success) toast(ack.message || "Failed to send.", "error"); });
+        }, (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to send.", "error"); });
         return;
       } catch (err) {
         console.warn("[Chat] Encryption failed, sending plaintext:", err);
@@ -376,7 +440,7 @@
       room_id:      activeRoomId,
       message_type: "text",
       content:      text
-    }, (ack) => { if (!ack.success) toast(ack.message || "Failed to send.", "error"); });
+    }, (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to send.", "error"); });
   }
 
   elSendBtn.addEventListener("click", sendText);
@@ -444,7 +508,7 @@
         file_url:     data.file.file_url,
         is_encrypted: !!fileIv,
         file_iv:      data.file.file_iv || fileIv
-      }, (ack) => { if (!ack.success) toast(ack.message || "Failed to send file.", "error"); });
+      }, (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to send file.", "error"); });
 
     } catch (e) {
       console.error("[Chat] File upload error:", e);
@@ -498,9 +562,10 @@
     }
   }
 
-  // ── Share Symptom History picker ──────────────────────────────
+  // ── Share Symptom History picker (patient only — server enforces too) ──
   async function openSymptomPicker() {
     if (!activeRoomId) return;
+    if (ME.role !== "patient") { toast("Only patients can share symptom history.", "error"); return; }
     elModalRoot.innerHTML = `<div class="share-modal-overlay"><div class="share-modal"><div class="sm-head">Share Symptom History<button class="sm-close" onclick="DHAS_CHAT.closeModal()">✕</button></div><div class="sm-body" id="smBody">Loading…</div></div></div>`;
     try {
       const res  = await fetch(`${BASE}/symptoms/history/${ME.id}`, { headers: authHeaders() });
@@ -516,13 +581,14 @@
 
   function shareSymptom(symptomId) {
     socket.emit("send_message", { room_id: activeRoomId, message_type: "symptom_share", metadata: { symptom_id: symptomId } },
-      (ack) => { if (!ack.success) toast(ack.message || "Failed to share.", "error"); });
+      (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to share.", "error"); });
     closeModal();
   }
 
-  // ── Share Report picker ───────────────────────────────────────
+  // ── Share Report picker (patient only — server enforces too) ───
   async function openReportPicker() {
     if (!activeRoomId) return;
+    if (ME.role !== "patient") { toast("Only patients can share reports.", "error"); return; }
     elModalRoot.innerHTML = `<div class="share-modal-overlay"><div class="share-modal"><div class="sm-head">Share a Report<button class="sm-close" onclick="DHAS_CHAT.closeModal()">✕</button></div><div class="sm-body" id="smBody">Loading…</div></div></div>`;
     try {
       const res  = await fetch(`${BASE}/reports/${ME.id}`, { headers: authHeaders() });
@@ -538,7 +604,7 @@
 
   function shareReport(reportId) {
     socket.emit("send_message", { room_id: activeRoomId, message_type: "report_share", metadata: { report_id: reportId } },
-      (ack) => { if (!ack.success) toast(ack.message || "Failed to share.", "error"); });
+      (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to share.", "error"); });
     closeModal();
   }
 
@@ -559,28 +625,47 @@
   function closeModal() { elModalRoot.innerHTML = ""; }
 
   // ── Open by partner ID (from ?partner= query param) ───────────
-  async function openByPartner(partnerId) {
+  // Retries once after a fresh contacts load in case the connection
+  // was accepted moments ago and the initial contacts fetch raced
+  // ahead of the DB write.
+  async function openByPartner(partnerId, _retried) {
     const existing = contacts.find(c => String(c.partner_id) === String(partnerId));
     if (existing) { openRoom(existing.room_id); return; }
+
     try {
       const res  = await fetch(`${BASE}/chat/room/${partnerId}`, { headers: authHeaders() });
       const data = await res.json();
-      if (!data.success) { toast(data.message || "You are not connected with this person.", "error"); return; }
+      if (!data.success) {
+        toast(data.message || "You are not connected with this person.", "error");
+        return;
+      }
       await loadContacts(true);
       const found = contacts.find(c => c.room_id === data.room_id);
-      if (found) openRoom(found.room_id);
-      else toast("Could not open conversation.", "error");
-    } catch { toast("Cannot connect to server.", "error"); }
+      if (found) {
+        openRoom(found.room_id);
+      } else if (!_retried) {
+        // One retry — covers the just-accepted-connection race
+        setTimeout(() => openByPartner(partnerId, true), 400);
+      } else {
+        toast("Could not open conversation.", "error");
+      }
+    } catch {
+      toast("Cannot connect to server.", "error");
+    }
   }
 
-  // ── Back button: mobile closes room, desktop goes to dashboard ─
+  // ── Back button: mobile closes room first, otherwise role dashboard ─
   function handleBack() {
     const isMobile = window.innerWidth <= 760;
     if (isMobile && activeRoomId) {
       closeRoom();
+      return;
+    }
+    if (typeof window.DHAS_CHAT_GO_BACK === "function") {
+      window.DHAS_CHAT_GO_BACK();
     } else {
-      const isDoctor = !!localStorage.getItem("dhas_doctor_token");
-      window.location.href = isDoctor ? "doctor_dashboard.html" : "dashboard.html";
+      const isDoctor = ME.role === "doctor";
+      window.location.href = isDoctor ? "doctor_dashboard.html" : "my_doctors.html";
     }
   }
 
@@ -599,7 +684,7 @@
   // ── Init ──────────────────────────────────────────────────────
   connectSocket();
 
-  // Back button
+  // Back-to-list button (mobile X icon inside the chat header)
   document.getElementById("backToListBtn")?.addEventListener("click", handleBack);
 
   (async function init() {
