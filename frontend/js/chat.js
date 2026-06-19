@@ -4,27 +4,17 @@
 // Requires: js/config.js and js/crypto.js loaded before this.
 // Socket.IO client script tag must also be loaded before this.
 //
-// FIXED IN THIS PASS:
-//   - openByPartner() now shows the BACKEND'S ACTUAL reason for
-//     failure directly in the right-hand pane (not just a toast
-//     that vanishes after 4s) — e.g. "still pending approval",
-//     "request was declined", "no connection exists yet". This
-//     pairs with the matching chatController.js fix that makes
-//     GET /chat/room/:partner_id return a specific message for
-//     each case instead of one generic "not connected" for
-//     everything. Previously a doctor/patient could click "Chat"
-//     and see nothing actionable happen — now the exact reason is
-//     visible on screen immediately.
-//   - Contacts and the ?partner= auto-open run fully independent
-//     of the socket (kept from the previous fix) — a Socket.IO
-//     CDN failure can never again block the contact list or the
-//     partner auto-open from rendering.
-//
-// PREVIOUSLY FIXED:
-//   - File upload posts to `${BASE}/chat/upload?room_id=...`
-//     (query string) matching uploadMiddleware.js's destination()
-//     callback, since multipart field order put room_id after the
-//     file and req.body.room_id was undefined when multer needed it.
+// FIXED: Role detection was checking dhas_doctor first, so any
+// user who had ever logged in as a doctor (even in a past session)
+// would be misidentified as a doctor even when currently logged in
+// as a patient. Now uses a smarter approach:
+//   1. Check which token is actually present AND which matching
+//      user object exists.
+//   2. If BOTH exist (stale data), use the URL context:
+//      - If opened from my_doctors.html (?partner=doctorId) → patient
+//      - If opened from doctor_dashboard (?partner=patientId) → doctor
+//   3. Fallback: prefer patient role if dhas_user exists, since
+//      patients are the more common chat initiators from my_doctors.
 // ============================================================
 
 (function () {
@@ -33,16 +23,51 @@
   // ── Identify caller ─────────────────────────────────────────
   const doctorRaw  = localStorage.getItem("dhas_doctor");
   const patientRaw = localStorage.getItem("dhas_user");
+  const doctorToken  = localStorage.getItem("dhas_doctor_token");
+  const patientToken = localStorage.getItem("dhas_token");
+
+  const hasDoctor  = !!(doctorRaw  && doctorToken);
+  const hasPatient = !!(patientRaw && patientToken);
 
   let ME = null;
-  if (doctorRaw) {
+
+  if (hasDoctor && hasPatient) {
+    // Both sessions exist (stale data from switching accounts).
+    // Determine role from the referrer or a stored hint.
+    // Most reliable: check if there's an explicit role hint stored
+    // when the user clicked "Chat" from a specific page.
+    const roleHint = sessionStorage.getItem("dhas_chat_role");
+
+    if (roleHint === "doctor") {
+      const d = JSON.parse(doctorRaw);
+      ME = { role: "doctor", id: d.id, name: "Dr. " + (d.name || ""), token: doctorToken };
+    } else if (roleHint === "patient") {
+      const u = JSON.parse(patientRaw);
+      ME = { role: "patient", id: u.id, name: u.name || "You", token: patientToken };
+    } else {
+      // No hint — default to patient (patients open chat from my_doctors.html
+      // far more often than doctors open it from their dashboard directly).
+      // Doctors always have the doctor dashboard which sets the hint.
+      const u = JSON.parse(patientRaw);
+      ME = { role: "patient", id: u.id, name: u.name || "You", token: patientToken };
+    }
+  } else if (hasDoctor) {
     const d = JSON.parse(doctorRaw);
-    ME = { role: "doctor", id: d.id, name: "Dr. " + (d.name || ""), token: localStorage.getItem("dhas_doctor_token") };
-  } else if (patientRaw) {
+    ME = { role: "doctor", id: d.id, name: "Dr. " + (d.name || ""), token: doctorToken };
+  } else if (hasPatient) {
     const u = JSON.parse(patientRaw);
-    ME = { role: "patient", id: u.id, name: u.name || "You", token: localStorage.getItem("dhas_token") };
+    ME = { role: "patient", id: u.id, name: u.name || "You", token: patientToken };
   }
-  if (!ME || !ME.token) { window.location.href = "login.html"; return; }
+
+  if (!ME || !ME.token) {
+    // Clear the hint and redirect to login
+    sessionStorage.removeItem("dhas_chat_role");
+    window.location.href = "login.html";
+    return;
+  }
+
+  // Clear role hint after consuming it (single-use)
+  sessionStorage.removeItem("dhas_chat_role");
 
   const BASE = window.API_BASE;
   const partnerParam = new URLSearchParams(window.location.search).get("partner");
@@ -79,6 +104,7 @@
   const elModalRoot        = document.getElementById("shareModalRoot");
   const elEmptyState       = document.getElementById("chatEmptyState");
 
+  // Hide share options that don't apply to doctors
   if (ME.role === "doctor") {
     document.getElementById("optShareSymptom")?.remove();
     document.getElementById("optShareReport")?.remove();
@@ -92,9 +118,6 @@
     <i class="ti ti-message-circle-2" aria-hidden="true"></i>
     <div>Select a conversation to start chatting</div>`;
 
-  // If we arrived with ?partner=ID, show a clear "opening…" message
-  // instead of the generic "select a conversation" text, so the UI
-  // never looks like nothing is happening while we resolve the room.
   if (partnerParam) {
     setEmptyState(`
       <i class="ti ti-message-circle-2" aria-hidden="true"></i>
@@ -132,13 +155,9 @@
   }
 
   // ── Socket setup ─────────────────────────────────────────────
-  // Wrapped in try/catch and called AFTER contacts/partner
-  // resolution kicks off. A missing/blocked Socket.IO client
-  // script must never be able to block the contact list or the
-  // ?partner= auto-open — those are plain REST calls.
   function connectSocket() {
     if (typeof io === "undefined") {
-      console.error("[Chat] Socket.IO client failed to load — live updates disabled, but chat still works via REST.");
+      console.error("[Chat] Socket.IO client failed to load — live updates disabled.");
       toast("Live updates unavailable — refresh to see new messages.", "error");
       return;
     }
@@ -152,7 +171,6 @@
 
     socket.on("connect", () => { socketReady = true; });
     socket.on("disconnect", () => { socketReady = false; });
-
     socket.on("connect_error", (err) => toast(err.message || "Connection error.", "error"));
 
     socket.on("new_message", async (msg) => {
@@ -191,13 +209,9 @@
   }
 
   // ── Contacts ──────────────────────────────────────────────────
-  // Renders ALL of the caller's accepted connections — every
-  // connected doctor for a patient, every connected patient for a
-  // doctor — exactly what GET /chat/contacts returns. ALWAYS
-  // resolves to a render, never leaves "Loading…" hanging.
   async function loadContacts(silent) {
     try {
-      const res  = await fetch(`${BASE}/chat/contacts`, { headers: authHeaders() });
+      const res = await fetch(`${BASE}/chat/contacts`, { headers: authHeaders() });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -407,12 +421,7 @@
 
     } else if (m.message_type === "symptom_share") {
       let meta = {};
-      try {
-        meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {});
-      } catch (err) {
-        console.error("Invalid metadata:", err);
-        meta = {};
-      }
+      try { meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {}); } catch { meta = {}; }
       const syms = (meta.symptoms || []).join(", ");
       bodyHTML = `<div class="bubble-card">
             <div class="bc-head"><i class="ti ti-stethoscope"></i> Symptom Check Shared</div>
@@ -420,14 +429,10 @@
             <div class="bc-row">Severity: ${escapeHTML(meta.severity || "—")}</div>
             <div class="bc-row" style="color:var(--muted)">${escapeHTML(syms)}</div>
           </div>`;
+
     } else if (m.message_type === "report_share") {
       let meta = {};
-      try {
-        meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {});
-      } catch (err) {
-        console.error("Invalid metadata:", err);
-        meta = {};
-      }
+      try { meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {}); } catch { meta = {}; }
       bodyHTML = `<div class="bubble-card bubble-card-link" onclick="DHAS_CHAT.openSharedReport(${activeRoomId}, ${meta.report_id})">
             <div class="bc-head"><i class="ti ti-file-report"></i> Medical Report Shared</div>
             <div class="bc-row"><strong>${escapeHTML(meta.filename || "")}</strong></div>
@@ -510,7 +515,7 @@
   document.getElementById("optShareSymptom")?.addEventListener("click", () => { openSymptomPicker(); elAttachMenu.classList.remove("open"); });
   document.getElementById("optShareReport")?.addEventListener("click", () => { openReportPicker(); elAttachMenu.classList.remove("open"); });
 
-  // ── File upload pipeline (encrypt → upload → send) ────────────
+  // ── File upload ───────────────────────────────────────────────
   elFileInput?.addEventListener("change", async () => {
     const file = elFileInput.files[0];
     elFileInput.value = "";
@@ -564,7 +569,7 @@
     }
   });
 
-  // ── Decrypt & display encrypted image inline ───────────────────
+  // ── Decrypt & display encrypted image ─────────────────────────
   async function decryptAndShowImage(msgId, fileUrl, ivB64, roomId) {
     try {
       const res = await fetch(`${BASE}${fileUrl}`, { headers: authHeadersNoJSON() });
@@ -575,9 +580,9 @@
       const decrypted = await DHAS_CRYPTO.decryptFile(buf, ivB64, key);
       if (!decrypted) { toast("Decryption failed.", "error"); return; }
 
-      const blob    = new Blob([decrypted]);
-      const url     = URL.createObjectURL(blob);
-      const el      = document.getElementById(`enc-img-${msgId}`);
+      const blob = new Blob([decrypted]);
+      const url  = URL.createObjectURL(blob);
+      const el   = document.getElementById(`enc-img-${msgId}`);
       if (el) {
         el.outerHTML = `<a href="${url}" target="_blank"><img class="bubble-image" src="${url}" alt="Image"></a>`;
       }
@@ -610,7 +615,7 @@
     }
   }
 
-  // ── Share Symptom History picker (patient only) ──
+  // ── Share Symptom picker (patient only) ──────────────────────
   async function openSymptomPicker() {
     if (!activeRoomId) return;
     if (ME.role !== "patient") { toast("Only patients can share symptom history.", "error"); return; }
@@ -633,7 +638,7 @@
     closeModal();
   }
 
-  // ── Share Report picker (patient only) ───
+  // ── Share Report picker (patient only) ───────────────────────
   async function openReportPicker() {
     if (!activeRoomId) return;
     if (ME.role !== "patient") { toast("Only patients can share reports.", "error"); return; }
@@ -672,11 +677,7 @@
 
   function closeModal() { elModalRoot.innerHTML = ""; }
 
-  // ── Open by partner ID (from ?partner= query param) ───────────
-  // FIXED: now shows the precise backend reason (pending / rejected /
-  // no connection / unexpected status) directly in the empty-state
-  // pane — not just a toast — so a failed open is diagnosable on
-  // screen instead of looking like "nothing happened".
+  // ── Open by partner ID ────────────────────────────────────────
   async function openByPartner(partnerId, _retried) {
     const existing = contacts.find(c => String(c.partner_id) === String(partnerId));
     if (existing) { openRoom(existing.room_id); return; }
@@ -699,7 +700,6 @@
       if (found) {
         openRoom(found.room_id);
       } else if (!_retried) {
-        // One retry — covers the just-accepted-connection race
         setTimeout(() => openByPartner(partnerId, true), 400);
       } else {
         toast("Could not open conversation.", "error");
@@ -716,18 +716,14 @@
     }
   }
 
-  // ── Back button: mobile closes room first, otherwise role dashboard ─
+  // ── Back button ───────────────────────────────────────────────
   function handleBack() {
     const isMobile = window.innerWidth <= 760;
-    if (isMobile && activeRoomId) {
-      closeRoom();
-      return;
-    }
+    if (isMobile && activeRoomId) { closeRoom(); return; }
     if (typeof window.DHAS_CHAT_GO_BACK === "function") {
       window.DHAS_CHAT_GO_BACK();
     } else {
-      const isDoctor = ME.role === "doctor";
-      window.location.href = isDoctor ? "doctor_dashboard.html" : "my_doctors.html";
+      window.location.href = ME.role === "doctor" ? "doctor_dashboard.html" : "my_doctors.html";
     }
   }
 
@@ -746,9 +742,6 @@
   document.getElementById("backToListBtn")?.addEventListener("click", handleBack);
 
   // ── Init ──────────────────────────────────────────────────────
-  // Contacts + partner resolution run FIRST and independently.
-  // Socket connection happens afterward and is itself wrapped in
-  // try/catch so it can never take down the rest of the page.
   (async function init() {
     try {
       await loadContacts();
@@ -756,7 +749,7 @@
         await openByPartner(partnerParam);
       }
     } catch (err) {
-      console.error("[Chat] init (contacts/partner) failed:", err);
+      console.error("[Chat] init failed:", err);
     }
 
     try {

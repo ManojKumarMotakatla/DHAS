@@ -1009,7 +1009,7 @@ function renderPatientList(containerId, patients) {
         class="chat-icon-btn"
         title="Chat with ${p.name}"
         aria-label="Chat with ${p.name}"
-        onclick="event.stopPropagation(); window.location.href='chat.html?partner=${p.id}'"
+        onclick="event.stopPropagation(); openChatAsDoctor(${p.id})"
       ><i class="ti ti-message-circle-2"></i></button>
       <button
         class="disconnect-btn"
@@ -1285,6 +1285,10 @@ async function doDeleteAccount() {
 loadProfile();
 loadPatients();
 loadPendingRequests();
+function openChatAsDoctor(patientId) {
+  sessionStorage.setItem("dhas_chat_role", "doctor");
+  window.location.href = "chat.html?partner=" + patientId;
+}
 </script>
 </body>
 </html>

@@ -705,9 +705,9 @@ function buildCard(d, idx) {
           <button class="mini-btn copy" onclick="copyCode('${d.invite_code}', this)">
             <i class="ti ti-copy" aria-hidden="true"></i> Copy
           </button>
-          <a href="chat.html?partner=${d.id}" class="mini-btn chat" title="Chat with Dr. ${d.name}" aria-label="Chat with Dr. ${d.name}">
+          <button class="mini-btn chat" title="Chat with Dr. ${d.name}" aria-label="Chat with Dr. ${d.name}" onclick="openChatAsPatient(${d.id})">
             <i class="ti ti-message-circle-2" aria-hidden="true"></i> Chat
-          </a>
+          </button>
           <a href="doctor_profile_public.html?id=${d.id}" class="mini-btn view">
             <i class="ti ti-user" aria-hidden="true"></i> Profile
           </a>
@@ -878,6 +878,11 @@ async function loadDoctors() {
 }
 
 loadDoctors();
+function openChatAsPatient(doctorId) {
+  sessionStorage.setItem("dhas_chat_role", "patient");
+  window.location.href = "chat.html?partner=" + doctorId;
+}
 </script>
+
 </body>
-</html>
+</html
