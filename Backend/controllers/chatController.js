@@ -1,12 +1,29 @@
 // ============================================================
 // Backend/controllers/chatController.js
 //
-// FIXED:
-//   - getContacts now auto-creates chat rooms for accepted connections
-//     that don't have one yet (was causing "Loading..." to hang forever
-//     because the INNER JOIN on chat_rooms returned zero rows)
-//   - Both patient and doctor queries now LEFT JOIN chat_rooms and call
-//     ensureRoomForConnection() so every accepted connection has a room
+// FIXED IN THIS PASS:
+//   - getRoomForPartner now distinguishes WHY a room couldn't be
+//     opened instead of returning one generic "You are not
+//     connected with this person" for every failure case. It now
+//     checks the connection row regardless of status and reports
+//     back precisely: no connection exists at all, request is
+//     still pending, request was rejected, or (genuinely) accepted
+//     but something else went wrong. This was the missing piece
+//     that made "chat does nothing" undiagnosable from the
+//     outside — every failure looked identical in the UI.
+//   - Added a console.error with the actual doctorId/patientId/
+//     status values whenever access is denied, so the backend
+//     terminal log tells you exactly which row is wrong (status
+//     not 'accepted', wrong doctor_id, wrong patient_id, etc.)
+//     instead of having to guess from the frontend.
+//
+// PREVIOUSLY FIXED:
+//   - uploadChatFile resolves room_id from req.query.room_id first
+//     (matches uploadMiddleware.js's destination() callback reading
+//     from the query string instead of the unreliable body-field
+//     order in multipart uploads).
+//   - getContacts auto-creates chat rooms for accepted connections
+//     that don't have one yet.
 // ============================================================
 
 const path = require("path");
@@ -24,6 +41,12 @@ function formatBytes(bytes) {
 }
 
 /* -- GET /chat/contacts ----------------------------------------- */
+// Returns ALL of the caller's ACCEPTED connections:
+//   - doctor  -> every connected patient
+//   - patient -> every connected doctor
+// This is the full set the UI should render — no extra filtering
+// happens here, so if a contact is missing it means the underlying
+// doctor_patient_connections row for that pair is not status='accepted'.
 const getContacts = async (req, res) => {
     const { role } = req;
     const id = myId(req);
@@ -32,7 +55,6 @@ const getContacts = async (req, res) => {
         let connections;
 
         if (role === "doctor") {
-            // Get all accepted patients for this doctor
             [connections] = await db.promise().query(`
                 SELECT
                     dpc.id AS connection_id,
@@ -47,7 +69,6 @@ const getContacts = async (req, res) => {
                 WHERE dpc.doctor_id = ? AND dpc.status = 'accepted'
             `, [id]);
         } else {
-            // Get all accepted doctors for this patient
             [connections] = await db.promise().query(`
                 SELECT
                     dpc.id AS connection_id,
@@ -67,7 +88,6 @@ const getContacts = async (req, res) => {
             return res.json({ success: true, data: [] });
         }
 
-        // Ensure every accepted connection has a chat room (auto-create if missing)
         const roomIds = [];
         for (const conn of connections) {
             const roomId = await ensureRoomForConnection(
@@ -78,13 +98,11 @@ const getContacts = async (req, res) => {
             roomIds.push(roomId);
         }
 
-        // Now fetch full contact data with last message info
         const result = [];
         for (let i = 0; i < connections.length; i++) {
             const conn = connections[i];
             const roomId = roomIds[i];
 
-            // Get last message for this room
             const [lastMsgRows] = await db.promise().query(`
                 SELECT content, message_type, is_encrypted, created_at, status
                 FROM chat_messages
@@ -92,7 +110,6 @@ const getContacts = async (req, res) => {
                 ORDER BY created_at DESC LIMIT 1
             `, [roomId]);
 
-            // Get unread count
             const senderType = role === "doctor" ? "patient" : "doctor";
             const [unreadRows] = await db.promise().query(`
                 SELECT COUNT(*) AS cnt
@@ -116,7 +133,6 @@ const getContacts = async (req, res) => {
             });
         }
 
-        // Sort by last message date descending (newest first), no-message contacts last
         result.sort((a, b) => {
             if (!a.last_message_at && !b.last_message_at) return 0;
             if (!a.last_message_at) return 1;
@@ -185,13 +201,14 @@ const markRead = async (req, res) => {
     }
 };
 
-/* -- POST /chat/upload ------------------------------------------ */
+/* -- POST /chat/upload?room_id=123 -------------------------------- */
 const uploadChatFile = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: "No file received." });
     }
 
-    const room = await verifyRoomAccess(req.body.room_id, req.role, myId(req));
+    const roomIdRaw = req.query.room_id || req.body.room_id;
+    const room = await verifyRoomAccess(roomIdRaw, req.role, myId(req));
     if (!room) {
         fs.unlink(req.file.path, () => {});
         return res.status(403).json({ success: false, message: "You no longer have access to this conversation." });
@@ -255,7 +272,14 @@ const getSharedReport = async (req, res) => {
     }
 };
 
-/* -- GET /chat/room/:partner_id ---------------------------------- */
+/* -- GET /chat/room/:partner_id ----------------------------------
+   FIXED: this now tells you EXACTLY why a room couldn't be opened
+   instead of one blanket "not connected" message for every case.
+   It looks up the connection row regardless of status first, then
+   reports the precise reason. The backend terminal also logs the
+   doctorId/patientId/status it actually checked, so a wrong-token,
+   wrong-id, or wrong-status mismatch is visible immediately instead
+   of requiring a screenshot round-trip to diagnose. */
 const getRoomForPartner = async (req, res) => {
     const myRole    = req.role;
     const id        = myId(req);
@@ -266,15 +290,54 @@ const getRoomForPartner = async (req, res) => {
     const patientId = myRole === "doctor" ? partnerId : id;
 
     try {
-        const [rows] = await db.promise().query(
-            "SELECT id FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ? AND status = 'accepted'",
+        // Look up the connection regardless of status, so we can report
+        // the REAL reason instead of a generic "not connected".
+        const [allRows] = await db.promise().query(
+            "SELECT id, status FROM doctor_patient_connections WHERE doctor_id = ? AND patient_id = ?",
             [doctorId, patientId]
         );
-        if (rows.length === 0) {
-            return res.status(403).json({ success: false, message: "You are not connected with this person." });
+
+        if (allRows.length === 0) {
+            console.error(
+                `[chat] getRoomForPartner: NO connection row at all for doctor_id=${doctorId}, patient_id=${patientId} ` +
+                `(caller role=${myRole}, caller id=${id}, partner_id param=${partnerId}). ` +
+                `Check that this doctor and patient actually went through the invite-code connect flow.`
+            );
+            return res.status(403).json({
+                success: false,
+                message: "You are not connected with this person yet. Connect using an invite code first."
+            });
         }
 
-        const roomId = await ensureRoomForConnection(rows[0].id, doctorId, patientId);
+        const conn = allRows[0];
+
+        if (conn.status === "pending") {
+            return res.status(403).json({
+                success: false,
+                message: "This connection is still pending approval. Chat will open once it's accepted."
+            });
+        }
+
+        if (conn.status === "rejected") {
+            return res.status(403).json({
+                success: false,
+                message: "This connection request was declined, so chat is unavailable."
+            });
+        }
+
+        if (conn.status !== "accepted") {
+            console.error(
+                `[chat] getRoomForPartner: connection id=${conn.id} has unexpected status="${conn.status}" ` +
+                `for doctor_id=${doctorId}, patient_id=${patientId}.`
+            );
+            return res.status(403).json({
+                success: false,
+                message: `This connection has an unexpected status ("${conn.status}") and cannot be opened.`
+            });
+        }
+
+        // status === 'accepted' — safe to open/create the room.
+        const roomId = await ensureRoomForConnection(conn.id, doctorId, patientId);
         res.json({ success: true, room_id: roomId });
     } catch (err) {
         console.error("getRoomForPartner error:", err.message);

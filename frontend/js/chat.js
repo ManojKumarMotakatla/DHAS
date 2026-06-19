@@ -4,23 +4,27 @@
 // Requires: js/config.js and js/crypto.js loaded before this.
 // Socket.IO client script tag must also be loaded before this.
 //
-// FIXES IN THIS VERSION:
-//   - loadContacts() now ALWAYS renders something (loading -> list
-//     or loading -> role-aware empty state). Previously a thrown
-//     error before render left the “Loading…” placeholder forever,
-//     which is exactly the symptom you saw (“still showing select
-//     a conversation…” because the LIST itself never finished).
-//   - Contact count badge in the list header.
-//   - Mobile back-to-list button: closes the room if one is open;
-//     if no room is open, falls through to the role-based dashboard
-//     (my_doctors.html for patients, doctor_dashboard.html for
-//     doctors) via window.DHAS_CHAT_GO_BACK (set in chat.html).
-//   - openByPartner() retries contacts once if the partner isn't
-//     found on the first pass (covers a race where the connection
-//     was only just accepted and the contacts list hasn't been
-//     fetched yet).
-//   - Defensive guards so a single failed fetch can't leave the UI
-//     stuck on "Loading…" forever.
+// FIXED IN THIS PASS:
+//   - openByPartner() now shows the BACKEND'S ACTUAL reason for
+//     failure directly in the right-hand pane (not just a toast
+//     that vanishes after 4s) — e.g. "still pending approval",
+//     "request was declined", "no connection exists yet". This
+//     pairs with the matching chatController.js fix that makes
+//     GET /chat/room/:partner_id return a specific message for
+//     each case instead of one generic "not connected" for
+//     everything. Previously a doctor/patient could click "Chat"
+//     and see nothing actionable happen — now the exact reason is
+//     visible on screen immediately.
+//   - Contacts and the ?partner= auto-open run fully independent
+//     of the socket (kept from the previous fix) — a Socket.IO
+//     CDN failure can never again block the contact list or the
+//     partner auto-open from rendering.
+//
+// PREVIOUSLY FIXED:
+//   - File upload posts to `${BASE}/chat/upload?room_id=...`
+//     (query string) matching uploadMiddleware.js's destination()
+//     callback, since multipart field order put room_id after the
+//     file and req.body.room_id was undefined when multer needed it.
 // ============================================================
 
 (function () {
@@ -41,6 +45,7 @@
   if (!ME || !ME.token) { window.location.href = "login.html"; return; }
 
   const BASE = window.API_BASE;
+  const partnerParam = new URLSearchParams(window.location.search).get("partner");
 
   function authHeaders()       { return { "Content-Type": "application/json", "Authorization": "Bearer " + ME.token }; }
   function authHeadersNoJSON() { return { "Authorization": "Bearer " + ME.token }; }
@@ -53,6 +58,7 @@
   let oldestLoadedId  = null;
   let typingTimeout   = null;
   let socket          = null;
+  let socketReady     = false;
 
   // ── DOM ──────────────────────────────────────────────────────
   const elShell            = document.getElementById("chatShell");
@@ -71,19 +77,40 @@
   const elAttachMenu       = document.getElementById("attachMenu");
   const elFileInput        = document.getElementById("fileInput");
   const elModalRoot        = document.getElementById("shareModalRoot");
-if (ME.role === "doctor") {
-  document.getElementById("optShareSymptom")?.remove();
-  document.getElementById("optShareReport")?.remove();
-}
+  const elEmptyState       = document.getElementById("chatEmptyState");
+
+  if (ME.role === "doctor") {
+    document.getElementById("optShareSymptom")?.remove();
+    document.getElementById("optShareReport")?.remove();
+  }
+
+  function setEmptyState(html) {
+    if (elEmptyState) elEmptyState.innerHTML = html;
+  }
+
+  const DEFAULT_EMPTY_HTML = `
+    <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+    <div>Select a conversation to start chatting</div>`;
+
+  // If we arrived with ?partner=ID, show a clear "opening…" message
+  // instead of the generic "select a conversation" text, so the UI
+  // never looks like nothing is happening while we resolve the room.
+  if (partnerParam) {
+    setEmptyState(`
+      <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+      <div>Opening conversation…</div>`);
+  }
+
   // ── Toast ─────────────────────────────────────────────────────
   let toastTimer = null;
   function toast(text, type = "success") {
     const t = document.getElementById("chatToast");
+    if (!t) { console.warn("[Chat]", text); return; }
     t.className = type;
     t.textContent = text;
     t.style.display = "flex";
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.style.display = "none"; }, 4000);
+    toastTimer = setTimeout(() => { t.style.display = "none"; }, 5000);
   }
 
   function initials(name) {
@@ -96,14 +123,35 @@ if (ME.role === "doctor") {
   }
 
   // ── E2E crypto init ──────────────────────────────────────────
-  // Runs once on load. Generates ECDH key pair if needed, uploads public key.
-  DHAS_CRYPTO.init(BASE, ME.token).catch(err => {
-    console.warn("[Chat] Crypto init failed:", err);
-  });
+  try {
+    DHAS_CRYPTO.init(BASE, ME.token).catch(err => {
+      console.warn("[Chat] Crypto init failed:", err);
+    });
+  } catch (err) {
+    console.warn("[Chat] Crypto init threw synchronously:", err);
+  }
 
   // ── Socket setup ─────────────────────────────────────────────
+  // Wrapped in try/catch and called AFTER contacts/partner
+  // resolution kicks off. A missing/blocked Socket.IO client
+  // script must never be able to block the contact list or the
+  // ?partner= auto-open — those are plain REST calls.
   function connectSocket() {
-    socket = io(BASE, { auth: { token: ME.token }, transports: ["websocket", "polling"] });
+    if (typeof io === "undefined") {
+      console.error("[Chat] Socket.IO client failed to load — live updates disabled, but chat still works via REST.");
+      toast("Live updates unavailable — refresh to see new messages.", "error");
+      return;
+    }
+
+    try {
+      socket = io(BASE, { auth: { token: ME.token }, transports: ["websocket", "polling"] });
+    } catch (err) {
+      console.error("[Chat] Failed to initialise socket:", err);
+      return;
+    }
+
+    socket.on("connect", () => { socketReady = true; });
+    socket.on("disconnect", () => { socketReady = false; });
 
     socket.on("connect_error", (err) => toast(err.message || "Connection error.", "error"));
 
@@ -134,9 +182,19 @@ if (ME.role === "doctor") {
     });
   }
 
+  function emitSafe(event, payload, ack) {
+    if (!socket || !socketReady) {
+      if (ack) ack({ success: false, message: "Not connected. Please check your connection and try again." });
+      return;
+    }
+    socket.emit(event, payload, ack);
+  }
+
   // ── Contacts ──────────────────────────────────────────────────
-  // ALWAYS resolves to a render — never leaves the "Loading…" state
-  // hanging, even on network failure or an unexpected response shape.
+  // Renders ALL of the caller's accepted connections — every
+  // connected doctor for a patient, every connected patient for a
+  // doctor — exactly what GET /chat/contacts returns. ALWAYS
+  // resolves to a render, never leaves "Loading…" hanging.
   async function loadContacts(silent) {
     try {
       const res  = await fetch(`${BASE}/chat/contacts`, { headers: authHeaders() });
@@ -167,7 +225,6 @@ if (ME.role === "doctor") {
   function bumpContact(msg) {
     const idx = contacts.findIndex(c => c.room_id === msg.room_id);
     if (idx === -1) { loadContacts(true); return; }
-    // If message is encrypted, show placeholder rather than ciphertext
     contacts[idx].last_message      = msg.is_encrypted ? "🔒 Encrypted message" : (msg.content || labelForType(msg.message_type));
     contacts[idx].last_message_type = msg.message_type;
     contacts[idx].last_message_at   = msg.created_at;
@@ -227,7 +284,7 @@ if (ME.role === "doctor") {
     const contact = contacts.find(c => c.room_id === roomId);
     if (!contact) return;
 
-    if (activeRoomId && activeRoomId !== roomId) socket.emit("leave_room");
+    if (activeRoomId && activeRoomId !== roomId) emitSafe("leave_room");
 
     activeRoomId  = roomId;
     activeContact = contact;
@@ -239,9 +296,7 @@ if (ME.role === "doctor") {
     elComposerWrap.style.display     = "flex";
     elTypingIndicator.style.display  = "none";
 
-    // Show chat header (hidden by default)
     const elChatHeader = document.getElementById("chatHeader");
-    const elEmptyState = document.getElementById("chatEmptyState");
     if (elChatHeader) elChatHeader.style.display = "flex";
     if (elEmptyState) elEmptyState.style.display = "none";
 
@@ -254,15 +309,16 @@ if (ME.role === "doctor") {
     renderContacts();
     elMessages.innerHTML = `<div class="loading-msgs">Loading conversation…</div>`;
 
-    // Pre-derive shared key for this room (async, non-blocking)
     DHAS_CRYPTO.getOrDeriveRoomKey(BASE, ME.token, roomId).then(key => {
       if (!key) console.warn("[Chat] Partner has no public key yet — messages will be sent unencrypted.");
-    });
+    }).catch(() => {});
 
-    socket.emit("join_room", { room_id: roomId }, (ack) => {
+    emitSafe("join_room", { room_id: roomId }, (ack) => {
       if (!ack || !ack.success) {
-        elTerminatedBanner.style.display = "flex";
-        elComposerWrap.style.display     = "none";
+        if (ack && ack.message && ack.message !== "Not connected. Please check your connection and try again.") {
+          elTerminatedBanner.style.display = "flex";
+          elComposerWrap.style.display     = "none";
+        }
       }
     });
 
@@ -276,21 +332,23 @@ if (ME.role === "doctor") {
       }
       if (data.data.length) oldestLoadedId = data.data[0].id;
       scrollToBottom();
-      socket.emit("mark_read", { room_id: roomId });
+      emitSafe("mark_read", { room_id: roomId });
     } catch (e) {
       elMessages.innerHTML = `<div class="loading-msgs">Could not load messages.</div>`;
     }
   }
 
   function closeRoom() {
-    if (activeRoomId) socket.emit("leave_room");
+    if (activeRoomId) emitSafe("leave_room");
     activeRoomId = null;
     elShell.classList.remove("show-chat");
 
     const elChatHeader = document.getElementById("chatHeader");
-    const elEmptyState = document.getElementById("chatEmptyState");
     if (elChatHeader) elChatHeader.style.display = "none";
-    if (elEmptyState) elEmptyState.style.display = "flex";
+    if (elEmptyState) {
+      setEmptyState(DEFAULT_EMPTY_HTML);
+      elEmptyState.style.display = "flex";
+    }
   }
 
   // ── Render a single message bubble ───────────────────────────
@@ -304,7 +362,6 @@ if (ME.role === "doctor") {
     if (m.message_type === "text") {
       let displayText = m.content || "";
 
-      // Decrypt if encrypted
       if (m.is_encrypted && m.iv && m.content) {
         try {
           const key = await DHAS_CRYPTO.getOrDeriveRoomKey(BASE, ME.token, m.room_id);
@@ -323,7 +380,6 @@ if (ME.role === "doctor") {
 
     } else if (m.message_type === "image") {
       if (m.is_encrypted && m.file_iv) {
-        // Lazy decrypt on click
         const msgId = m.id;
         bodyHTML = `
           <div class="bubble-file" id="enc-img-${msgId}" style="cursor:pointer" onclick="DHAS_CHAT.decryptAndShowImage(${msgId},'${m.file_data}','${m.file_iv}',${m.room_id})">
@@ -351,15 +407,12 @@ if (ME.role === "doctor") {
 
     } else if (m.message_type === "symptom_share") {
       let meta = {};
-
-try {
-  meta = typeof m.metadata === "string"
-    ? JSON.parse(m.metadata)
-    : (m.metadata || {});
-} catch (err) {
-  console.error("Invalid metadata:", err);
-  meta = {};
-}
+      try {
+        meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {});
+      } catch (err) {
+        console.error("Invalid metadata:", err);
+        meta = {};
+      }
       const syms = (meta.symptoms || []).join(", ");
       bodyHTML = `<div class="bubble-card">
             <div class="bc-head"><i class="ti ti-stethoscope"></i> Symptom Check Shared</div>
@@ -368,16 +421,13 @@ try {
             <div class="bc-row" style="color:var(--muted)">${escapeHTML(syms)}</div>
           </div>`;
     } else if (m.message_type === "report_share") {
-     let meta = {};
-
-try {
-  meta = typeof m.metadata === "string"
-    ? JSON.parse(m.metadata)
-    : (m.metadata || {});
-} catch (err) {
-  console.error("Invalid metadata:", err);
-  meta = {};
-}
+      let meta = {};
+      try {
+        meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata || {});
+      } catch (err) {
+        console.error("Invalid metadata:", err);
+        meta = {};
+      }
       bodyHTML = `<div class="bubble-card bubble-card-link" onclick="DHAS_CHAT.openSharedReport(${activeRoomId}, ${meta.report_id})">
             <div class="bc-head"><i class="ti ti-file-report"></i> Medical Report Shared</div>
             <div class="bc-row"><strong>${escapeHTML(meta.filename || "")}</strong></div>
@@ -414,15 +464,14 @@ try {
     const text = elInput.value.trim();
     if (!text || !activeRoomId) return;
     elInput.value = "";
-    socket.emit("stop_typing");
+    emitSafe("stop_typing");
 
-    // Try to encrypt
     const key = await DHAS_CRYPTO.getOrDeriveRoomKey(BASE, ME.token, activeRoomId).catch(() => null);
 
     if (key) {
       try {
         const { ciphertext, iv } = await DHAS_CRYPTO.encryptMessage(text, key);
-        socket.emit("send_message", {
+        emitSafe("send_message", {
           room_id:      activeRoomId,
           message_type: "text",
           content:      ciphertext,
@@ -435,35 +484,34 @@ try {
       }
     }
 
-    // Fallback — no E2E key available yet
-    socket.emit("send_message", {
+    emitSafe("send_message", {
       room_id:      activeRoomId,
       message_type: "text",
       content:      text
     }, (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to send.", "error"); });
   }
 
-  elSendBtn.addEventListener("click", sendText);
-  elInput.addEventListener("keydown", (e) => {
+  elSendBtn?.addEventListener("click", sendText);
+  elInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); }
   });
-  elInput.addEventListener("input", () => {
+  elInput?.addEventListener("input", () => {
     if (!activeRoomId) return;
-    socket.emit("typing");
+    emitSafe("typing");
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => socket.emit("stop_typing"), 1500);
+    typingTimeout = setTimeout(() => emitSafe("stop_typing"), 1500);
   });
 
   // ── Attachment menu ───────────────────────────────────────────
-  elAttachBtn.addEventListener("click", (e) => { e.stopPropagation(); elAttachMenu.classList.toggle("open"); });
-  document.addEventListener("click", () => elAttachMenu.classList.remove("open"));
+  elAttachBtn?.addEventListener("click", (e) => { e.stopPropagation(); elAttachMenu.classList.toggle("open"); });
+  document.addEventListener("click", () => elAttachMenu?.classList.remove("open"));
 
   document.getElementById("optUploadFile")?.addEventListener("click", () => { elFileInput.click(); elAttachMenu.classList.remove("open"); });
   document.getElementById("optShareSymptom")?.addEventListener("click", () => { openSymptomPicker(); elAttachMenu.classList.remove("open"); });
   document.getElementById("optShareReport")?.addEventListener("click", () => { openReportPicker(); elAttachMenu.classList.remove("open"); });
 
   // ── File upload pipeline (encrypt → upload → send) ────────────
-  elFileInput.addEventListener("change", async () => {
+  elFileInput?.addEventListener("change", async () => {
     const file = elFileInput.files[0];
     elFileInput.value = "";
     if (!file || !activeRoomId) return;
@@ -487,19 +535,19 @@ try {
         fileIv       = iv;
       }
 
-      // Build FormData with (potentially encrypted) bytes
       const blob = new Blob([uploadBuffer], { type: "application/octet-stream" });
       const form = new FormData();
-      form.append("file", blob, file.name);
       form.append("room_id", String(activeRoomId));
+      form.append("file", blob, file.name);
       if (fileIv) form.append("file_iv", fileIv);
 
-      const res  = await fetch(`${BASE}/chat/upload`, { method: "POST", headers: authHeadersNoJSON(), body: form });
+      const uploadUrl = `${BASE}/chat/upload?room_id=${encodeURIComponent(activeRoomId)}`;
+      const res  = await fetch(uploadUrl, { method: "POST", headers: authHeadersNoJSON(), body: form });
       const data = await res.json();
       if (!data.success) { toast(data.message || "Upload failed.", "error"); return; }
 
       const messageType = file.type === "application/pdf" ? "pdf" : "image";
-      socket.emit("send_message", {
+      emitSafe("send_message", {
         room_id:      activeRoomId,
         message_type: messageType,
         file_name:    data.file.file_name,
@@ -562,7 +610,7 @@ try {
     }
   }
 
-  // ── Share Symptom History picker (patient only — server enforces too) ──
+  // ── Share Symptom History picker (patient only) ──
   async function openSymptomPicker() {
     if (!activeRoomId) return;
     if (ME.role !== "patient") { toast("Only patients can share symptom history.", "error"); return; }
@@ -580,12 +628,12 @@ try {
   }
 
   function shareSymptom(symptomId) {
-    socket.emit("send_message", { room_id: activeRoomId, message_type: "symptom_share", metadata: { symptom_id: symptomId } },
+    emitSafe("send_message", { room_id: activeRoomId, message_type: "symptom_share", metadata: { symptom_id: symptomId } },
       (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to share.", "error"); });
     closeModal();
   }
 
-  // ── Share Report picker (patient only — server enforces too) ───
+  // ── Share Report picker (patient only) ───
   async function openReportPicker() {
     if (!activeRoomId) return;
     if (ME.role !== "patient") { toast("Only patients can share reports.", "error"); return; }
@@ -603,7 +651,7 @@ try {
   }
 
   function shareReport(reportId) {
-    socket.emit("send_message", { room_id: activeRoomId, message_type: "report_share", metadata: { report_id: reportId } },
+    emitSafe("send_message", { room_id: activeRoomId, message_type: "report_share", metadata: { report_id: reportId } },
       (ack) => { if (!ack || !ack.success) toast((ack && ack.message) || "Failed to share.", "error"); });
     closeModal();
   }
@@ -625,9 +673,10 @@ try {
   function closeModal() { elModalRoot.innerHTML = ""; }
 
   // ── Open by partner ID (from ?partner= query param) ───────────
-  // Retries once after a fresh contacts load in case the connection
-  // was accepted moments ago and the initial contacts fetch raced
-  // ahead of the DB write.
+  // FIXED: now shows the precise backend reason (pending / rejected /
+  // no connection / unexpected status) directly in the empty-state
+  // pane — not just a toast — so a failed open is diagnosable on
+  // screen instead of looking like "nothing happened".
   async function openByPartner(partnerId, _retried) {
     const existing = contacts.find(c => String(c.partner_id) === String(partnerId));
     if (existing) { openRoom(existing.room_id); return; }
@@ -635,10 +684,16 @@ try {
     try {
       const res  = await fetch(`${BASE}/chat/room/${partnerId}`, { headers: authHeaders() });
       const data = await res.json();
+
       if (!data.success) {
-        toast(data.message || "You are not connected with this person.", "error");
+        const reason = data.message || "You are not connected with this person.";
+        toast(reason, "error");
+        setEmptyState(`
+          <i class="ti ti-alert-circle" aria-hidden="true" style="color:var(--rose)"></i>
+          <div style="max-width:320px;text-align:center;line-height:1.5;">${escapeHTML(reason)}</div>`);
         return;
       }
+
       await loadContacts(true);
       const found = contacts.find(c => c.room_id === data.room_id);
       if (found) {
@@ -648,9 +703,16 @@ try {
         setTimeout(() => openByPartner(partnerId, true), 400);
       } else {
         toast("Could not open conversation.", "error");
+        setEmptyState(`
+          <i class="ti ti-alert-circle" aria-hidden="true" style="color:var(--rose)"></i>
+          <div>Could not open this conversation. Please try again from the contact list.</div>`);
       }
-    } catch {
+    } catch (e) {
+      console.error("[Chat] openByPartner failed:", e);
       toast("Cannot connect to server.", "error");
+      setEmptyState(`
+        <i class="ti ti-wifi-off" aria-hidden="true"></i>
+        <div>Cannot connect to the server. Check that it's running and try again.</div>`);
     }
   }
 
@@ -681,16 +743,27 @@ try {
     decryptAndDownloadFile
   };
 
-  // ── Init ──────────────────────────────────────────────────────
-  connectSocket();
-
-  // Back-to-list button (mobile X icon inside the chat header)
   document.getElementById("backToListBtn")?.addEventListener("click", handleBack);
 
+  // ── Init ──────────────────────────────────────────────────────
+  // Contacts + partner resolution run FIRST and independently.
+  // Socket connection happens afterward and is itself wrapped in
+  // try/catch so it can never take down the rest of the page.
   (async function init() {
-    await loadContacts();
-    const partnerParam = new URLSearchParams(window.location.search).get("partner");
-    if (partnerParam) openByPartner(partnerParam);
+    try {
+      await loadContacts();
+      if (partnerParam) {
+        await openByPartner(partnerParam);
+      }
+    } catch (err) {
+      console.error("[Chat] init (contacts/partner) failed:", err);
+    }
+
+    try {
+      connectSocket();
+    } catch (err) {
+      console.error("[Chat] connectSocket failed:", err);
+    }
   })();
 
 })();

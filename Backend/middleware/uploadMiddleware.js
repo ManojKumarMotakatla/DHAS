@@ -1,6 +1,21 @@
 // ============================================================
 // Backend/middleware/uploadMiddleware.js
 //
+// FIXED:
+//   - destination() used to read req.body.room_id, but multer
+//     only populates req.body with fields that appeared BEFORE
+//     the file part in the multipart stream. The frontend
+//     appends the file FIRST (form.append("file", ...)) and
+//     room_id AFTER, so req.body.room_id was always undefined
+//     at this point — every upload silently landed in
+//     uploads/chat/misc/ instead of uploads/chat/<room_id>/.
+//     serveFile() then looked in the correct room folder and
+//     always 404'd. Fixed by reading room_id from the query
+//     string instead (?room_id=123), which multer parses from
+//     the URL immediately and is always available.
+//   - chatRoutes.js / chat.js were updated to match (room_id is
+//     now passed as a query param on the upload POST).
+//
 // Multer config for chat attachments. Files are written to disk
 // under Backend/uploads/chat/<room_id>/<random-name>.<ext> and are
 // served back out only through the authenticated
@@ -29,8 +44,13 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // room_id is sent as a normal form field alongside the file
-        const roomId = String(parseInt(req.body.room_id, 10) || "misc");
+        // FIX: read room_id from the query string, NOT req.body.
+        // req.body fields are only populated as multer streams past
+        // them; since the frontend sends the file field before the
+        // room_id field, req.body.room_id is undefined when this
+        // callback fires. Query params are parsed by Express up
+        // front and are always available here.
+        const roomId = String(parseInt(req.query.room_id, 10) || "misc");
         const dir = path.join(UPLOAD_ROOT, roomId);
         fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);

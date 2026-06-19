@@ -55,6 +55,29 @@ async function syncVerifiedStatus(doctorId) {
     );
 }
 
+/**
+ * FIX: Looks up the chat_room tied to a connection (if any) and tells
+ * the live socket layer the conversation has ended, so any open chat
+ * window on the other side gets a real-time "connection ended" banner
+ * instead of silently failing the next time it tries to send/poll.
+ * Safe no-op if no room exists yet (e.g. the pair never opened chat).
+ * Wrapped in try/catch so a socket/init hiccup never breaks the
+ * disconnect/accept/reject HTTP response itself.
+ */
+async function notifyChatRoomEnded(connectionId) {
+    try {
+        const [rows] = await db.promise().query(
+            "SELECT id FROM chat_rooms WHERE connection_id = ?",
+            [connectionId]
+        );
+        if (rows.length === 0) return;
+        const { notifyConnectionTerminated } = require("../config/socket");
+        notifyConnectionTerminated(rows[0].id);
+    } catch (err) {
+        console.error("notifyChatRoomEnded error:", err.message);
+    }
+}
+
 /* ── REGISTER ── */
 const registerDoctor = async (req, res) => {
     const { name, email, password, speciality } = req.body;
@@ -309,6 +332,16 @@ const acceptConnection = async (req, res) => {
             [connectionId]
         );
 
+        // FIX: proactively create the chat room the moment a connection is
+        // accepted, instead of waiting for someone to open /chat/contacts.
+        // Harmless if it already exists (ensureRoomForConnection is idempotent).
+        try {
+            const { ensureRoomForConnection } = require("../utils/chatAccess");
+            await ensureRoomForConnection(connectionId, doctorId, rows[0].patient_id);
+        } catch (roomErr) {
+            console.error("ensureRoomForConnection on accept failed:", roomErr.message);
+        }
+
         res.json({ success: true, message: "Connection accepted." });
     } catch (err) {
         console.error("acceptConnection error:", err.message);
@@ -370,6 +403,11 @@ const disconnectPatient = async (req, res) => {
             return res.status(400).json({ success: false, message: "Only accepted connections can be disconnected." });
         }
 
+        // FIX: notify any live chat session BEFORE the row (and its
+        // cascading chat_rooms / chat_messages) is deleted, otherwise
+        // we'd have no way to look up which room_id to notify.
+        await notifyChatRoomEnded(connectionId);
+
         await db.promise().query(
             "DELETE FROM doctor_patient_connections WHERE id = ?",
             [connectionId]
@@ -408,6 +446,9 @@ const disconnectDoctor = async (req, res) => {
         if (anyRow[0].status !== "accepted") {
             return res.status(400).json({ success: false, message: "Only accepted connections can be disconnected." });
         }
+
+        // FIX: same reasoning as disconnectPatient above.
+        await notifyChatRoomEnded(connectionId);
 
         await db.promise().query(
             "DELETE FROM doctor_patient_connections WHERE id = ?",
