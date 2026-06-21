@@ -4,6 +4,20 @@
 // Supports patient JWT (userId) and doctor JWT (doctorId + role:"doctor").
 // JWT auth required (requireAuth or requireDoctorAuth middleware, but
 // this controller now self-identifies the caller via the token shape).
+//
+// FIX (this version):
+//   The previous version checked `account.provider === "google"` to
+//   decide whether an account is Google-only. That works for the
+//   `users` table (which has a `provider` column) but the `doctors`
+//   table has NO `provider` column at all — only `google_id`. So for
+//   every doctor this check silently evaluated to false/undefined,
+//   meaning Google-only doctors fell through to the
+//   "No password set for this account." branch instead of the
+//   correct, friendlier Google-specific message — and worse, any
+//   doctor who DID set a password later but originally signed up via
+//   Google could hit edge cases here. We now detect Google-only
+//   accounts uniformly for BOTH tables using the same rule the
+//   frontend already uses: `google_id is set AND password is NULL`.
 // ============================================================
 
 const db     = require("../config/db");
@@ -19,13 +33,15 @@ const changePassword = async (req, res) => {
     // ── Identify caller: patient or doctor ────────────────
     // requireAuth sets req.userId (patient).
     // requireDoctorAuth sets req.doctorId (doctor).
-    // This controller is mounted on a patient route, so we also
-    // manually decode the token to handle doctor callers gracefully.
+    // requireAnyAuth (used on this route) sets req.role + req.doctorId/req.userId.
     let isDoctor = false;
     let actorId  = null;
 
-    if (req.doctorId) {
-        // Called via doctor middleware (if ever re-mounted that way)
+    if (req.role === "doctor" && req.doctorId) {
+        isDoctor = true;
+        actorId  = req.doctorId;
+    } else if (req.doctorId) {
+        // Called via doctor-only middleware (if ever re-mounted that way)
         isDoctor = true;
         actorId  = req.doctorId;
     } else if (req.userId) {
@@ -33,8 +49,7 @@ const changePassword = async (req, res) => {
         isDoctor = false;
         actorId  = req.userId;
     } else {
-        // Fallback: decode token ourselves to handle doctor calling
-        // a patient-middleware-protected route
+        // Fallback: decode token ourselves to handle any middleware gap
         const authHeader = req.headers["authorization"];
         if (authHeader && authHeader.startsWith("Bearer ")) {
             try {
@@ -92,9 +107,14 @@ const changePassword = async (req, res) => {
 
     try {
         // ── Fetch the right table ─────────────────────────
-        const table    = isDoctor ? "doctors" : "users";
-        const [rows]   = await db.promise().query(
-            `SELECT password, provider FROM ${table} WHERE id = ?`,
+        // FIX: select google_id explicitly. `provider` only exists on
+        // `users`, not `doctors` — selecting a column that doesn't
+        // exist on `doctors` would throw a SQL error, so we no longer
+        // select `provider` at all and instead rely on `google_id`,
+        // which exists on BOTH tables.
+        const table  = isDoctor ? "doctors" : "users";
+        const [rows] = await db.promise().query(
+            `SELECT password, google_id FROM ${table} WHERE id = ?`,
             [actorId]
         );
 
@@ -104,11 +124,17 @@ const changePassword = async (req, res) => {
 
         const account = rows[0];
 
-        // Google-only accounts have no password
-        if (account.provider === "google" && !account.password) {
+        // FIX: Google-only account = has a google_id AND no password set.
+        // This is the same rule used on the frontend (doctor_dashboard.html
+        // already computes `isGoogleOnly = !!d.google_id && !d.password`),
+        // now applied consistently on the backend for both patients and
+        // doctors, since `doctors` has no `provider` column to check.
+        const isGoogleOnly = !!account.google_id && !account.password;
+
+        if (isGoogleOnly) {
             return res.status(400).json({
                 success: false,
-                message: "Your account uses Google Sign-In. You cannot set a password here."
+                message: "Your account uses Google Sign-In. Password change is not available for Google accounts."
             });
         }
 
@@ -143,6 +169,8 @@ const changePassword = async (req, res) => {
         });
 
     } catch (err) {
+        // Log the REAL error server-side so future debugging doesn't
+        // rely on the generic frontend fallback text again.
         console.error("changePassword error:", err.message);
         res.status(500).json({
             success: false,
