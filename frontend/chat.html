@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Cache-busting: prevent stale service worker from serving old chat.html -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Chat — DHAS</title>
 <script src="js/config.js"></script>
 <script src="theme.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 
-<!-- Socket.IO loaded locally — no CDN dependency -->
-<!-- Copy node_modules/socket.io-client/dist/socket.io.min.js to frontend/js/ -->
 <script>
-// Try local first, then CDN as fallback
+// Load Socket.IO — try local first, CDN fallback
 (function() {
   var s = document.createElement('script');
-  s.src = 'js/socket.io.min.js';
+  s.src = 'js/socket.io.min.js?v=2';
   s.onerror = function() {
-    // Local failed, try CDN
     var s2 = document.createElement('script');
     s2.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
     document.head.appendChild(s2);
@@ -39,6 +40,8 @@
     --bg:#080f28; --surface:#111c3c; --border:#1e2e58;
     --text:#e8efff; --muted:#7d93c3;
   }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
   body {
     font-family:'DM Sans',sans-serif;
@@ -60,6 +63,7 @@
     text-decoration:none;
     background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18);
     padding:6px 14px; border-radius:20px; transition:background .2s;
+    cursor:pointer;
   }
   .topbar-back:hover { background:rgba(255,255,255,.2); }
   .topbar-title {
@@ -82,7 +86,7 @@
 
   /* ── CONTACT PANE ── */
   .pane-list {
-    width:340px; flex-shrink:0;
+    width:320px; flex-shrink:0;
     border-right:1px solid var(--border);
     background:var(--surface); overflow-y:auto;
     transition:background .35s;
@@ -184,6 +188,13 @@
   .msg-row.mine .bubble .bubble-meta { color:rgba(255,255,255,.75); }
   body.dark .msg-row.theirs .bubble { background:var(--surface); }
   .bubble-text { font-size:.88rem; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+
+  /* Encrypted placeholder pulse */
+  .encrypted-placeholder {
+    opacity: .6;
+    font-style: italic;
+  }
+
   .bubble-meta {
     font-size:.65rem; color:var(--muted); text-align:right;
     margin-top:4px; display:flex; justify-content:flex-end;
@@ -260,20 +271,32 @@
     z-index:500; padding:20px;
   }
   .share-modal {
-    background:var(--surface); width:100%; max-width:380px;
-    max-height:70vh; border-radius:18px; overflow:hidden;
+    background:var(--surface); width:100%; max-width:420px;
+    max-height:80vh; border-radius:18px; overflow:hidden;
     display:flex; flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
   }
   .sm-head {
     display:flex; justify-content:space-between; align-items:center;
-    padding:14px 18px; border-bottom:1px solid var(--border);
-    font-weight:700; font-family:'Fraunces',serif;
+    padding:16px 18px; border-bottom:1px solid var(--border);
+    font-weight:700; font-family:'Fraunces',serif; font-size:1rem;
+    flex-shrink:0;
   }
-  .sm-close { background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--muted); }
-  .sm-body { overflow-y:auto; padding:6px; }
-  .sm-item { padding:12px 14px; border-radius:10px; cursor:pointer; }
-  .sm-item:hover { background:var(--bg); }
-  .sm-item-title { font-weight:700; font-size:.88rem; }
+  .sm-close {
+    background:none; border:none; font-size:1.1rem; cursor:pointer;
+    color:var(--muted); padding:4px; border-radius:6px; transition:color .15s;
+  }
+  .sm-close:hover { color:var(--rose); }
+  .sm-body { overflow-y:auto; padding:6px; flex:1; }
+
+  /* Multi-select item */
+  .sm-check-item {
+    padding:12px 14px; border-radius:10px;
+    transition:background .15s;
+  }
+  .sm-check-item:hover { background:var(--bg); }
+
+  .sm-item-title { font-weight:700; font-size:.88rem; color:var(--text); }
   .sm-item-sub { font-size:.74rem; color:var(--muted); margin-top:2px; }
   .sm-empty { padding:30px; text-align:center; color:var(--muted); font-size:.85rem; }
 
@@ -313,7 +336,7 @@
 
 <!-- TOPBAR -->
 <header class="topbar">
-  <a href="my_doctors.html" class="topbar-back" id="topBackLink">
+  <a href="#" class="topbar-back" id="topBackLink">
     <i class="ti ti-chevron-left" aria-hidden="true"></i> Back
   </a>
   <div class="topbar-title">Messages</div>
@@ -393,7 +416,7 @@
       <!-- Attach menu -->
       <div class="attach-menu" id="attachMenu">
         <div class="attach-item" id="optUploadFile">
-          <i class="ti ti-upload"></i> Upload File
+          <i class="ti ti-upload"></i> Upload File (PDF/Image)
         </div>
         <div class="attach-item" id="optShareSymptom">
           <i class="ti ti-stethoscope"></i> Share Symptom History
@@ -413,7 +436,7 @@
   </section>
 </div>
 
-<script src="js/crypto.js"></script>
-<script src="js/chat.js"></script>
+<script src="js/crypto.js?v=2"></script>
+<script src="js/chat.js?v=3"></script>
 </body>
 </html>

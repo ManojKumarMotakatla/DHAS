@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — DHAS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,600;0,700;1,300;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     :root {
@@ -400,6 +401,7 @@
   <a href="steps.html"       class="side-link"><i class="ti ti-run"></i><span data-i18n="steps">Steps</span></a>
   <a href="find_doctor.html" class="side-link"><i class="ti ti-stethoscope"></i><span>Find Doctor</span></a>
   <a href="my_doctors.html"  class="side-link"><i class="ti ti-users"></i><span>My Doctors</span></a>
+  <a href="chat.html"        class="side-link"><i class="ti ti-message-circle-2"></i><span>Chat</span></a>
   <a href="language.html"    class="side-link"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
   <a href="profile.html"     class="side-link"><i class="ti ti-user-circle"></i><span data-i18n="profile">Profile</span></a>
 </nav>
@@ -438,7 +440,8 @@
           <div class="pdrop-divider"></div>
           <a href="profile.html"         class="pdrop-item"><i class="ti ti-user-circle"></i><span data-i18n="profile">My Profile</span></a>
           <a href="profile_details.html"  class="pdrop-item"><i class="ti ti-edit"></i>Edit Profile</a>
-          <a href="change_password.html"  class="pdrop-item"><i class="ti ti-lock"></i>Change Password</a>
+          <a href="change_password.html"  class="pdrop-item" id="dashChangePw"><i class="ti ti-lock"></i>Change Password</a>
+          <a href="chat.html"             class="pdrop-item"><i class="ti ti-message-circle-2"></i>Chat</a>
           <a href="language.html"         class="pdrop-item"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
           <div class="pdrop-divider"></div>
           <div class="pdrop-item danger" onclick="handleLogout()"><i class="ti ti-logout"></i><span data-i18n="logout">Logout</span></div>
@@ -489,14 +492,15 @@
       <div class="sec-title" data-i18n="quickActions">Quick Actions</div>
     </div>
     <div class="actions-grid">
-      <a href="symptom.html"     class="action-tile c-blue">     <div class="at-icon"><i class="ti ti-notes"></i></div>            <div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
-      <a href="reports.html"     class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-report-medical"></i></div>    <div class="at-lbl" data-i18n="reports">Reports</div></a>
-      <a href="diet.html"        class="action-tile c-amber">    <div class="at-icon"><i class="ti ti-salad"></i></div>            <div class="at-lbl" data-i18n="diet">Diet</div></a>
-      <a href="remedies.html"    class="action-tile c-green">    <div class="at-icon"><i class="ti ti-plant"></i></div>            <div class="at-lbl" data-i18n="remedies">Remedies</div></a>
-      <a href="reminder.html"    class="action-tile c-rose">     <div class="at-icon"><i class="ti ti-clock"></i></div>            <div class="at-lbl" data-i18n="reminders">Reminders</div></a>
-      <a href="steps.html"       class="action-tile c-purple">   <div class="at-icon"><i class="ti ti-run"></i></div>              <div class="at-lbl" data-i18n="steps">Steps</div></a>
-      <a href="find_doctor.html" class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-stethoscope"></i></div>      <div class="at-lbl">Find Doctor</div></a>
-      <a href="my_doctors.html"  class="action-tile c-docgreen"> <div class="at-icon"><i class="ti ti-users"></i></div>            <div class="at-lbl">My Doctors</div></a>
+      <a href="symptom.html"     class="action-tile c-blue">     <div class="at-icon"><i class="ti ti-notes"></i></div>               <div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
+      <a href="reports.html"     class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-report-medical"></i></div>       <div class="at-lbl" data-i18n="reports">Reports</div></a>
+      <a href="diet.html"        class="action-tile c-amber">    <div class="at-icon"><i class="ti ti-salad"></i></div>               <div class="at-lbl" data-i18n="diet">Diet</div></a>
+      <a href="remedies.html"    class="action-tile c-green">    <div class="at-icon"><i class="ti ti-plant"></i></div>               <div class="at-lbl" data-i18n="remedies">Remedies</div></a>
+      <a href="reminder.html"    class="action-tile c-rose">     <div class="at-icon"><i class="ti ti-clock"></i></div>               <div class="at-lbl" data-i18n="reminders">Reminders</div></a>
+      <a href="steps.html"       class="action-tile c-purple">   <div class="at-icon"><i class="ti ti-run"></i></div>                 <div class="at-lbl" data-i18n="steps">Steps</div></a>
+      <a href="find_doctor.html" class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-stethoscope"></i></div>         <div class="at-lbl">Find Doctor</div></a>
+      <a href="my_doctors.html"  class="action-tile c-docgreen"> <div class="at-icon"><i class="ti ti-users"></i></div>               <div class="at-lbl">My Doctors</div></a>
+      <a href="chat.html"        class="action-tile c-blue">     <div class="at-icon"><i class="ti ti-message-circle-2"></i></div>    <div class="at-lbl">Chat</div></a>
     </div>
 
     <!-- CONNECT WITH DOCTOR -->
@@ -709,6 +713,14 @@ async function loadDashboard() {
       document.getElementById("heroName").textContent = user.name || "there";
     }
     if (p.profile_image) { setAvatar(p.profile_image, p.name || user.name); }
+
+    // ── Hide Change Password for Google-only accounts ──
+    // Google accounts have provider="google" and no local password
+    const isGoogleOnly = (p.provider === "google") || (user.provider === "google");
+    const changePwEl = document.getElementById("dashChangePw");
+    if (changePwEl && isGoogleOnly) {
+      changePwEl.style.display = "none";
+    }
 
     document.getElementById("statSymptoms").textContent  = p.symptom_count ?? "0";
     document.getElementById("statReminders").textContent = rd.success  ? (rd.data  || []).length : "0";

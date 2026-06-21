@@ -1,9 +1,31 @@
 /**
- * DHAS — sw.js  (v8 — fixed navigation fallback + API cache isolation)
+ * DHAS — sw.js  (v9 — chat files now network-first, no more stale chat.html)
  * Place at project ROOT (same level as server.js)
+ *
+ * CHANGE FROM v8:
+ *   Previously every non-API, non-CDN GET request (including chat.html,
+ *   js/chat.js, js/crypto.js, js/socket.io.min.js) went through
+ *   cacheFirst(). That's great for stable pages, but those four files are
+ *   under active development this project — every edit got served from
+ *   the OLD cached copy until a hard refresh (which bypasses the SW) or
+ *   a CACHE_VERSION bump. Meta tags like <meta http-equiv="Cache-Control">
+ *   in chat.html do NOTHING here: the Service Worker intercepts the
+ *   fetch event before the browser even looks at response headers from
+ *   a previous load.
+ *
+ *   Fix: a dedicated list of "dev" files now goes through networkFirst()
+ *   instead, the same strategy already used for API calls. They still get
+ *   cached as a fallback for offline use, but a live network response
+ *   always wins when you're online — so editing chat.js / chat.html and
+ *   reloading the tab (NOT even a hard refresh) shows your latest code.
+ *
+ *   CACHE_VERSION is also bumped (v10 -> v11) to evict whatever stale
+ *   chat.html / chat.js / crypto.js got cached under the old cacheFirst
+ *   behaviour, so this fix actually takes effect on next load instead of
+ *   serving yesterday's cached copy of itself.
  */
 
-const CACHE_VERSION = "dhas-v10";
+const CACHE_VERSION = "dhas-v11";
 const API_CACHE     = "dhas-api-v8";
 const FONT_CACHE    = "dhas-fonts-v8";
 const CDN_CACHE     = "dhas-cdn-v8";
@@ -56,11 +78,33 @@ const API_PREFIXES = [
   "/register",
   "/auth",
   "/reminder-logs",
-  "/test"
+  "/test",
+  "/chat",      // chat REST API (contacts, messages, send, upload, file, report)
+  "/keys",      // E2E public-key bulletin board API
+  "/doctor"     // doctor REST API
+];
+
+// FIX: Files under ACTIVE DEVELOPMENT for the chat feature. These are
+// served network-first (always try the live network before falling back
+// to cache) instead of cache-first, so edits show up on a normal reload —
+// no hard refresh, no CACHE_VERSION bump needed every time you change them.
+// Socket.IO's transport itself bypasses the SW entirely (it's a websocket/
+// XHR polling connection, not a simple GET this handler sees the same way),
+// but the *library file* socket.io.min.js is still a plain GET and was
+// being cached just like chat.html was.
+const CHAT_DEV_PREFIXES = [
+  "/chat.html",
+  "/js/chat.js",
+  "/js/crypto.js",
+  "/js/socket.io.min.js"
 ];
 
 function isAPIPath(pathname) {
   return API_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
+function isChatDevFile(pathname) {
+  return CHAT_DEV_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
 self.addEventListener("install", event => {
@@ -74,7 +118,7 @@ self.addEventListener("install", event => {
         )
       );
       const ok = results.filter(r => r.status === "fulfilled").length;
-      console.log(`[SW v8] Cached ${ok}/${CORE_ASSETS.length} assets`);
+      console.log(`[SW v9] Cached ${ok}/${CORE_ASSETS.length} assets`);
     }).then(() => self.skipWaiting())
   );
 });
@@ -111,6 +155,13 @@ self.addEventListener("fetch", event => {
     url.hostname.includes("accounts.google.com")
   ) {
     event.respondWith(cacheFirst(request, CDN_CACHE));
+    return;
+  }
+
+  // FIX: Chat dev files (chat.html, chat.js, crypto.js, socket.io.min.js)
+  // — network-first so you see your latest edits without a hard refresh.
+  if (isChatDevFile(url.pathname)) {
+    event.respondWith(networkFirst(request, CACHE_VERSION));
     return;
   }
 
@@ -167,7 +218,10 @@ async function cacheFirst(request, cacheName) {
 async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   try {
-    const response = await fetch(request);
+    // FIX: "no-store" / "reload" semantics — explicitly bypass the HTTP
+    // cache for these requests too, not just our own SW cache layer,
+    // so dev tools "disable cache" isn't the only thing that helps.
+    const response = await fetch(request, { cache: "no-store" });
     if (response.ok) cache.put(request, response.clone());
     return response;
   } catch {

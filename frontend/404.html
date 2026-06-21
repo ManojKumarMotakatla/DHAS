@@ -108,6 +108,7 @@
       animation: popIn .5s .16s cubic-bezier(.4,0,.2,1) both;
     }
 
+    /* Only one action now — a single centered dashboard button */
     .actions {
       display: flex; flex-direction: column; gap: 10px;
       animation: popIn .5s .2s cubic-bezier(.4,0,.2,1) both;
@@ -123,38 +124,6 @@
     }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
     .btn-primary svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.2; }
-    .btn-secondary {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 12px 24px; border-radius: 12px;
-      border: 1.5px solid var(--border);
-      background: var(--bg); color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 600; font-size: .9rem; cursor: pointer;
-      text-decoration: none; transition: all .2s;
-    }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-secondary svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
-
-    .quick-links {
-      margin-top: 28px; padding-top: 20px;
-      border-top: 1px solid var(--border);
-      animation: popIn .5s .24s cubic-bezier(.4,0,.2,1) both;
-    }
-    .ql-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
-    .ql-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .ql-item {
-      display: flex; flex-direction: column; align-items: center; gap: 5px;
-      padding: 10px 6px; border-radius: 10px;
-      border: 1px solid var(--border); background: var(--bg);
-      text-decoration: none; color: var(--muted);
-      font-size: .72rem; font-weight: 600;
-      transition: all .18s;
-    }
-    .ql-item:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-    html.dark .ql-item:hover { background: rgba(42,108,246,.1); }
-    body.doctor-portal html.dark .ql-item:hover,
-    body.doctor-portal .ql-item:hover { background: rgba(5,150,105,.08); }
-    .ql-item svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
     /* portal badge at top */
     .portal-badge {
@@ -185,17 +154,11 @@
 
   <div class="error-code">404</div>
   <h1>Page not found</h1>
-  <p>The record you're looking for seems to have gone missing. It may have been moved, deleted, or never existed. Let's get you back on track.</p>
+  <p>The record you're looking for seems to have gone missing. It may have been moved, deleted, or never existed.</p>
 
+  <!-- Single dashboard action only — no "Go Back", no quick links -->
   <div class="actions" id="actionsEl">
     <!-- Filled by JS based on portal -->
-  </div>
-
-  <div class="quick-links" id="quickLinksEl">
-    <div class="ql-label">Quick Links</div>
-    <div class="ql-grid" id="qlGrid">
-      <!-- Filled by JS -->
-    </div>
   </div>
 </div>
 
@@ -234,45 +197,15 @@
     badge.innerHTML = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Doctor Portal';
   }
 
-  // ── Actions ──────────────────────────────────────────────────
+  // ── Action — ONLY a dashboard button, nothing else ────────────
+  // Doctor → doctor_dashboard.html, Patient → dashboard.html
   var actionsEl = document.getElementById('actionsEl');
   var dashHref  = isDoc ? 'doctor_dashboard.html' : 'dashboard.html';
   actionsEl.innerHTML =
     '<a href="' + dashHref + '" class="btn-primary">'
     + '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>'
     + 'Go to Dashboard'
-    + '</a>'
-    + '<a href="javascript:history.back()" class="btn-secondary">'
-    + '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>'
-    + 'Go Back'
     + '</a>';
-
-  // ── Quick links ──────────────────────────────────────────────
-  var qlGrid = document.getElementById('qlGrid');
-  var icon_svg = function(path) {
-    return '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="' + path + '"/></svg>';
-  };
-
-  if (isDoc) {
-    qlGrid.innerHTML = [
-      { href:'doctor_dashboard.html', label:'Dashboard',  path:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-      { href:'doctor_dashboard.html#patients', label:'Patients', path:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-      { href:'find_doctor.html',        label:'Directory',  path:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
-    ].map(function(l) {
-      return '<a href="' + l.href + '" class="ql-item">' + icon_svg(l.path) + l.label + '</a>';
-    }).join('');
-  } else {
-    qlGrid.innerHTML = [
-      { href:'symptom.html',  label:'Symptoms',  path:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { href:'reminder.html', label:'Reminders', path:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-      { href:'reports.html',  label:'Reports',   path:'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-      { href:'diet.html',     label:'Diet',      path:'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-      { href:'remedies.html', label:'Remedies',  path:'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z' },
-      { href:'profile.html',  label:'Profile',   path:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-    ].map(function(l) {
-      return '<a href="' + l.href + '" class="ql-item">' + icon_svg(l.path) + l.label + '</a>';
-    }).join('');
-  }
 </script>
 </body>
 </html>

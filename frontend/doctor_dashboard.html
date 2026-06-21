@@ -65,6 +65,7 @@
     .confirm-icon { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
     .confirm-icon.danger  { background: #fee2e2; color: #dc2626; }
     .confirm-icon.warning { background: #fff8ec; color: var(--amber); }
+    .confirm-icon.success { background: #d1fae5; color: var(--green); }
     .confirm-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
     .confirm-msg { font-size: .87rem; color: var(--muted); line-height: 1.65; margin-bottom: 22px; }
     .confirm-actions { display: flex; gap: 10px; }
@@ -161,70 +162,21 @@
     .sec-link { font-size: .78rem; color: var(--green); font-weight: 600; cursor: pointer; }
 
     /* PENDING BADGE */
-    .pending-count-badge {
-      background: rgba(244,160,53,.15);
-      border: 1px solid rgba(244,160,53,.35);
-      color: var(--amber);
-      font-size: .68rem;
-      font-weight: 700;
-      padding: 2px 9px;
-      border-radius: 20px;
-      margin-left: 4px;
-    }
-    body.dark .pending-count-badge {
-      background: rgba(244,160,53,.2);
-      border-color: rgba(244,160,53,.4);
-    }
+    .pending-count-badge { background: rgba(244,160,53,.15); border: 1px solid rgba(244,160,53,.35); color: var(--amber); font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; margin-left: 4px; }
+    body.dark .pending-count-badge { background: rgba(244,160,53,.2); border-color: rgba(244,160,53,.4); }
 
     /* PENDING REQUEST CARD */
-    .pending-req-card {
-      background: var(--surface);
-      border: 1.5px solid rgba(244,160,53,.35);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      animation: fadeUp .3s ease both;
-    }
+    .pending-req-card { background: var(--surface); border: 1.5px solid rgba(244,160,53,.35); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px; animation: fadeUp .3s ease both; }
     body.dark .pending-req-card { border-color: rgba(244,160,53,.3); }
-    .pending-avatar {
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--amber), #fcd34d);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff;
-    }
+    .pending-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--amber), #fcd34d); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .pending-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-    .accept-btn {
-      display: flex; align-items: center; gap: 5px;
-      padding: 7px 14px; border-radius: 8px;
-      border: none; background: var(--green); color: #fff;
-      font-size: .78rem; font-weight: 700; cursor: pointer;
-      font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s;
-    }
+    .accept-btn { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--green); color: #fff; font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s; }
     .accept-btn:hover { opacity: .88; transform: translateY(-1px); }
-    .reject-btn {
-      display: flex; align-items: center; gap: 5px;
-      padding: 7px 14px; border-radius: 8px;
-      border: 1.5px solid rgba(242,92,125,.3);
-      background: rgba(242,92,125,.08); color: var(--rose);
-      font-size: .78rem; font-weight: 700; cursor: pointer;
-      font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s;
-    }
+    .reject-btn { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; border: 1.5px solid rgba(242,92,125,.3); background: rgba(242,92,125,.08); color: var(--rose); font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s; }
     .reject-btn:hover { background: rgba(242,92,125,.18); border-color: var(--rose); }
 
     /* PATIENTS */
-    .patient-card {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
-      box-shadow: var(--shadow); cursor: pointer;
-      display: flex; align-items: center; gap: 14px;
-      transition: border-color .2s, transform .18s, box-shadow .18s;
-      animation: fadeUp .3s ease both;
-      position: relative;
-    }
+    .patient-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; display: flex; align-items: center; gap: 14px; transition: border-color .2s, transform .18s, box-shadow .18s; animation: fadeUp .3s ease both; position: relative; }
     .patient-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .patient-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: #fff; }
     .patient-name { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 3px; }
@@ -233,29 +185,15 @@
     .patient-meta i { font-size: 12px; }
     .patient-arrow { margin-left: auto; color: var(--muted); font-size: 1.1rem; }
     .patient-card:hover .patient-arrow { color: var(--green); }
-
-    /* DISCONNECT BUTTON */
-    .disconnect-btn {
-      position: absolute; top: 10px; right: 10px;
-      width: 28px; height: 28px; border-radius: 8px;
-      border: 1.5px solid var(--border); background: var(--bg);
-      color: var(--muted); display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0;
-    }
-
+    .disconnect-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0; }
     .disconnect-btn:hover { background: #fee2e2; border-color: var(--rose); color: var(--rose); }
     body.dark .disconnect-btn { background: #031a10; border-color: #0a4a28; }
     body.dark .disconnect-btn:hover { background: rgba(242,92,125,.15); border-color: var(--rose); color: var(--rose); }
-.chat-icon-btn {
-  position: absolute; top: 10px; right: 46px;
-  width: 28px; height: 28px; border-radius: 8px;
-  border: 1.5px solid var(--border); background: var(--bg);
-  color: var(--muted); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0;
-}
-.chat-icon-btn:hover { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
-body.dark .chat-icon-btn { background: #031a10; border-color: #0a4a28; }
-body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color: var(--blue); color: var(--blue); }
+    .chat-icon-btn { position: absolute; top: 10px; right: 46px; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0; }
+    .chat-icon-btn:hover { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+    body.dark .chat-icon-btn { background: #031a10; border-color: #0a4a28; }
+    body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color: var(--blue); color: var(--blue); }
+
     /* DETAIL */
     .detail-back { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s; }
     .detail-back:hover { color: var(--green); border-color: var(--green); }
@@ -386,6 +324,9 @@ body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color:
     .pw-alert.success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
     body.dark .pw-alert.error   { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5; }
     body.dark .pw-alert.success { background: rgba(5,150,105,.12); border-color: rgba(5,150,105,.3); color: #6ee7b7; }
+    /* Google note for change password */
+    .google-pw-note { display: none; padding: 12px 14px; border-radius: 10px; font-size: .84rem; font-weight: 600; margin-bottom: 14px; background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+    body.dark .google-pw-note { background: rgba(244,160,53,.1); border-color: rgba(244,160,53,.3); color: #fcd34d; }
 
     .empty-box { text-align: center; padding: 40px 20px; background: var(--surface); border: 1.5px dashed var(--border); border-radius: var(--radius); }
     .empty-box i { font-size: 48px; opacity: .3; display: block; margin-bottom: 12px; color: var(--green); }
@@ -461,7 +402,7 @@ body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color:
           <div class="pdrop-divider"></div>
           <div class="pdrop-item" onclick="showView('profile'); closePdrop();"><i class="ti ti-user-circle"></i> My Profile</div>
           <div class="pdrop-item" onclick="showView('edit'); closePdrop();"><i class="ti ti-edit"></i> Edit Profile</div>
-          <div class="pdrop-item" onclick="showView('password'); closePdrop();"><i class="ti ti-lock"></i> Change Password</div>
+          <div class="pdrop-item" id="dropChangePw" onclick="showView('password'); closePdrop();"><i class="ti ti-lock"></i> Change Password</div>
           <div class="pdrop-item" onclick="window.location.href='language.html'"><i class="ti ti-language"></i> Language</div>
           <div class="pdrop-divider"></div>
           <div class="pdrop-item danger" onclick="doLogout()"><i class="ti ti-logout"></i> Logout</div>
@@ -592,7 +533,7 @@ body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color:
         <div class="section">
           <div class="section-head"><i class="ti ti-settings"></i>Settings</div>
           <div class="arow" onclick="showView('edit')"><div class="iicon" style="background:#e6faf8;color:var(--green);"><i class="ti ti-edit"></i></div><div class="acontent"><div class="albl">Edit Profile</div><div class="adesc">Update professional information</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
-          <div class="arow" onclick="showView('password')"><div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div><div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow" id="profChangePwRow" onclick="showView('password')"><div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div><div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
           <div class="arow" onclick="window.location.href='language.html'"><div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-language"></i></div><div class="acontent"><div class="albl">Language</div><div class="adesc">English · Hindi · Telugu</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
           <div class="arow danger" onclick="doDeleteAccount()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-trash"></i></div><div class="acontent"><div class="albl">Delete Account</div><div class="adesc">Permanently remove your account</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
           <div class="arow danger" onclick="doLogout()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-logout"></i></div><div class="acontent"><div class="albl">Logout</div><div class="adesc">Sign out of Doctor Portal</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
@@ -669,6 +610,11 @@ body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color:
       <div class="form-card">
         <div class="form-head"><i class="ti ti-lock"></i>Change Password</div>
         <div class="form-body">
+          <!-- Google sign-in notice (shown only for Google accounts) -->
+          <div class="google-pw-note" id="googlePwNote">
+            <i class="ti ti-brand-google" style="margin-right:6px;"></i>
+            Your account uses Google Sign-In. Password change is not available for Google accounts.
+          </div>
           <div class="pw-alert" id="pwAlert"></div>
           <div class="field-group">
             <label class="field-label">Current Password</label>
@@ -803,6 +749,22 @@ function applyVerifiedUI(verified) {
   document.getElementById("dropBadge").style.display = verified ? "inline-flex" : "none";
 }
 
+/* ── APPLY GOOGLE-ONLY UI HIDING ── */
+function applyGoogleOnlyUI(isGoogleOnly) {
+  // IDs to hide for Google-only accounts (no local password exists)
+  const pwEls = ["sl-password", "dropChangePw", "profChangePwRow"];
+  pwEls.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isGoogleOnly ? "none" : "";
+  });
+  // Show informational note inside the change-password view
+  const note = document.getElementById("googlePwNote");
+  if (note) note.style.display = isGoogleOnly ? "block" : "none";
+  // Disable the save button inside change-password view for Google accounts
+  const pwSaveBtn = document.getElementById("pwSaveBtn");
+  if (pwSaveBtn) pwSaveBtn.style.display = isGoogleOnly ? "none" : "";
+}
+
 /* ── PROFILE LOAD ── */
 let _profileData  = {};
 let profilePhotoBase64 = null;
@@ -849,8 +811,14 @@ async function loadProfile() {
   sv("vi-exp",       d.experience_years ? d.experience_years + " years experience" : null);
   sv("vi-location",  d.city && d.state ? d.city + ", " + d.state : (d.city || d.state || null));
   sv("vi-languages", d.languages);
-  sv("vi-provider",  d.google_id ? "Google Account" : "Email & Password");
+
+  // Determine sign-in method and whether account is Google-only
+  const isGoogleOnly = !!d.google_id && !d.password;
+  sv("vi-provider",  isGoogleOnly ? "Google Account" : "Email & Password");
   sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : null);
+
+  // Hide/show password change options based on account type
+  applyGoogleOnlyUI(isGoogleOnly);
 
   document.getElementById("fSpec").value      = d.speciality || "General Physician";
   document.getElementById("fExpYears").value  = d.experience_years || "";
@@ -875,35 +843,24 @@ function sv(id, val) {
   else     { el.textContent = "Not set"; el.classList.add("empty"); }
 }
 
-/* ═══════════════════════════════════════════════════
-   PENDING REQUESTS — LOAD & RENDER
-   Fetches GET /doctor/pending-requests and renders
-   accept / decline buttons for each request.
-   Called on init and refreshed after any action.
-═══════════════════════════════════════════════════ */
+/* ── PENDING REQUESTS ── */
 async function loadPendingRequests() {
   const res = await fetch(window.API_BASE + "/doctor/pending-requests", { headers: getDoctorHeaders() })
     .then(r => r.json()).catch(() => ({ success: false, data: [] }));
 
   const requests = res.success ? (res.data || []) : [];
-
   const head  = document.getElementById("pendingHead");
   const list  = document.getElementById("pendingRequestList");
   const badge = document.getElementById("pendingBadge");
 
-  if (!requests.length) {
-    head.style.display = "none";
-    list.innerHTML     = "";
-    return;
-  }
+  if (!requests.length) { head.style.display = "none"; list.innerHTML = ""; return; }
 
   head.style.display  = "flex";
   badge.textContent   = requests.length;
 
   list.innerHTML = requests.map((r, idx) => {
     const initials = (r.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    const reqDate  = new Date(r.requested_at).toLocaleDateString("en-IN",
-                      { day: "numeric", month: "short", year: "numeric" });
+    const reqDate  = new Date(r.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     const safeName = (r.name || "").replace(/'/g, "\\'");
     return `
       <div class="pending-req-card" style="animation-delay:${idx * 40}ms">
@@ -933,9 +890,7 @@ async function handleConnection(connectionId, action, patientName) {
   const isAccept = action === "accept";
   const ok = await showConfirm({
     title:   isAccept ? `Accept ${patientName}?` : `Decline ${patientName}?`,
-    msg:     isAccept
-               ? `${patientName} will be added to your patient list.`
-               : `${patientName}'s request will be declined. They can re-request at any time.`,
+    msg:     isAccept ? `${patientName} will be added to your patient list.` : `${patientName}'s request will be declined.`,
     okLabel: isAccept ? "Accept" : "Decline",
     okType:  isAccept ? "success" : "danger",
     icon:    isAccept ? "ti-user-check" : "ti-user-x"
@@ -943,7 +898,7 @@ async function handleConnection(connectionId, action, patientName) {
   if (!ok) return;
 
   const btn = document.getElementById("confirmOkBtn");
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = isAccept ? "Accepting…" : "Declining…";
 
   const endpoint = isAccept
@@ -955,10 +910,7 @@ async function handleConnection(connectionId, action, patientName) {
     const data = await res.json();
     confirmResolve(false);
     if (data.success) {
-      showToast(
-        isAccept ? `${patientName} has been accepted!` : `${patientName}'s request was declined.`,
-        isAccept ? "success" : "info"
-      );
+      showToast(isAccept ? `${patientName} has been accepted!` : `${patientName}'s request was declined.`, isAccept ? "success" : "info");
       await loadPendingRequests();
       await loadPatients();
     } else {
@@ -970,9 +922,7 @@ async function handleConnection(connectionId, action, patientName) {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PATIENTS — LOAD & RENDER
-═══════════════════════════════════════════════════════════ */
+/* ── PATIENTS ── */
 let _patients = [];
 let _prevFromView = "patients";
 
@@ -994,6 +944,7 @@ async function loadPatients() {
   renderPatientList("dashPatientList", _patients.slice(0, 3));
   renderPatientList("allPatientList",  _patients);
 }
+
 function renderPatientList(containerId, patients) {
   const list = document.getElementById(containerId);
   if (!list) return;
@@ -1005,18 +956,8 @@ function renderPatientList(containerId, patients) {
     const initials = (p.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     const connDate = new Date(p.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     return `<div class="patient-card" style="animation-delay:${idx * 40}ms" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
-      <button
-        class="chat-icon-btn"
-        title="Chat with ${p.name}"
-        aria-label="Chat with ${p.name}"
-        onclick="event.stopPropagation(); openChatAsDoctor(${p.id})"
-      ><i class="ti ti-message-circle-2"></i></button>
-      <button
-        class="disconnect-btn"
-        title="Disconnect patient"
-        aria-label="Disconnect ${p.name}"
-        onclick="event.stopPropagation(); disconnectPatient(${p.connection_id}, '${p.name}', '${containerId}')"
-      ><i class="ti ti-minus"></i></button>
+      <button class="chat-icon-btn" title="Chat with ${p.name}" aria-label="Chat with ${p.name}" onclick="event.stopPropagation(); openChatAsDoctor(${p.id})"><i class="ti ti-message-circle-2"></i></button>
+      <button class="disconnect-btn" title="Disconnect patient" aria-label="Disconnect ${p.name}" onclick="event.stopPropagation(); disconnectPatient(${p.connection_id}, '${p.name}', '${containerId}')"><i class="ti ti-minus"></i></button>
       <div class="patient-avatar">${initials}</div>
       <div style="flex:1;min-width:0;padding-right:64px;">
         <div class="patient-name">${p.name}</div>
@@ -1032,34 +973,24 @@ function renderPatientList(containerId, patients) {
     </div>`;
   }).join("");
 }
-/* ── DISCONNECT PATIENT (doctor removes an accepted patient) ── */
+
 async function disconnectPatient(connectionId, patientName, sourceContainerId) {
   const ok = await showConfirm({
-    title:   "Disconnect Patient?",
-    msg:     `Remove ${patientName} from your patient list? They can reconnect using your invite code at any time.`,
-    okLabel: "Disconnect",
-    okType:  "danger",
-    icon:    "ti-user-minus"
+    title: "Disconnect Patient?",
+    msg: `Remove ${patientName} from your patient list? They can reconnect using your invite code at any time.`,
+    okLabel: "Disconnect", okType: "danger", icon: "ti-user-minus"
   });
   if (!ok) return;
 
   const btn = document.getElementById("confirmOkBtn");
-  btn.disabled    = true;
-  btn.textContent = "Disconnecting…";
+  btn.disabled = true; btn.textContent = "Disconnecting…";
 
   try {
-    const res  = await fetch(`${window.API_BASE}/doctor/connections/${connectionId}`, {
-      method:  "DELETE",
-      headers: getDoctorHeaders()
-    });
+    const res  = await fetch(`${window.API_BASE}/doctor/connections/${connectionId}`, { method: "DELETE", headers: getDoctorHeaders() });
     const data = await res.json();
     confirmResolve(false);
-    if (data.success) {
-      showToast(`${patientName} has been disconnected.`, "success");
-      await loadPatients();
-    } else {
-      showToast(data.message || "Failed to disconnect.", "error");
-    }
+    if (data.success) { showToast(`${patientName} has been disconnected.`, "success"); await loadPatients(); }
+    else { showToast(data.message || "Failed to disconnect.", "error"); }
   } catch {
     confirmResolve(false);
     showToast("Cannot connect to server.", "error");
@@ -1233,7 +1164,11 @@ async function savePwChange() {
     const data = await res.json();
     if (data.success) {
       showPwAlert("Password changed! Logging you out…", "success");
-      setTimeout(() => { localStorage.removeItem("dhas_doctor"); localStorage.removeItem("dhas_doctor_token"); window.location.href = "doctor_login.html"; }, 2000);
+      setTimeout(() => {
+        localStorage.removeItem("dhas_doctor");
+        localStorage.removeItem("dhas_doctor_token");
+        window.location.href = "doctor_login.html";
+      }, 2000);
     } else {
       showPwAlert(data.message || "Failed to change password.", "error");
       btn.disabled = false;
@@ -1281,14 +1216,16 @@ async function doDeleteAccount() {
   }
 }
 
-/* ── INIT ── */
-loadProfile();
-loadPatients();
-loadPendingRequests();
+/* ── CHAT ── */
 function openChatAsDoctor(patientId) {
   sessionStorage.setItem("dhas_chat_role", "doctor");
   window.location.href = "chat.html?partner=" + patientId;
 }
+
+/* ── INIT ── */
+loadProfile();
+loadPatients();
+loadPendingRequests();
 </script>
 </body>
 </html>

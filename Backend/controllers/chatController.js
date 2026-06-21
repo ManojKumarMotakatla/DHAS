@@ -1,11 +1,17 @@
 // ============================================================
 // Backend/controllers/chatController.js
+//
+// NEW — getPresence(): REST fallback so the chat header can show
+// "Online" / "Last seen Xm ago" on FIRST PAINT, before the socket
+// connection finishes its handshake. Reuses verifyRoomAccess() so a
+// caller can only ask about the presence of someone they actually
+// share an active room with (no peeking at arbitrary user IDs).
 // ============================================================
 
 const path = require("path");
 const fs   = require("fs");
 const db   = require("../config/db");
-const { verifyRoomAccess, ensureRoomForConnection } = require("../utils/chatAccess");
+const { verifyRoomAccess, ensureRoomForConnection, otherParty } = require("../utils/chatAccess");
 const { UPLOAD_ROOT } = require("../middleware/uploadMiddleware");
 
 function myId(req) { return req.role === "doctor" ? req.doctorId : req.userId; }
@@ -52,18 +58,28 @@ const getContacts = async (req, res) => {
             roomIds.push(roomId);
         }
 
+        // NEW: presence lookups for each contact, so the list can show a
+        // live "online" dot / "last seen" preview without opening the room.
+        const { getPresenceSnapshot } = require("../config/socket");
+
         const result = [];
         for (let i = 0; i < connections.length; i++) {
             const conn   = connections[i];
             const roomId = roomIds[i];
             const [lastMsgRows] = await db.promise().query(
-                `SELECT content, message_type, is_encrypted, created_at, status
+                `SELECT id, content, message_type, is_encrypted, created_at, status, sender_type
                  FROM chat_messages WHERE room_id = ? ORDER BY created_at DESC LIMIT 1`, [roomId]);
             const senderType = role === "doctor" ? "patient" : "doctor";
             const [unreadRows] = await db.promise().query(
                 `SELECT COUNT(*) AS cnt FROM chat_messages
                  WHERE room_id = ? AND sender_type = ? AND status != 'read'`, [roomId, senderType]);
             const lastMsg = lastMsgRows[0] || null;
+
+            // NEW: partner presence — partner_id/role are already known
+            // for this contact (it's just "the other side" of the room).
+            const partnerRole = role === "doctor" ? "patient" : "doctor";
+            const presence = getPresenceSnapshot(partnerRole, conn.partner_id);
+
             result.push({
                 connection_id:          conn.connection_id,
                 partner_id:             conn.partner_id,
@@ -75,7 +91,14 @@ const getContacts = async (req, res) => {
                 last_message_type:      lastMsg ? lastMsg.message_type : null,
                 last_message_encrypted: lastMsg ? !!lastMsg.is_encrypted : false,
                 last_message_at:        lastMsg ? lastMsg.created_at : null,
-                unread_count:           unreadRows[0].cnt || 0
+                // NEW: status/sender of the last message so the contact list
+                // can show "Delivered" / "Seen" ticks next to the preview too.
+                last_message_status:    lastMsg ? lastMsg.status : null,
+                last_message_mine:      lastMsg ? lastMsg.sender_type === role : false,
+                unread_count:           unreadRows[0].cnt || 0,
+                // NEW
+                online:                 presence.online,
+                last_seen:              presence.last_seen
             });
         }
         result.sort((a, b) => {
@@ -296,7 +319,31 @@ const getRoomForPartner = async (req, res) => {
     }
 };
 
+/* ── GET /chat/presence/:room_id  (NEW) ─────────────────────────
+   Returns the PARTNER's presence for a given room — i.e. "is the
+   other person in this conversation online right now, and if not,
+   when were they last seen". Scoped through verifyRoomAccess() so
+   you can only query presence for someone you actually share an
+   active room with — same access-control pattern as every other
+   chat endpoint. Used by the frontend for the very first paint of
+   the chat header, before the socket's join_room ack (which also
+   carries presence) comes back. */
+const getPresence = async (req, res) => {
+    const room = await verifyRoomAccess(req.params.room_id, req.role, myId(req));
+    if (!room) return res.status(403).json({ success: false, message: "Access denied." });
+    try {
+        const { getPresenceSnapshot } = require("../config/socket");
+        const partner = otherParty(room, req.role);
+        const snapshot = getPresenceSnapshot(partner.role, partner.id);
+        res.json({ success: true, ...snapshot });
+    } catch (err) {
+        console.error("getPresence error:", err.message);
+        res.status(500).json({ success: false, message: "Failed to load presence." });
+    }
+};
+
 module.exports = {
     getContacts, getMessages, markRead, sendMessage,
-    uploadChatFile, serveFile, getSharedReport, getRoomForPartner
+    uploadChatFile, serveFile, getSharedReport, getRoomForPartner,
+    getPresence
 };

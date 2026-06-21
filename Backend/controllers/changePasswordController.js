@@ -1,20 +1,59 @@
 // ============================================================
 // DHAS — Backend/controllers/changePasswordController.js
-// Handles authenticated password change.
-// User must supply current password + new password.
-// JWT auth required (requireAuth middleware).
+// Handles authenticated password change for BOTH patients and doctors.
+// Supports patient JWT (userId) and doctor JWT (doctorId + role:"doctor").
+// JWT auth required (requireAuth or requireDoctorAuth middleware, but
+// this controller now self-identifies the caller via the token shape).
 // ============================================================
 
 const db     = require("../config/db");
 const bcrypt = require("bcrypt");
+const jwt    = require("jsonwebtoken");
 
 /**
  * POST /profile/change-password
  * Body: { current_password, new_password }
- * Auth: Bearer token required
+ * Auth: Bearer token required (patient OR doctor token accepted)
  */
 const changePassword = async (req, res) => {
-    const user_id       = req.userId;
+    // ── Identify caller: patient or doctor ────────────────
+    // requireAuth sets req.userId (patient).
+    // requireDoctorAuth sets req.doctorId (doctor).
+    // This controller is mounted on a patient route, so we also
+    // manually decode the token to handle doctor callers gracefully.
+    let isDoctor = false;
+    let actorId  = null;
+
+    if (req.doctorId) {
+        // Called via doctor middleware (if ever re-mounted that way)
+        isDoctor = true;
+        actorId  = req.doctorId;
+    } else if (req.userId) {
+        // Normal patient path
+        isDoctor = false;
+        actorId  = req.userId;
+    } else {
+        // Fallback: decode token ourselves to handle doctor calling
+        // a patient-middleware-protected route
+        const authHeader = req.headers["authorization"];
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            try {
+                const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+                if (decoded.role === "doctor" && decoded.doctorId) {
+                    isDoctor = true;
+                    actorId  = decoded.doctorId;
+                } else if (decoded.userId) {
+                    isDoctor = false;
+                    actorId  = decoded.userId;
+                }
+            } catch (_) {}
+        }
+    }
+
+    if (!actorId) {
+        return res.status(401).json({ success: false, message: "Authentication required." });
+    }
+
     const { current_password, new_password } = req.body;
 
     // ── Input validation ──────────────────────────────────
@@ -52,27 +91,28 @@ const changePassword = async (req, res) => {
     }
 
     try {
-        // ── Fetch user's current hashed password ─────────
-        const [rows] = await db.promise().query(
-            "SELECT password, provider FROM users WHERE id = ?",
-            [user_id]
+        // ── Fetch the right table ─────────────────────────
+        const table    = isDoctor ? "doctors" : "users";
+        const [rows]   = await db.promise().query(
+            `SELECT password, provider FROM ${table} WHERE id = ?`,
+            [actorId]
         );
 
         if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: "User not found." });
+            return res.status(404).json({ success: false, message: "Account not found." });
         }
 
-        const user = rows[0];
+        const account = rows[0];
 
         // Google-only accounts have no password
-        if (user.provider === "google" && !user.password) {
+        if (account.provider === "google" && !account.password) {
             return res.status(400).json({
                 success: false,
                 message: "Your account uses Google Sign-In. You cannot set a password here."
             });
         }
 
-        if (!user.password) {
+        if (!account.password) {
             return res.status(400).json({
                 success: false,
                 message: "No password set for this account."
@@ -80,7 +120,7 @@ const changePassword = async (req, res) => {
         }
 
         // ── Verify current password ──────────────────────
-        const match = await bcrypt.compare(current_password, user.password);
+        const match = await bcrypt.compare(current_password, account.password);
         if (!match) {
             return res.status(401).json({
                 success: false,
@@ -93,8 +133,8 @@ const changePassword = async (req, res) => {
         const newHash = await bcrypt.hash(new_password, salt);
 
         await db.promise().query(
-            "UPDATE users SET password = ? WHERE id = ?",
-            [newHash, user_id]
+            `UPDATE ${table} SET password = ? WHERE id = ?`,
+            [newHash, actorId]
         );
 
         res.json({

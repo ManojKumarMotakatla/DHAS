@@ -13,6 +13,25 @@
 //   - symptom_share / report_share messages are NOT encrypted
 //     (they reference existing DB rows the server must read to
 //     validate ownership), so those two types are unaffected.
+//
+// NEW — PRESENCE / ONLINE-OFFLINE / LAST-SEEN:
+//   - onlineUsers (existing) tracks which sockets are live right now.
+//   - lastSeenAt (NEW) is an in-memory map of "role:id" -> timestamp,
+//     updated the moment a user's last socket disconnects (i.e. they
+//     have gone fully offline, not just dropped one of several tabs).
+//   - Whenever presence changes (a user's FIRST socket connects, or
+//     their LAST socket disconnects), we broadcast a "presence_update"
+//     event to every room they belong to, so any open chat window
+//     showing them can flip between "Online" and "Last seen Xm ago"
+//     live, without the viewer needing to reopen the conversation.
+//   - getPresenceSnapshot(role, id) is exported so the REST layer
+//     (chatController.getPresence) can answer "is this person online /
+//     when were they last seen" even before any socket event fires —
+//     useful for the very first paint of the chat header.
+//   - lastSeenAt is intentionally in-memory only (like onlineUsers
+//     already was) — for a college project this avoids a DB write on
+//     every disconnect; the tradeoff is it resets on server restart,
+//     which is an acceptable and easy-to-explain scope decision.
 // ============================================================
 
 const { Server } = require("socket.io");
@@ -23,21 +42,82 @@ const { verifyRoomAccess, otherParty } = require("../utils/chatAccess");
 let io = null;
 
 const onlineUsers = new Map();
+// NEW: role:id -> epoch ms of when their last socket disconnected.
+// Absence from this map (for a role:id that has connected at least once
+// this server run) is treated as "currently online" by getPresenceSnapshot.
+const lastSeenAt = new Map();
+
 const presenceKey = (role, id) => `${role}:${id}`;
 
 function addPresence(role, id, socketId) {
     const key = presenceKey(role, id);
+    const wasOffline = !onlineUsers.has(key);
     if (!onlineUsers.has(key)) onlineUsers.set(key, new Set());
     onlineUsers.get(key).add(socketId);
+    // They're online now — clear any stale "last seen" timestamp.
+    if (wasOffline) {
+        lastSeenAt.delete(key);
+        broadcastPresence(role, id);
+    }
 }
+
 function removePresence(role, id, socketId) {
     const key = presenceKey(role, id);
     const set = onlineUsers.get(key);
     if (!set) return;
     set.delete(socketId);
-    if (set.size === 0) onlineUsers.delete(key);
+    if (set.size === 0) {
+        onlineUsers.delete(key);
+        // Last socket for this user just closed — they're now offline.
+        lastSeenAt.set(key, Date.now());
+        broadcastPresence(role, id);
+    }
 }
+
 function isOnline(role, id) { return onlineUsers.has(presenceKey(role, id)); }
+
+/**
+ * Returns { online, last_seen } for a given role+id.
+ * last_seen is an ISO string, or null if they've never disconnected
+ * since the server started (and are not currently online — meaning
+ * we genuinely don't know, e.g. they've simply never logged in yet
+ * this server run).
+ */
+function getPresenceSnapshot(role, id) {
+    const key = presenceKey(role, id);
+    const online = onlineUsers.has(key);
+    const ts = lastSeenAt.get(key);
+    return {
+        online,
+        last_seen: !online && ts ? new Date(ts).toISOString() : null
+    };
+}
+
+/**
+ * Tells every room a user belongs to (across BOTH doctor and patient
+ * sides) that their presence changed, so open chat windows can update
+ * the header live. We look up rooms via chat_rooms rather than trying
+ * to track "which rooms is this socket subscribed to" because a user
+ * may have multiple chats and only one might currently be open.
+ */
+async function broadcastPresence(role, id) {
+    if (!io) return;
+    try {
+        const column = role === "doctor" ? "doctor_id" : "patient_id";
+        const [rows] = await db.promise().query(
+            `SELECT id FROM chat_rooms WHERE ${column} = ?`,
+            [id]
+        );
+        const snapshot = getPresenceSnapshot(role, id);
+        rows.forEach(r => {
+            io.to(`room:${r.id}`).emit("presence_update", {
+                role, id, online: snapshot.online, last_seen: snapshot.last_seen
+            });
+        });
+    } catch (err) {
+        console.error("broadcastPresence error:", err.message);
+    }
+}
 
 function partnerSocketsInRoom(roomId, partner) {
     const partnerSocketIds = onlineUsers.get(presenceKey(partner.role, partner.id));
@@ -182,7 +262,12 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
                 if (result.affectedRows > 0) {
                     io.to(`room:${room.id}`).emit("status_update", { room_id: room.id, status: "delivered" });
                 }
-                ack?.({ success: true });
+
+                // NEW: send the partner's current presence immediately on
+                // join, so the header doesn't have to wait for the next
+                // presence_update broadcast to know if they're online.
+                const partner = otherParty(room, role);
+                ack?.({ success: true, partner_presence: getPresenceSnapshot(partner.role, partner.id) });
             } catch (err) {
                 console.error("join_room error:", err.message);
                 ack?.({ success: false, message: "Failed to join conversation." });
@@ -261,6 +346,15 @@ function initSocket(httpServer, allowedOriginRegexes = []) {
             }
         });
 
+        // NEW: lets the client ask "is my current partner online right
+        // now / when were they last seen" on demand — used when opening
+        // a room before join_room's ack has come back, or to refresh
+        // the header without rejoining.
+        socket.on("get_presence", ({ role: targetRole, id: targetId } = {}, ack) => {
+            if (!targetRole || !targetId) return ack?.(null);
+            ack?.(getPresenceSnapshot(targetRole, targetId));
+        });
+
         socket.on("disconnect", () => {
             removePresence(role, partyId, socket.id);
         });
@@ -282,4 +376,10 @@ function notifyConnectionTerminated(roomId) {
     io.in(`room:${roomId}`).socketsLeave(`room:${roomId}`);
 }
 
-module.exports = { initSocket, getIO: () => io, notifyConnectionTerminated, isOnline };
+module.exports = {
+    initSocket,
+    getIO: () => io,
+    notifyConnectionTerminated,
+    isOnline,
+    getPresenceSnapshot   // NEW — used by chatController.getPresence (REST fallback)
+};
