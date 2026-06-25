@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symptom History — DHAS</title>
+  <script src="js/config.js"></script>
+  <script src="theme.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --navy: #0b1437; --navy-mid: #112057;
+      --blue: #2a6cf6; --blue-lt: #4f8ef9;
+      --teal: #00c9b1; --amber: #f4a035;
+      --rose: #f25c7d; --green: #22d07a; --purple: #8250ff;
+      --bg: #f4f6fc; --surface: #ffffff;
+      --border: #e4e9f4; --text: #0d1b3e; --muted: #6b7fa3;
+      --radius: 18px; --radius-sm: 10px;
+      --shadow: 0 2px 20px rgba(42,108,246,.09);
+    }
+    html.dark body, body.dark {
+      --bg: #080f28; --surface: #111c3c;
+      --border: #1e2e58; --text: #e8efff; --muted: #7d93c3;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; transition: background .35s, color .35s;
+    }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      height: 60px; display: flex; align-items: center;
+      padding: 0 20px; gap: 14px;
+      background: rgba(255,255,255,.88); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border); transition: background .35s;
+    }
+    body.dark .topbar { background: rgba(8,15,40,.88); }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .82rem; font-weight: 600; color: var(--muted);
+      padding: 7px 12px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--bg);
+      transition: all .18s; cursor: pointer; text-decoration: none;
+    }
+    .back-btn:hover { color: var(--blue); border-color: var(--blue); }
+    .back-btn i { font-size: 15px; }
+    .topbar-title {
+      font-family: 'Fraunces', serif; font-weight: 600;
+      font-size: 1rem; color: var(--text); flex: 1; text-align: center;
+    }
+
+    .page-wrap { max-width: 540px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #112057 0%, #2a6cf6 50%, #00c9b1 100%);
+      border-radius: 20px; padding: 28px 20px 24px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .page-header::before { content: ''; position: absolute; top: -30px; right: -30px; width: 130px; height: 130px; background: rgba(255,255,255,.07); border-radius: 50%; }
+    .page-header::after  { content: ''; position: absolute; bottom: -20px; left: 40px; width: 90px; height: 90px; background: rgba(255,255,255,.05); border-radius: 50%; }
+    .header-icon-wrap {
+      width: 60px; height: 60px; border-radius: 18px;
+      background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.25);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px; position: relative;
+    }
+    .header-icon-wrap i { font-size: 28px; color: #fff; }
+    .page-title { font-family: 'Fraunces', serif; color: #fff; font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; position: relative; }
+    .page-subtitle { color: rgba(255,255,255,.72); font-size: .85rem; font-weight: 500; position: relative; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 10px; text-align: center; box-shadow: var(--shadow); }
+    .stat-val { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700; color: var(--blue); }
+    .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+
+    .sev-legend {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 14px;
+      padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; font-size: .75rem; color: var(--muted);
+    }
+    .sev-legend span { font-weight: 700; color: var(--text); margin-right: 2px; }
+    .leg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+      border: 1.5px solid var(--border); background: var(--surface);
+      color: var(--muted); cursor: pointer; transition: all .18s;
+    }
+    .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+    .tab-btn[data-sev="high"].active   { background: #ef4444; border-color: #ef4444; }
+    .tab-btn[data-sev="medium"].active { background: #f59e0b; border-color: #f59e0b; }
+    .tab-btn[data-sev="low"].active    { background: #10b981; border-color: #10b981; }
+
+    .timeline { position: relative; }
+    .timeline::before {
+      content: ''; position: absolute; left: 20px; top: 8px;
+      bottom: 8px; width: 2px;
+      background: linear-gradient(180deg, var(--blue), var(--teal));
+      opacity: .2; border-radius: 2px;
+    }
+
+    .history-item {
+      display: flex; gap: 16px; align-items: flex-start;
+      margin-bottom: 14px; animation: fadeUp .35s ease both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .timeline-dot {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 3px var(--border);
+      font-size: 18px; position: relative; z-index: 1;
+    }
+
+    .history-card {
+      flex: 1; background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); transition: border-color .2s;
+    }
+    .history-card:hover { border-color: var(--blue); }
+
+    .hc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .hc-condition { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 600; color: var(--text); }
+    .hc-date { font-size: .72rem; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+    .hc-date i { font-size: 12px; }
+
+    .severity-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .severity-badge i { font-size: 10px; }
+    .severity-badge[data-level="high"]   { background: #fee2e2; color: #991b1b; }
+    .severity-badge[data-level="medium"] { background: #fef3c7; color: #92400e; }
+    .severity-badge[data-level="low"]    { background: #d1fae5; color: #065f46; }
+    body.dark .severity-badge[data-level="high"]   { background: rgba(239,68,68,.15);  color: #fca5a5; }
+    body.dark .severity-badge[data-level="medium"] { background: rgba(244,160,53,.15); color: #fcd34d; }
+    body.dark .severity-badge[data-level="low"]    { background: rgba(34,208,122,.15); color: #6ee7b7; }
+
+    .symptom-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+    .sym-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      color: var(--blue); border-radius: 20px;
+      padding: 3px 10px; font-size: .72rem; font-weight: 600;
+    }
+    .sym-tag i { font-size: 10px; }
+    body.dark .sym-tag { background: rgba(42,108,246,.15); border-color: rgba(42,108,246,.3); color: #7aafff; }
+
+    .hc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .action-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 8px;
+      font-size: .75rem; font-weight: 700; text-decoration: none;
+      border: 1.5px solid; transition: all .18s;
+    }
+    .action-link i { font-size: 12px; }
+    .action-link.diet   { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .action-link.remedy { background: #f0fdf4; border-color: #bbf7d0; color: #065f46; }
+    .action-link.diet:hover   { background: #dbeafe; }
+    .action-link.remedy:hover { background: #dcfce7; }
+    body.dark .action-link.diet   { background: rgba(37,99,235,.15); border-color: rgba(37,99,235,.3); color: #7aafff; }
+    body.dark .action-link.remedy { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); color: #6ee7b7; }
+
+    .month-header {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px;
+      margin: 20px 0 10px 58px;
+    }
+    .month-header:first-child { margin-top: 0; }
+
+    .empty-wrap {
+      text-align: center; padding: 48px 20px;
+      background: var(--surface); border: 1.5px dashed var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .empty-icon { font-size: 48px; display: block; margin: 0 auto 14px; opacity: .4; }
+    .empty-title { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-sub { font-size: .84rem; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+    .empty-cta {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 24px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+      color: #fff; font-weight: 700; font-size: .9rem;
+      text-decoration: none; box-shadow: 0 4px 16px rgba(42,108,246,.3);
+      transition: all .2s;
+    }
+    .empty-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
+    .empty-cta i { font-size: 16px; }
+
+    .loading-wrap { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .spinner { width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 14px; border: 3px solid var(--border); border-top-color: var(--blue); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #dhasToast {
+      position: fixed; bottom: 24px; left: 20px; z-index: 99999;
+      max-width: 340px; min-width: 240px; padding: 13px 18px;
+      border-radius: 14px; font-size: .87rem; font-weight: 600;
+      line-height: 1.5; display: none; align-items: flex-start;
+      gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,.18);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasToast.error { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    body.dark #dhasToast.error { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: .6; font-size: 14px; padding: 0 0 0 8px; }
+  </style>
+</head>
+<body>
+
+<div id="dhasToast" role="status" aria-live="polite"></div>
+
+<header class="topbar">
+  <a href="symptom.html" class="back-btn">
+    <i class="ti ti-chevron-left" aria-hidden="true"></i>
+    Symptoms
+  </a>
+  <div class="topbar-title">Symptom History</div>
+  <a href="dashboard.html" style="font-size:.78rem;font-weight:600;color:var(--blue);text-decoration:none;white-space:nowrap;">Dashboard</a>
+</header>
+
+<div class="page-wrap">
+
+  <div class="page-header">
+    <div class="header-icon-wrap">
+      <i class="ti ti-history" aria-hidden="true"></i>
+    </div>
+    <div class="page-title">Symptom History</div>
+    <div class="page-subtitle">Your complete health check timeline</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total Checks</div></div>
+    <div class="stat-card"><div class="stat-val" id="statHigh">—</div><div class="stat-lbl">High Severity</div></div>
+    <div class="stat-card"><div class="stat-val" id="statLast">—</div><div class="stat-lbl">Last Check</div></div>
+  </div>
+
+  <div class="sev-legend">
+    <i class="ti ti-info-circle" style="font-size:15px" aria-hidden="true"></i>
+    Severity:&nbsp;
+    <span><span class="leg-dot" style="background:#ef4444"></span>High</span> — severe/respiratory&nbsp;&nbsp;
+    <span><span class="leg-dot" style="background:#f59e0b"></span>Medium</span> — moderate&nbsp;&nbsp;
+    <span><span class="leg-dot" style="background:#10b981"></span>Low</span> — mild
+  </div>
+
+  <div class="filter-tabs">
+    <button class="tab-btn active" data-sev="all"    onclick="applyFilter('all', this)">All</button>
+    <button class="tab-btn"        data-sev="high"   onclick="applyFilter('high', this)">High</button>
+    <button class="tab-btn"        data-sev="medium" onclick="applyFilter('medium', this)">Medium</button>
+    <button class="tab-btn"        data-sev="low"    onclick="applyFilter('low', this)">Low / Mild</button>
+  </div>
+
+  <div class="timeline" id="historyList">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      Loading your symptom history…
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = window.API_BASE;
+const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
+if (!user || !user.id) window.location.href = "login.html";
+
+let allHistory    = [];
+let currentFilter = "all";
+
+// ── Toast ─────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(text, type = "error") {
+  const t = document.getElementById("dhasToast");
+  t.className = type;
+  t.innerHTML = `<span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'">✕</button>`;
+  t.style.display = "flex";
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.style.display = "none"; }, 5000);
+}
+
+// ── SEVERITY NORMALISATION ────────────────────────────────────
+function normaliseSeverity(raw) {
+  if (!raw) return "low";
+  switch (String(raw).toLowerCase().trim()) {
+    case "high":   case "severe":                 return "high";
+    case "medium": case "moderate":               return "medium";
+    case "low":    case "mild": case "none":      return "low";
+    default:                                      return "low";
+  }
+}
+
+function severityLabel(level) {
+  switch (level) {
+    case "high":   return "High";
+    case "medium": return "Medium";
+    case "low":    return "Low / Mild";
+    default:       return "Low / Mild";
+  }
+}
+
+// ── DATE HELPERS ──────────────────────────────────────────────
+// FIX: Compare dates using local calendar dates, not UTC midnight arithmetic.
+// MySQL timestamps come back as ISO strings (e.g. "2026-06-06T08:30:00.000Z").
+// Converting directly to Date and comparing midnight-to-midnight in UTC is wrong
+// for IST (UTC+5:30) users — a record saved at 08:30 IST is 03:00 UTC which
+// is still "yesterday" in UTC even though it was saved today locally.
+// Solution: extract the LOCAL year/month/day from the Date object and compare
+// against today's LOCAL year/month/day.
+
+function localDateParts(date) {
+  return {
+    y: date.getFullYear(),
+    m: date.getMonth(),
+    d: date.getDate()
+  };
+}
+
+function isSameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth()    === b.getMonth()    &&
+         a.getDate()     === b.getDate();
+}
+
+// Returns a human-readable relative label using LOCAL calendar dates
+function relativeDateLabel(dateStr) {
+  if (!dateStr) return "";
+  const recordDate = new Date(dateStr);
+  if (isNaN(recordDate)) return "";
+
+  const now      = new Date();
+  const rParts   = localDateParts(recordDate);
+  const nowParts = localDateParts(now);
+
+  // Build plain local date objects for diffing (no time component)
+  const rDay   = new Date(rParts.y, rParts.m, rParts.d);
+  const today  = new Date(nowParts.y, nowParts.m, nowParts.d);
+  const diffMs = today - rDay;
+  const diffDays = Math.round(diffMs / 86400000);
+
+  if (diffDays === 0)  return "Today";
+  if (diffDays === 1)  return "Yesterday";
+  if (diffDays <= 6)   return diffDays + " days ago";
+  if (diffDays <= 13)  return "1 week ago";
+  if (diffDays <= 20)  return "2 weeks ago";
+  if (diffDays <= 27)  return "3 weeks ago";
+  if (diffDays <= 35)  return "1 month ago";
+  return Math.floor(diffDays / 30) + " months ago";
+}
+
+// Full formatted date string in local time (no UTC conversion artifacts)
+function formatLocalDate(dateStr) {
+  if (!dateStr) return "Unknown date";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "Unknown date";
+  return d.toLocaleDateString("en-IN", {
+    day:    "2-digit",
+    month:  "short",
+    year:   "numeric"
+  }) + " · " + d.toLocaleTimeString("en-IN", {
+    hour:   "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+// Month-year group header using local time
+function monthYearLabel(dateStr) {
+  if (!dateStr) return "Unknown";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "Unknown";
+  return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+}
+
+// ── CONDITION META ────────────────────────────────────────────
+const COND_META = {
+  covid_like:  { color: "#ef4444", bg: "#fee2e2", icon: "ti-virus"        },
+  flu:         { color: "#f97316", bg: "#fff7ed", icon: "ti-thermometer"  },
+  viral_fever: { color: "#eab308", bg: "#fefce8", icon: "ti-temperature"  },
+  common_cold: { color: "#0ea5e9", bg: "#f0f9ff", icon: "ti-cloud-snow"   },
+  gastro:      { color: "#14b8a6", bg: "#f0fdfa", icon: "ti-droplet"      },
+  headache:    { color: "#8b5cf6", bg: "#f5f3ff", icon: "ti-brain"        },
+  sore_throat: { color: "#ec4899", bg: "#fdf2f8", icon: "ti-microphone"   },
+  nausea:      { color: "#10b981", bg: "#f0fdf4", icon: "ti-mood-sick"    },
+  respiratory: { color: "#dc2626", bg: "#fff1f2", icon: "ti-lungs"        },
+  general:     { color: "#6366f1", bg: "#eef2ff", icon: "ti-stethoscope"  },
+};
+
+const SYMPTOM_LABELS = {
+  fever: "Fever", cold: "Cold / Runny Nose", headache: "Headache",
+  cough: "Cough", fatigue: "Fatigue", body_pain: "Body Pain",
+  sore_throat: "Sore Throat", nausea: "Nausea / Vomiting",
+  diarrhea: "Diarrhea", loss_of_taste: "Loss of Taste / Smell",
+  chest_pain: "Chest Pain", breathlessness: "Breathlessness"
+};
+
+function conditionKeyFromName(name) {
+  if (!name) return "general";
+  const n = name.toLowerCase();
+  if (n.includes("covid"))                                  return "covid_like";
+  if (n.includes("flu") || n.includes("influenza"))         return "flu";
+  if (n.includes("viral"))                                  return "viral_fever";
+  if (n.includes("cold"))                                   return "common_cold";
+  if (n.includes("gastro") || n.includes("diarrhea"))       return "gastro";
+  if (n.includes("headache") || n.includes("migraine"))     return "headache";
+  if (n.includes("throat"))                                 return "sore_throat";
+  if (n.includes("nausea"))                                 return "nausea";
+  if (n.includes("respiratory") || n.includes("distress"))  return "respiratory";
+  return "general";
+}
+
+function parseSymptoms(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function updateStats(history) {
+  document.getElementById("statTotal").textContent = history.length;
+  document.getElementById("statHigh").textContent  =
+    history.filter(h => normaliseSeverity(h.severity) === "high").length;
+
+  const latest = history[0];
+  if (latest && latest.created_at) {
+    document.getElementById("statLast").textContent = relativeDateLabel(latest.created_at);
+  } else {
+    document.getElementById("statLast").textContent = "—";
+  }
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+function applyFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+
+  const filtered = filter === "all"
+    ? allHistory
+    : allHistory.filter(h => normaliseSeverity(h.severity) === filter);
+
+  renderList(filtered);
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderList(history) {
+  const list = document.getElementById("historyList");
+
+  if (!history.length) {
+    const isFiltered = currentFilter !== "all";
+    const filterName = currentFilter === "low" ? "Low / Mild"
+                     : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1);
+    list.innerHTML = `
+      <div class="empty-wrap">
+        <i class="ti ti-notes-off empty-icon" aria-hidden="true"></i>
+        <div class="empty-title">${isFiltered ? "No results for this filter" : "No symptom checks yet"}</div>
+        <div class="empty-sub">${isFiltered
+          ? `No records with <strong>${filterName}</strong> severity found.`
+          : "Check your symptoms to start building your health history."}</div>
+        ${!isFiltered ? `<a href="symptom.html" class="empty-cta">
+          <i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms Now</a>` : ""}
+      </div>`;
+    return;
+  }
+
+  let lastMonth = null;
+  const fragments = [];
+
+  history.forEach((item, idx) => {
+    const symptoms = parseSymptoms(item.symptoms);
+    const condKey  = conditionKeyFromName(item.condition_name);
+    const meta     = COND_META[condKey] || COND_META["general"];
+    const level    = normaliseSeverity(item.severity);
+    const label    = severityLabel(level);
+
+    // Use local-time month grouping
+    const monthYear = monthYearLabel(item.created_at);
+    if (monthYear !== lastMonth) {
+      lastMonth = monthYear;
+      fragments.push(`<div class="month-header">${monthYear}</div>`);
+    }
+
+    // Relative label — uses local calendar comparison
+    const relLabel = relativeDateLabel(item.created_at);
+    // Full formatted date — local time, readable
+    const fullDate = formatLocalDate(item.created_at);
+
+    const symTags = symptoms.slice(0, 5).map(s =>
+      `<span class="sym-tag"><i class="ti ti-point-filled" aria-hidden="true"></i>${SYMPTOM_LABELS[s] || s.replace(/_/g, " ")}</span>`
+    ).join("") + (symptoms.length > 5
+      ? `<span class="sym-tag" style="opacity:.6;">+${symptoms.length - 5} more</span>`
+      : "");
+
+    fragments.push(`
+      <div class="history-item" style="animation-delay:${(idx % 10) * 40}ms">
+        <div class="timeline-dot" style="background:${meta.bg};color:${meta.color};">
+          <i class="ti ${meta.icon}" aria-hidden="true"></i>
+        </div>
+        <div class="history-card">
+          <div class="hc-top">
+            <div>
+              <div class="hc-condition">${item.condition_name || "General Illness"}</div>
+              <div class="hc-date">
+                <i class="ti ti-calendar" aria-hidden="true"></i>
+                ${fullDate}
+                ${relLabel ? `<span style="opacity:.5;">·</span> ${relLabel}` : ""}
+              </div>
+            </div>
+            <span class="severity-badge" data-level="${level}">
+              <i class="ti ti-point-filled" aria-hidden="true"></i>
+              ${label}
+            </span>
+          </div>
+          ${symTags ? `<div class="symptom-tags">${symTags}</div>` : ""}
+          <div class="hc-actions">
+            <a href="symptom_diet.html" class="action-link diet"
+               onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
+              <i class="ti ti-salad" aria-hidden="true"></i>
+              Diet Plan
+            </a>
+            <a href="symptom_remedies.html" class="action-link remedy"
+               onclick="localStorage.setItem('dhas_symptom_condition','${condKey}')">
+              <i class="ti ti-plant" aria-hidden="true"></i>
+              Remedies
+            </a>
+          </div>
+        </div>
+      </div>`);
+  });
+
+  list.innerHTML = fragments.join("");
+}
+
+// ── LOAD FROM API ─────────────────────────────────────────────
+async function load() {
+  try {
+    const res = await fetch(`${BASE}/symptoms/history/${user.id}`, {
+      headers: window.getAuthHeaders()
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        showToast("Session expired. Please log in again.", "error");
+        setTimeout(() => window.location.href = "login.html", 2000);
+        return;
+      }
+      showToast(err.message || "Failed to load symptom history.", "error");
+      document.getElementById("historyList").innerHTML = `
+        <div class="empty-wrap">
+          <i class="ti ti-alert-circle empty-icon" style="color:var(--rose)"></i>
+          <div class="empty-title">Failed to load</div>
+          <div class="empty-sub">Could not reach the server. Make sure you are connected and the backend is running.</div>
+        </div>`;
+      return;
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      allHistory = data.data || [];
+      updateStats(allHistory);
+      renderList(allHistory);
+    } else {
+      showToast(data.message || "Could not load history.", "error");
+      document.getElementById("historyList").innerHTML = `
+        <div class="empty-wrap">
+          <i class="ti ti-notes-off empty-icon"></i>
+          <div class="empty-title">No history yet</div>
+          <div class="empty-sub">Start by checking your symptoms — your history will appear here.</div>
+          <a href="symptom.html" class="empty-cta" style="margin-top:12px;">
+            <i class="ti ti-plus" aria-hidden="true"></i>Check Symptoms</a>
+        </div>`;
+    }
+  } catch (e) {
+    console.error("Load history error:", e);
+    showToast("Cannot connect to server.", "error");
+    document.getElementById("historyList").innerHTML = `
+      <div class="empty-wrap">
+        <i class="ti ti-wifi-off empty-icon" style="color:var(--muted)"></i>
+        <div class="empty-title">Connection Error</div>
+        <div class="empty-sub">Make sure the backend server is running on ${BASE}</div>
+      </div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

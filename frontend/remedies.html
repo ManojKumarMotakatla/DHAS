@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Remedies - DHAS</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #94a3b8;
+      --radius-sm: 12px;
+      --bg: #f0fff4;
+      --surface: #ffffff;
+    }
+
+    html.dark, html.dark body, body.dark {
+      --bg: #080f28 !important;
+      --surface: #111c3c !important;
+      --border: #1e2e58 !important;
+      --text: #e8efff !important;
+      --text-muted: #7d93c3 !important;
+      background: #080f28 !important;
+      color: #e8efff !important;
+    }
+    html.dark .search-wrap input, body.dark .search-wrap input {
+      background: #111c3c !important; color: #e8efff !important; border-color: #1e2e58 !important;
+    }
+    html.dark .search-wrap input::placeholder, body.dark .search-wrap input::placeholder { color: #7d93c3; }
+    html.dark .disease-item, body.dark .disease-item { background:#111c3c !important;border-color:#1e2e58 !important;color:#e8efff !important; }
+    html.dark .disease-item:hover, body.dark .disease-item:hover { background:#1a2e58 !important;border-color:#10b981 !important; }
+    html.dark .disease-name, body.dark .disease-name { color:#e8efff !important; }
+    html.dark .result-card, body.dark .result-card { background:#111c3c !important;border-color:#1e2e58 !important; }
+    html.dark .result-title, body.dark .result-title { color:#e8efff !important;border-bottom-color:#1e2e58 !important; }
+    html.dark .remedy-step, body.dark .remedy-step { background:rgba(16,185,129,0.1) !important;border-left-color:#10b981 !important; }
+    html.dark .step-text, body.dark .step-text { color:#e8efff !important; }
+    html.dark .warning-card, body.dark .warning-card { background:rgba(194,65,12,0.12) !important;border-color:rgba(253,186,116,0.3) !important; }
+    html.dark .warning-title, body.dark .warning-title { color:#fdba74 !important; }
+    html.dark .warning-card ul li, body.dark .warning-card ul li { color:#fcd34d !important; }
+    html.dark .back-btn, body.dark .back-btn { background:#111c3c !important;border-color:#1e2e58 !important;color:#e8efff !important; }
+    html.dark .back-btn:hover, body.dark .back-btn:hover { border-color:#10b981 !important;color:#6ee7b7 !important; }
+    html.dark .alpha-sidebar, body.dark .alpha-sidebar { background:rgba(4,12,30,0.97) !important; }
+    html.dark .no-result, body.dark .no-result { color:#7d93c3 !important; }
+    html.dark .note-ticker-wrap, body.dark .note-ticker-wrap { filter:brightness(0.85); }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);transition:background .35s,color .35s;}
+    .dhas-navbar{background:linear-gradient(145deg,#112057,#0b1437);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(5,150,105,0.3);position:sticky;top:0;z-index:100;}
+    .brand{font-family:'Playfair Display',serif;color:#fff;font-size:1.3rem;font-weight:900;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
+    .brand i{font-size:22px;}
+    .dhas-navbar a{color:rgba(255,255,255,0.85);font-size:0.85rem;text-decoration:none;background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;transition:background .2s;display:flex;align-items:center;gap:5px;}
+    .dhas-navbar a i{font-size:14px;}
+    .dhas-navbar a:hover{background:rgba(255,255,255,0.25);}
+    .page-wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px;}
+    .page-header{background:linear-gradient(135deg,#112057 0%,#185fa5 50%,#00c9b1 100%);border-radius:20px;padding:24px 20px;margin-bottom:16px;position:relative;overflow:hidden;}
+    .page-header::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,0.07);border-radius:50%;}
+    .page-header::after{content:'';position:absolute;bottom:-20px;left:40px;width:80px;height:80px;background:rgba(255,255,255,0.05);border-radius:50%;}
+    .header-icon-wrap{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;margin-bottom:14px;position:relative;}
+    .header-icon-wrap i{font-size:26px;color:#fff;}
+    .page-title{font-family:'Playfair Display',serif;color:#fff;font-size:1.7rem;font-weight:900;margin-bottom:6px;}
+    .page-subtitle{color:rgba(255,255,255,0.75);font-size:0.85rem;font-weight:500;}
+
+    .note-ticker-wrap{background:linear-gradient(135deg,#065f46,#059669);padding:10px 0;overflow:hidden;border-radius:14px;margin-bottom:16px;box-shadow:0 4px 16px rgba(5,150,105,0.2);transition:filter .35s;}
+    .note-ticker{display:flex;gap:60px;animation:ticker 30s linear infinite;white-space:nowrap;width:max-content;}
+    .note-ticker:hover{animation-play-state:paused;}
+    @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    .ticker-item{color:#fff;font-size:0.83rem;font-weight:600;display:inline-flex;align-items:center;gap:8px;flex-shrink:0;}
+    .ticker-item i{font-size:14px;opacity:0.7;}
+
+    .search-wrap{position:relative;margin-bottom:14px;}
+    .search-wrap input{width:100%;padding:13px 16px 13px 44px;border:2px solid var(--border);border-radius:14px;font-size:0.92rem;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .35s,color .35s;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+    .search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(16,185,129,0.12);}
+    .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;align-items:center;}
+    .search-icon i{font-size:18px;color:var(--text-muted);}
+
+    .content-layout{display:flex;gap:10px;align-items:flex-start;}
+    .main-content{flex:1;min-width:0;}
+    .alpha-sidebar{display:flex;flex-direction:column;gap:2px;position:sticky;top:70px;max-height:calc(100vh - 90px);overflow-y:auto;scrollbar-width:none;flex-shrink:0;background:rgba(6,78,59,0.9);border-radius:14px;padding:8px 5px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.18);transition:background .35s;}
+    .alpha-sidebar::-webkit-scrollbar{display:none;}
+    .alpha-btn{width:28px;height:28px;border-radius:7px;border:none;background:transparent;font-weight:700;font-size:0.72rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;color:rgba(255,255,255,0.65);font-family:'DM Sans',sans-serif;}
+    .alpha-btn:hover{background:rgba(255,255,255,0.15);color:#fff;}
+    .alpha-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(16,185,129,0.5);}
+
+    .disease-item{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .2s,background .35s,border-color .35s;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+    .disease-item:hover{border-color:var(--accent);background:rgba(16,185,129,0.05);transform:translateX(-3px);}
+    .disease-name{font-weight:700;font-size:0.95rem;display:flex;align-items:center;gap:10px;color:var(--text);}
+    .disease-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#34d399);flex-shrink:0;}
+    .disease-arrow{color:var(--text-muted);transition:transform .2s;display:flex;align-items:center;}
+    .disease-arrow i{font-size:16px;}
+    .disease-item:hover .disease-arrow{transform:translateX(3px);color:var(--accent);}
+
+    .remedy-result{display:none;animation:fadeIn .35s ease;}
+    .remedy-result.show{display:block;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    .result-card{background:var(--surface);border-radius:20px;padding:22px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.08);border:2px solid var(--border);margin-bottom:14px;transition:background .35s,border-color .35s;}
+    .result-title{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:900;color:var(--text);margin-bottom:18px;padding-bottom:12px;border-bottom:2px dashed var(--border);display:flex;align-items:center;gap:10px;transition:color .35s,border-color .35s;}
+    .result-title i{font-size:22px;color:var(--accent);}
+
+    .remedy-step{display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--accent);transition:transform .15s,background .35s;}
+    .remedy-step:hover{transform:translateX(3px);}
+    .step-num{background:linear-gradient(135deg,var(--accent),#34d399);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;box-shadow:0 2px 6px rgba(16,185,129,0.3);}
+    .step-text{font-size:0.9rem;line-height:1.55;padding-top:2px;color:var(--text);transition:color .35s;}
+
+    .warning-card{background:linear-gradient(135deg,#fff8f0,#fff);border:2px solid #fed7aa;border-radius:16px;padding:16px 18px;margin-top:14px;transition:background .35s,border-color .35s;}
+    .warning-title{color:#c2410c;font-weight:800;font-size:0.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .warning-title i{font-size:18px;}
+    .warning-card ul{padding-left:18px;margin:0;}
+    .warning-card ul li{font-size:0.87rem;color:#7c2d12;margin-bottom:5px;line-height:1.45;}
+
+    .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-weight:700;font-size:0.87rem;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;margin-top:16px;}
+    .back-btn i{font-size:16px;}
+    .back-btn:hover{border-color:var(--accent);color:var(--accent);background:#f0fdf4;}
+    .no-result{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:0.92rem;}
+    .no-result i{font-size:48px;opacity:0.4;display:block;margin-bottom:12px;}
+  </style>
+</head>
+<body>
+  <nav class="dhas-navbar">
+    <div class="brand">
+      <i class="ti ti-plant" aria-hidden="true"></i>
+      DHAS
+    </div>
+    <a href="dashboard.html">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrap">
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <i class="ti ti-plant" aria-hidden="true"></i>
+      </div>
+      <div class="page-title">Home Remedies</div>
+      <div class="page-subtitle">Natural relief for everyday conditions</div>
+    </div>
+
+    <div class="note-ticker-wrap">
+      <div class="note-ticker" id="ticker"></div>
+    </div>
+
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon"><i class="ti ti-search" aria-hidden="true"></i></span>
+      <input type="text" id="searchInput" placeholder="Search disease (e.g. Dengue, Fever, Cold...)" oninput="handleSearch()">
+    </div>
+
+    <div class="content-layout">
+      <div class="main-content">
+        <div id="diseaseList"></div>
+        <div class="remedy-result" id="remedyResult">
+          <div class="result-card">
+            <div class="result-title" id="remedyTitle">
+              <i class="ti ti-plant" aria-hidden="true"></i>
+              —
+            </div>
+            <div id="remedySteps"></div>
+          </div>
+          <div class="warning-card">
+            <div class="warning-title">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+              When to See a Doctor
+            </div>
+            <ul>
+              <li>Symptoms last more than 3–5 days</li>
+              <li>High fever above 103°F (39.4°C)</li>
+              <li>Difficulty breathing or chest pain</li>
+              <li>Symptoms keep getting worse</li>
+            </ul>
+          </div>
+          <button class="back-btn" onclick="clearResult()">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            Back to List
+          </button>
+        </div>
+      </div>
+      <div class="alpha-sidebar" id="alphaSidebar"></div>
+    </div>
+  </div>
+
+  <script>
+    const REMEDIES = [
+      {name:"Acidity",letter:"A",steps:["Drink cold milk or buttermilk for instant relief","Eat a banana — acts as a natural antacid","Chew fennel seeds (saunf) after every meal","Drink coconut water to neutralize stomach acid","Avoid lying down immediately after eating"]},
+      {name:"Arthritis",letter:"A",steps:["Apply warm mustard oil and massage joints gently","Add turmeric to warm milk — drink nightly","Soak in warm water with Epsom salt for 15 min","Apply hot/cold compress alternately on painful joints","Practice gentle yoga and stretching daily"]},
+      {name:"Asthma",letter:"A",steps:["Steam inhalation with eucalyptus oil for 10 minutes","Drink warm ginger tea with honey twice daily","Keep home dust-free and well-ventilated","Practice pursed-lip breathing exercises daily","Avoid cold air, dust, and smoke triggers"]},
+      {name:"Common Cold",letter:"C",steps:["Steam inhalation 2–3 times a day for 10 min","Drink turmeric milk (haldi doodh) at night","Mix ginger + honey + lemon in warm water and sip","Gargle with warm salt water twice a day","Use saline nasal drops for congestion relief"]},
+      {name:"Constipation",letter:"C",steps:["Drink 2 glasses of warm water on empty stomach each morning","Eat high-fibre foods — papaya, guava, oats","Soak raisins overnight, eat in morning with water","Mix 1 tsp ghee in warm milk at night","Walk for 30 minutes daily to stimulate digestion"]},
+      {name:"Cough",letter:"C",steps:["Mix 1 tsp honey with ginger juice — take twice daily","Gargle with warm salt water 3 times a day","Drink hot water with turmeric and black pepper","Steam inhalation with Vicks or eucalyptus oil","Suck on a clove (laung) to soothe the throat"]},
+      {name:"Dengue",letter:"D",steps:["Drink papaya leaf juice twice daily to boost platelets","Have pomegranate juice for iron and platelet support","Stay hydrated with ORS and coconut water","Take complete rest — avoid physical exertion","Monitor platelet count daily and consult doctor"]},
+      {name:"Diarrhea",letter:"D",steps:["Drink ORS solution every hour to prevent dehydration","Eat banana — firms up loose stools naturally","Have plain boiled rice or toast (BRAT diet)","Eat curd (probiotic) to restore gut bacteria","Rest and avoid physical activity completely"]},
+      {name:"Fever",letter:"F",steps:["Apply cool wet cloth on forehead to reduce temperature","Drink tulsi + ginger + black pepper decoction","Take lukewarm sponge bath if fever above 102°F","Stay hydrated — water, coconut water, ORS","Monitor temperature every 2 hours"]},
+      {name:"Flu",letter:"F",steps:["Drink warm ginger tea with honey twice a day","Steam inhalation with eucalyptus oil for 10 min","Rest and sleep at least 8 hours daily","Gargle warm salt water for sore throat","Take Vitamin C through orange juice or amla"]},
+      {name:"Gastritis",letter:"G",steps:["Drink cold milk or coconut water for quick relief","Eat a banana on empty stomach each morning","Chew fennel seeds (saunf) after meals","Have curd (probiotic) with every meal","Avoid spicy, oily, and acidic foods completely"]},
+      {name:"Headache",letter:"H",steps:["Massage temples with peppermint or lavender oil","Drink a large glass of water immediately","Apply cold compress on forehead for 10 minutes","Rest in a dark, quiet room completely","Practice deep breathing for 5–10 minutes"]},
+      {name:"Indigestion",letter:"I",steps:["Drink warm water with black salt and lemon","Chew fennel seeds or ajwain after meals","Ginger tea after meals aids digestion","Walk slowly for 10 minutes after meals","Avoid overeating and eating too fast"]},
+      {name:"Insomnia",letter:"I",steps:["Drink warm turmeric milk with nutmeg before bed","Massage feet with warm sesame oil at bedtime","Keep screens away 1 hour before sleep","Practice 4-7-8 breathing before sleeping","Maintain a consistent sleep schedule every day"]},
+      {name:"Jaundice",letter:"J",steps:["Drink fresh sugarcane juice 2–3 times a day","Have buttermilk with a pinch of turmeric daily","Eat ripe papaya — great for liver recovery","Drink plenty of water and coconut water","Avoid all oily, fried, and spicy food strictly"]},
+      {name:"Malaria",letter:"M",steps:["Drink neem leaf tea to help reduce fever","Apply cold compress on forehead during fever spikes","Stay hydrated with warm water and coconut water","Eat light food like khichdi and vegetable soup","Use mosquito nets and repellents strictly"]},
+      {name:"Nausea",letter:"N",steps:["Sip ginger tea slowly — best anti-nausea remedy","Inhale peppermint oil or apply to wrists","Eat plain crackers or dry rusk in small amounts","Sip cold water with lemon slowly","Rest in upright position — do not lie flat"]},
+      {name:"Sore Throat",letter:"S",steps:["Gargle with warm salt water every 2–3 hours","Mix 1 tsp honey with black pepper — swallow slowly","Drink warm turmeric milk at night before bed","Suck on a clove (laung) for natural pain relief","Have ginger tea with honey 2–3 times a day"]},
+      {name:"Typhoid",letter:"T",steps:["Drink only boiled or filtered water strictly","Eat light food — khichdi, soup, curd","Have banana and boiled potato for gentle nutrition","Drink ORS to prevent dehydration","Take complete bed rest — avoid all physical activity"]},
+      {name:"Viral Fever",letter:"V",steps:["Apply cool damp cloth on forehead to reduce fever","Drink tulsi + black pepper + ginger decoction twice daily","Take complete bed rest","Drink 2–3 liters of water daily","Sponge bath with lukewarm water if fever is high"]}
+    ];
+
+    const TIPS=[
+      "NOTE: These are just for general home health care",
+      "Always consult a doctor for serious symptoms",
+      "Natural remedies support recovery — not a replacement for medical care",
+      "Do not delay emergency medical care",
+      "DHAS is informational only — not a medical diagnosis",
+      "Staying hydrated is the most important home remedy",
+      "Proper rest speeds up recovery from most illnesses",
+      "Ginger, turmeric and garlic are powerful natural healers"
+    ];
+
+    const ticker=document.getElementById("ticker");
+    [...TIPS,...TIPS].forEach(tip=>{
+      const el=document.createElement("div");
+      el.className="ticker-item";
+      el.innerHTML=`<i class="ti ti-info-circle" aria-hidden="true"></i>${tip}`;
+      ticker.appendChild(el);
+    });
+
+    let activeLetter="All";
+    function buildAlpha(){
+      const letters=["All",...new Set(REMEDIES.map(d=>d.letter))].sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
+      const sidebar=document.getElementById("alphaSidebar");sidebar.innerHTML="";
+      letters.forEach(l=>{const btn=document.createElement("button");btn.className="alpha-btn"+(l===activeLetter?" active":"");btn.textContent=l;btn.onclick=()=>{activeLetter=l;document.getElementById("searchInput").value="";buildAlpha();renderList();};sidebar.appendChild(btn);});
+    }
+    function renderList(filter=""){
+      const list=document.getElementById("diseaseList");document.getElementById("remedyResult").classList.remove("show");
+      let diseases=REMEDIES;if(activeLetter!=="All")diseases=diseases.filter(d=>d.letter===activeLetter);if(filter)diseases=REMEDIES.filter(d=>d.name.toLowerCase().includes(filter.toLowerCase()));
+      if(diseases.length===0){
+        list.innerHTML=`<div class="no-result"><i class="ti ti-mood-sad" aria-hidden="true"></i>No results for "<strong>${filter}</strong>"</div>`;
+        return;
+      }
+      list.innerHTML=diseases.map(d=>`
+        <div class="disease-item" onclick="showRemedy(${REMEDIES.indexOf(d)})">
+          <span class="disease-name"><span class="disease-dot"></span>${d.name}</span>
+          <span class="disease-arrow"><i class="ti ti-chevron-right" aria-hidden="true"></i></span>
+        </div>`).join("");
+    }
+    function showRemedy(index){
+      const d=REMEDIES[index];
+      document.getElementById("diseaseList").innerHTML="";
+      document.getElementById("searchWrap").style.display="none";
+      document.getElementById("alphaSidebar").style.display="none";
+      document.getElementById("remedyTitle").innerHTML=`<i class="ti ti-plant" aria-hidden="true"></i> Remedies for ${d.name}`;
+      document.getElementById("remedySteps").innerHTML=d.steps.map((s,i)=>`
+        <div class="remedy-step">
+          <div class="step-num">${i+1}</div>
+          <div class="step-text">${s}</div>
+        </div>`).join("");
+      document.getElementById("remedyResult").classList.add("show");
+    }
+    function clearResult(){
+      document.getElementById("remedyResult").classList.remove("show");
+      document.getElementById("searchWrap").style.display="block";
+      document.getElementById("alphaSidebar").style.display="flex";
+      renderList();
+    }
+    function handleSearch(){activeLetter="All";buildAlpha();renderList(document.getElementById("searchInput").value);}
+    window.onload=function(){buildAlpha();renderList();};
+  </script>
+</body>
+</html>
+

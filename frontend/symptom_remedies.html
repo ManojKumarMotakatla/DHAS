@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remedies for Your Condition - DHAS</title>
+  <script src="theme.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --accent: #10b981;
+      --accent-dark: #059669;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #94a3b8;
+      --bg: #f0fff4;
+      --surface: #ffffff;
+    }
+
+    html.dark, html.dark body, body.dark {
+      --bg: #080f28 !important;
+      --surface: #111c3c !important;
+      --border: #1e2e58 !important;
+      --text: #e8efff !important;
+      --text-muted: #7d93c3 !important;
+      background: #080f28 !important;
+      color: #e8efff !important;
+    }
+    html.dark .result-card, body.dark .result-card {
+      background: #111c3c !important; border-color: #1e2e58 !important;
+    }
+    html.dark .result-title, body.dark .result-title {
+      color: #e8efff !important; border-bottom-color: #1e2e58 !important;
+    }
+    html.dark .remedy-step, body.dark .remedy-step {
+      background: rgba(16,185,129,0.1) !important;
+      border-left-color: #10b981 !important;
+    }
+    html.dark .step-text, body.dark .step-text { color: #e8efff !important; }
+    html.dark .warning-card, body.dark .warning-card {
+      background: rgba(194,65,12,0.12) !important;
+      border-color: rgba(253,186,116,0.3) !important;
+    }
+    html.dark .warning-title, body.dark .warning-title { color: #fdba74 !important; }
+    html.dark .warning-card ul li, body.dark .warning-card ul li { color: #fcd34d !important; }
+    html.dark .back-btn, body.dark .back-btn {
+      background: #111c3c !important; border-color: #1e2e58 !important; color: #e8efff !important;
+    }
+    html.dark .back-btn:hover, body.dark .back-btn:hover {
+      border-color: var(--accent) !important; color: #6ee7b7 !important;
+    }
+    html.dark .condition-badge, body.dark .condition-badge {
+      background: rgba(16,185,129,0.18) !important;
+      border-color: rgba(16,185,129,0.3) !important;
+      color: #6ee7b7 !important;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); min-height: 100vh; color: var(--text);
+      transition: background .35s, color .35s;
+    }
+
+    .dhas-navbar {
+      background: linear-gradient(145deg, #112057, #0b1437);
+      padding: 0 20px; height: 62px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(5,150,105,0.3);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .brand {
+      font-family: 'Playfair Display', serif; color: #fff;
+      font-size: 1.2rem; font-weight: 900;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .brand i { font-size: 20px; }
+    .dhas-navbar a {
+      color: rgba(255,255,255,0.85); font-size: 0.85rem; text-decoration: none;
+      background: rgba(255,255,255,0.15); padding: 6px 16px; border-radius: 20px;
+      transition: background .2s; display: flex; align-items: center; gap: 5px;
+    }
+    .dhas-navbar a i { font-size: 14px; }
+    .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+
+    .page-wrap { max-width: 520px; margin: 0 auto; padding: 20px 16px 50px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #064e3b 0%, #059669 55%, #34d399 100%);
+      border-radius: 20px; padding: 28px 20px 24px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .page-header::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 130px; height: 130px; background: rgba(255,255,255,0.07); border-radius: 50%;
+    }
+    .page-header::after {
+      content: ''; position: absolute; bottom: -20px; left: 40px;
+      width: 90px; height: 90px; background: rgba(255,255,255,0.05); border-radius: 50%;
+    }
+    .header-icon-wrap {
+      width: 60px; height: 60px; border-radius: 18px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px; position: relative;
+    }
+    .header-icon-wrap i { font-size: 28px; color: #fff; }
+    .page-title {
+      font-family: 'Playfair Display', serif; color: #fff;
+      font-size: 1.75rem; font-weight: 900; margin-bottom: 6px; position: relative;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.72); font-size: 0.85rem; position: relative; }
+
+    .condition-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.75rem; font-weight: 700;
+      color: #fff; margin-top: 12px; position: relative;
+    }
+    .condition-badge i { font-size: 13px; color: #fbbf24; }
+
+    .result-card {
+      background: var(--surface); border-radius: 20px; padding: 22px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08); border: 2px solid var(--border);
+      margin-bottom: 14px; transition: background .35s, border-color .35s;
+      animation: fadeIn .35s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-title {
+      font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 900;
+      color: var(--text); margin-bottom: 18px; padding-bottom: 12px;
+      border-bottom: 2px dashed var(--border);
+      display: flex; align-items: center; gap: 10px;
+      transition: color .35s, border-color .35s;
+    }
+    .result-title i { font-size: 22px; color: var(--accent); flex-shrink: 0; }
+
+    .remedy-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: #f0fdf4; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+      border-left: 3px solid var(--accent); transition: transform .15s, background .35s;
+    }
+    .remedy-step:hover { transform: translateX(3px); }
+    .step-num {
+      background: linear-gradient(135deg, var(--accent), #34d399);
+      color: #fff; border-radius: 50%;
+      width: 26px; height: 26px; min-width: 26px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+      box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+    }
+    .step-text { font-size: 0.9rem; line-height: 1.55; padding-top: 3px; color: var(--text); transition: color .35s; }
+
+    .warning-card {
+      background: linear-gradient(135deg, #fff8f0, #fff);
+      border: 2px solid #fed7aa; border-radius: 16px; padding: 16px 18px;
+      margin-bottom: 14px; transition: background .35s, border-color .35s;
+    }
+    .warning-title {
+      color: #c2410c; font-weight: 800; font-size: 0.95rem;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .warning-title i { font-size: 18px; }
+    .warning-card ul { padding-left: 18px; margin: 0; }
+    .warning-card ul li { font-size: 0.87rem; color: #7c2d12; margin-bottom: 5px; line-height: 1.45; }
+
+    .action-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px;
+      border-radius: 12px; border: 2px solid var(--border); background: var(--surface);
+      color: var(--text); font-weight: 700; font-size: 0.87rem; cursor: pointer;
+      transition: all .2s; font-family: 'DM Sans', sans-serif; text-decoration: none;
+    }
+    .back-btn i { font-size: 16px; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); background: #f0fdf4; }
+
+    .btn-diet {
+      display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px;
+      border-radius: 12px; border: 2px solid #2563eb;
+      background: linear-gradient(135deg, #dbeafe, #eff6ff);
+      color: #1e40af; font-weight: 700; font-size: 0.87rem; cursor: pointer;
+      transition: all .2s; font-family: 'DM Sans', sans-serif; text-decoration: none;
+      flex: 1; justify-content: center;
+    }
+    .btn-diet i { font-size: 16px; }
+    .btn-diet:hover {
+      background: linear-gradient(135deg, #bfdbfe, #dbeafe);
+      transform: translateY(-2px); box-shadow: 0 6px 18px rgba(37,99,235,0.22);
+    }
+
+    .not-found {
+      text-align: center; padding: 50px 20px; color: var(--text-muted);
+    }
+    .not-found i.nf-icon { font-size: 48px; opacity: 0.4; display: block; margin: 0 auto 12px; }
+    .not-found .nf-title {
+      font-family: 'Playfair Display', serif; font-size: 1.2rem;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .not-found .nf-sub { font-size: 0.87rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand">
+      <i class="ti ti-heart" aria-hidden="true"></i>
+      DHAS
+    </div>
+    <a href="dashboard.html">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <i class="ti ti-plant" aria-hidden="true"></i>
+      </div>
+      <div class="page-title" id="heroTitle">Home Remedies</div>
+      <div class="page-subtitle" id="heroSub">Natural relief based on your symptoms</div>
+      <div class="condition-badge" id="conditionBadge" style="display:none">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        <span id="conditionLabel"></span>
+      </div>
+    </div>
+
+    <div id="content"></div>
+
+  </div>
+
+  <script>
+    // ── Complete remedies for every condition the symptom checker can produce ──
+    const REMEDY_MAP = {
+      respiratory: {
+        name: "Respiratory Distress",
+        steps: [
+          "Steam inhalation with Vicks or eucalyptus oil for 10 minutes — clears airways",
+          "Sit upright or prop yourself up with pillows — never lie flat when breathing is difficult",
+          "Drink warm fluids like ginger tea or hot water every 30 minutes",
+          "Avoid all dust, smoke, cold air, and strong fragrances",
+          "Practice slow, deep belly breathing — inhale 4 counts, hold 2, exhale 6",
+          "Seek immediate medical attention if breathlessness worsens or chest pain intensifies"
+        ]
+      },
+      covid_like: {
+        name: "COVID-19 Like Illness",
+        steps: [
+          "Drink Kadha (tulsi, ginger, black pepper, cloves) twice daily to boost immunity",
+          "Steam inhalation for 10 minutes twice a day — add eucalyptus oil",
+          "Monitor oxygen with a pulse oximeter; go to hospital if SpO2 drops below 94%",
+          "Isolate yourself and wear a mask even at home",
+          "Gargle with warm salt water + turmeric 3 times a day",
+          "Take complete bed rest and stay well hydrated"
+        ]
+      },
+      flu: {
+        name: "Influenza (Flu)",
+        steps: [
+          "Drink warm ginger tea with honey twice daily — reduces fever and body ache",
+          "Steam inhalation with eucalyptus oil for 10 minutes to relieve congestion",
+          "Rest and sleep at least 8–9 hours every night",
+          "Gargle with warm salt water to soothe sore throat",
+          "Take Vitamin C — orange juice or fresh amla",
+          "Apply warm compress on forehead and limbs for body ache"
+        ]
+      },
+      common_cold: {
+        name: "Common Cold",
+        steps: [
+          "Steam inhalation 2–3 times a day for 10 minutes each",
+          "Drink turmeric milk (haldi doodh) at night before bed",
+          "Mix ginger juice + honey + lemon in warm water — drink twice daily",
+          "Gargle with warm salt water twice a day",
+          "Use saline nasal drops for nasal congestion relief",
+          "Keep your head elevated while sleeping to reduce stuffiness"
+        ]
+      },
+      viral_fever: {
+        name: "Viral Fever",
+        steps: [
+          "Apply a cool, damp cloth on the forehead to reduce fever",
+          "Drink tulsi + black pepper + ginger decoction twice daily",
+          "Take a lukewarm sponge bath if fever rises above 102°F",
+          "Drink 2–3 litres of water or coconut water daily",
+          "Take complete bed rest — avoid all physical exertion",
+          "Monitor temperature every 2 hours; see doctor if above 103°F"
+        ]
+      },
+      gastro: {
+        name: "Gastroenteritis / Diarrhea",
+        steps: [
+          "Drink ORS solution every hour to prevent dehydration — this is the most important step",
+          "Eat banana — firms loose stools and replenishes potassium",
+          "Follow the BRAT diet — Banana, Rice, Applesauce, Toast",
+          "Eat curd with every small meal — probiotics restore gut bacteria",
+          "Avoid solid food for a few hours if vomiting is active",
+          "Rest completely and avoid physical activity until stools normalise"
+        ]
+      },
+      headache: {
+        name: "Headache / Migraine",
+        steps: [
+          "Massage temples and neck gently with peppermint or lavender oil",
+          "Drink a large glass of water immediately — dehydration is the top cause",
+          "Apply a cold compress on the forehead for 10–15 minutes",
+          "Rest in a dark, quiet room — close curtains and turn off screens",
+          "Practice deep breathing: inhale 4 counts, hold 4, exhale 4",
+          "If migraine, avoid bright lights and strong smells for the duration"
+        ]
+      },
+      sore_throat: {
+        name: "Sore Throat",
+        steps: [
+          "Gargle with warm salt water every 2–3 hours — reduces inflammation",
+          "Mix 1 tsp honey with a pinch of black pepper — swallow slowly without water",
+          "Drink warm turmeric milk at night before bed",
+          "Suck on a clove (laung) for natural pain relief",
+          "Have ginger tea with honey 2–3 times a day",
+          "Avoid whispering — it strains vocal cords more than normal speaking"
+        ]
+      },
+      nausea: {
+        name: "Nausea / Vomiting",
+        steps: [
+          "Sip ginger tea very slowly — the most effective natural anti-nausea remedy",
+          "Inhale peppermint oil or apply to wrists and temples",
+          "Eat plain crackers or dry rusk in very small amounts",
+          "Sip cold water or lemon water slowly between small meals",
+          "Sit or stand upright — lying flat worsens nausea",
+          "Eat small meals every 2–3 hours rather than 3 large meals"
+        ]
+      },
+      general: {
+        name: "General Illness",
+        steps: [
+          "Drink warm water regularly — aim for 8–10 glasses throughout the day",
+          "Take proper rest — 7–8 hours of sleep speeds up recovery",
+          "Steam inhalation helps if you have any cold or cough symptoms",
+          "Drink turmeric milk at night — anti-inflammatory and immunity boosting",
+          "Eat light, easy-to-digest meals — khichdi, soup, curd",
+          "Consult a doctor if symptoms persist beyond 2–3 days or worsen"
+        ]
+      }
+    };
+
+    // ── Map symptom.js condition keys to REMEDY_MAP keys ──
+    function mapConditionKey(raw) {
+      if (!raw) return "general";
+      const c = raw.toLowerCase().trim();
+      if (REMEDY_MAP[c]) return c;
+      if (c.includes("covid"))       return "covid_like";
+      if (c.includes("flu") || c.includes("influenza")) return "flu";
+      if (c.includes("respiratory") || c.includes("chest") || c.includes("breath")) return "respiratory";
+      if (c.includes("cold"))        return "common_cold";
+      if (c.includes("viral"))       return "viral_fever";
+      if (c.includes("gastro") || c.includes("diarrhea") || c.includes("vomit")) return "gastro";
+      if (c.includes("head") || c.includes("migraine")) return "headache";
+      if (c.includes("throat"))      return "sore_throat";
+      if (c.includes("nausea"))      return "nausea";
+      return "general";
+    }
+
+    function render() {
+      const rawKey  = localStorage.getItem("dhas_symptom_condition") || localStorage.getItem("dhas_condition") || "";
+      const key     = mapConditionKey(rawKey);
+      const remedy  = REMEDY_MAP[key];
+      const content = document.getElementById("content");
+
+      if (!remedy) {
+        content.innerHTML = `
+          <div class="not-found">
+            <i class="ti ti-mood-puzzled nf-icon" aria-hidden="true"></i>
+            <div class="nf-title">No condition detected</div>
+            <div class="nf-sub">Please go back and complete the symptom checker first.</div>
+            <br>
+            <a href="symptom.html" class="back-btn" style="display:inline-flex;margin-top:8px;">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i> Check Symptoms
+            </a>
+          </div>`;
+        return;
+      }
+
+      document.getElementById("heroTitle").textContent  = "Remedies for " + remedy.name;
+      document.getElementById("heroSub").textContent    = "Step-by-step natural relief for " + remedy.name;
+      document.getElementById("conditionBadge").style.display = "inline-flex";
+      document.getElementById("conditionLabel").textContent   = remedy.name;
+
+      const stepsHTML = remedy.steps.map((s, i) => `
+        <div class="remedy-step">
+          <div class="step-num">${i + 1}</div>
+          <div class="step-text">${s}</div>
+        </div>
+      `).join("");
+
+      content.innerHTML = `
+        <div class="result-card">
+          <div class="result-title">
+            <i class="ti ti-plant" aria-hidden="true"></i>
+            Remedies — ${remedy.name}
+          </div>
+          ${stepsHTML}
+          <div class="action-row">
+            <a href="symptom.html" class="back-btn">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i>
+              Symptoms
+            </a>
+            <a href="symptom_diet.html" class="btn-diet">
+              <i class="ti ti-salad" aria-hidden="true"></i>
+              View Diet Plan
+            </a>
+          </div>
+        </div>
+
+        <div class="warning-card">
+          <div class="warning-title">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            When to See a Doctor Immediately
+          </div>
+          <ul>
+            <li>Symptoms last more than 3–5 days without improvement</li>
+            <li>High fever above 103°F (39.4°C) that does not come down</li>
+            <li>Difficulty breathing, chest pain, or low oxygen</li>
+            <li>Severe dehydration — no urination for 8+ hours</li>
+            <li>Symptoms suddenly worsen after seeming to improve</li>
+          </ul>
+        </div>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>

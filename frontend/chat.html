@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Cache-busting: prevent stale service worker from serving old chat.html -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Chat — DHAS</title>
+<script src="js/config.js"></script>
+<script src="theme.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<script>
+// Load Socket.IO — try local first, CDN fallback
+(function() {
+  var s = document.createElement('script');
+  s.src = 'js/socket.io.min.js?v=2';
+  s.onerror = function() {
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+</script>
+
+<style>
+  :root {
+    --navy:#0b1437; --navy-mid:#112057; --blue:#2a6cf6; --blue-lt:#4f8ef9;
+    --teal:#00c9b1; --amber:#f4a035; --rose:#f25c7d; --green:#22d07a;
+    --bg:#f4f6fc; --surface:#ffffff; --border:#e4e9f4;
+    --text:#0d1b3e; --muted:#6b7fa3;
+    --radius:18px; --radius-sm:10px;
+    --shadow:0 2px 20px rgba(42,108,246,.09);
+  }
+  html.dark body, body.dark {
+    --bg:#080f28; --surface:#111c3c; --border:#1e2e58;
+    --text:#e8efff; --muted:#7d93c3;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'DM Sans',sans-serif;
+    background:var(--bg); color:var(--text);
+    height:100vh; overflow:hidden;
+    transition:background .35s,color .35s;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    height:60px; display:flex; align-items:center;
+    padding:0 18px; gap:12px;
+    background:linear-gradient(145deg,var(--navy-mid),var(--navy));
+    flex-shrink:0;
+  }
+  .topbar-back {
+    color:#fff; font-size:.85rem; font-weight:600;
+    display:flex; align-items:center; gap:6px;
+    text-decoration:none;
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18);
+    padding:6px 14px; border-radius:20px; transition:background .2s;
+    cursor:pointer;
+  }
+  .topbar-back:hover { background:rgba(255,255,255,.2); }
+  .topbar-title {
+    font-family:'Fraunces',serif; color:#fff;
+    font-weight:700; font-size:1.05rem;
+    flex:1; text-align:center;
+  }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .theme-pill {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
+    border-radius:20px; padding:5px 12px 5px 9px;
+    cursor:pointer; font-size:.78rem; font-weight:600;
+    color:rgba(255,255,255,.8); user-select:none; white-space:nowrap;
+  }
+  .theme-pill svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8; }
+
+  /* ── SHELL ── */
+  .chat-shell { display:flex; height:calc(100vh - 60px); position:relative; }
+
+  /* ── CONTACT PANE ── */
+  .pane-list {
+    width:320px; flex-shrink:0;
+    border-right:1px solid var(--border);
+    background:var(--surface); overflow-y:auto;
+    transition:background .35s;
+  }
+  .pane-list-head {
+    padding:14px 16px;
+    display:flex; align-items:center; gap:8px;
+    font-family:'Fraunces',serif; font-weight:700; font-size:1rem;
+    border-bottom:1px solid var(--border);
+    background:var(--surface); position:sticky; top:0; z-index:2;
+  }
+  #contactCountBadge {
+    background:var(--blue); color:#fff;
+    padding:2px 8px; border-radius:20px; font-size:.72rem;
+  }
+  .contact-row {
+    display:flex; align-items:center; gap:12px;
+    padding:13px 16px; cursor:pointer;
+    border-bottom:1px solid var(--border);
+    transition:background .15s;
+  }
+  .contact-row:hover, .contact-row.active { background:var(--bg); }
+  .contact-avatar {
+    width:46px; height:46px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg,var(--blue),var(--teal));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:700; font-size:1rem;
+    overflow:hidden;
+  }
+  .contact-info { flex:1; min-width:0; }
+  .contact-top { display:flex; justify-content:space-between; gap:8px; }
+  .contact-name { font-weight:700; font-size:.92rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .contact-time { font-size:.7rem; color:var(--muted); flex-shrink:0; }
+  .contact-bottom { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:2px; }
+  .contact-preview { font-size:.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .unread-badge {
+    background:#22c55e; color:#fff; font-size:.68rem; font-weight:700;
+    border-radius:999px; padding:2px 8px; min-width:20px; text-align:center;
+    flex-shrink:0;
+  }
+  .empty-contacts {
+    padding:40px 20px; text-align:center;
+    color:var(--muted); font-size:.88rem; line-height:1.7;
+  }
+  .empty-contacts i { font-size:40px; opacity:.3; display:block; margin-bottom:12px; }
+
+  /* ── CHAT PANE ── */
+  .pane-chat { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .chat-empty-state {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:.9rem; flex-direction:column; gap:10px;
+    background:var(--bg);
+  }
+  .chat-empty-state i { font-size:48px; opacity:.3; }
+
+  /* ── CHAT HEADER ── */
+  .chat-header {
+    display:none; align-items:center; gap:12px;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+    background:var(--surface); flex-shrink:0;
+  }
+  .back-to-list {
+    display:none; background:none; border:none;
+    color:var(--muted); font-size:1.3rem; cursor:pointer; padding:0 4px;
+  }
+  .chat-header .contact-avatar { width:40px; height:40px; font-size:.9rem; }
+  .chat-header-name { font-weight:700; font-size:.95rem; color:var(--text); }
+  .chat-header-sub { font-size:.74rem; color:var(--muted); }
+  .e2e-lock { color:var(--green); font-size:14px; }
+
+  /* ── TERMINATED BANNER ── */
+  .terminated-banner {
+    display:none; align-items:center; gap:8px;
+    background:#fee2e2; color:#991b1b;
+    padding:9px 16px; font-size:.82rem; font-weight:600; flex-shrink:0;
+  }
+  body.dark .terminated-banner { background:rgba(239,68,68,.15); color:#fca5a5; }
+
+  /* ── MESSAGE AREA ── */
+  .message-area {
+    flex:1; overflow-y:auto; padding:16px 20px;
+    display:flex; flex-direction:column; gap:4px;
+    background:var(--bg);
+  }
+  .loading-msgs { text-align:center; color:var(--muted); padding:30px; font-size:.85rem; }
+
+  /* ── BUBBLES ── */
+  .msg-row { display:flex; margin-bottom:2px; }
+  .msg-row.mine { justify-content:flex-end; }
+  .bubble {
+    max-width:70%; background:var(--surface);
+    border-radius:14px; padding:9px 12px;
+    box-shadow:var(--shadow);
+  }
+  .msg-row.mine .bubble {
+    background:linear-gradient(135deg,#2a6cf6,#4f8ef9);
+    color:#fff;
+  }
+  .msg-row.mine .bubble .bubble-meta { color:rgba(255,255,255,.75); }
+  body.dark .msg-row.theirs .bubble { background:var(--surface); }
+  .bubble-text { font-size:.88rem; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+
+  /* Encrypted placeholder pulse */
+  .encrypted-placeholder {
+    opacity: .6;
+    font-style: italic;
+  }
+
+  .bubble-meta {
+    font-size:.65rem; color:var(--muted); text-align:right;
+    margin-top:4px; display:flex; justify-content:flex-end;
+    gap:4px; align-items:center;
+  }
+  .tick i { font-size:13px; }
+  .bubble-image { max-width:220px; border-radius:10px; display:block; }
+  .bubble-caption { font-size:.82rem; margin-top:6px; }
+  .bubble-file { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; cursor:pointer; }
+  .bubble-file i { font-size:28px; color:var(--rose); flex-shrink:0; }
+  .bf-name { font-size:.84rem; font-weight:700; word-break:break-all; }
+  .bf-size { font-size:.7rem; color:var(--muted); }
+  .bubble-card { min-width:200px; }
+  .bc-head { display:flex; align-items:center; gap:6px; font-weight:700; font-size:.82rem; color:var(--blue); margin-bottom:6px; }
+  .msg-row.mine .bc-head { color:rgba(255,255,255,.9); }
+  .bc-row { font-size:.82rem; margin-bottom:2px; }
+  .bubble-card-link { cursor:pointer; }
+  .bubble-card-link:hover { opacity:.85; }
+
+  /* ── TYPING ── */
+  .typing-indicator {
+    display:none; align-items:center; gap:6px;
+    padding:4px 20px; font-size:.78rem; color:var(--muted); flex-shrink:0;
+  }
+
+  /* ── COMPOSER ── */
+  .composer {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; border-top:1px solid var(--border);
+    background:var(--surface); position:relative; flex-shrink:0;
+  }
+  .composer textarea {
+    flex:1; resize:none; border:1.5px solid var(--border);
+    border-radius:20px; padding:10px 16px;
+    font-family:'DM Sans',sans-serif; font-size:.88rem;
+    color:var(--text); background:var(--bg);
+    outline:none; max-height:90px; min-height:42px;
+    scrollbar-width:none; transition:border-color .2s;
+  }
+  .composer textarea:focus { border-color:var(--blue); }
+  body.dark .composer textarea { background:rgba(255,255,255,.05); color:var(--text); }
+  .icon-btn {
+    width:40px; height:40px; border-radius:50%; border:none;
+    background:var(--bg); color:var(--muted);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; font-size:18px;
+    transition:all .18s;
+  }
+  .icon-btn:hover { color:var(--blue); background:#eff6ff; }
+  .icon-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .send-btn { background:linear-gradient(135deg,var(--blue),var(--blue-lt)); color:#fff; }
+  .send-btn:hover { color:#fff; opacity:.9; }
+
+  /* ── ATTACH MENU ── */
+  .attach-menu {
+    display:none; position:absolute; bottom:64px; left:14px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+    overflow:hidden; min-width:220px; z-index:50;
+  }
+  .attach-menu.open { display:block; }
+  .attach-item {
+    display:flex; align-items:center; gap:10px;
+    padding:12px 16px; font-size:.85rem; font-weight:600;
+    cursor:pointer; color:var(--text); transition:background .15s;
+  }
+  .attach-item:hover { background:var(--bg); }
+  .attach-item i { font-size:18px; color:var(--blue); }
+
+  /* ── SHARE MODAL ── */
+  .share-modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index:500; padding:20px;
+  }
+  .share-modal {
+    background:var(--surface); width:100%; max-width:420px;
+    max-height:80vh; border-radius:18px; overflow:hidden;
+    display:flex; flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+  .sm-head {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 18px; border-bottom:1px solid var(--border);
+    font-weight:700; font-family:'Fraunces',serif; font-size:1rem;
+    flex-shrink:0;
+  }
+  .sm-close {
+    background:none; border:none; font-size:1.1rem; cursor:pointer;
+    color:var(--muted); padding:4px; border-radius:6px; transition:color .15s;
+  }
+  .sm-close:hover { color:var(--rose); }
+  .sm-body { overflow-y:auto; padding:6px; flex:1; }
+
+  /* Multi-select item */
+  .sm-check-item {
+    padding:12px 14px; border-radius:10px;
+    transition:background .15s;
+  }
+  .sm-check-item:hover { background:var(--bg); }
+
+  .sm-item-title { font-weight:700; font-size:.88rem; color:var(--text); }
+  .sm-item-sub { font-size:.74rem; color:var(--muted); margin-top:2px; }
+  .sm-empty { padding:30px; text-align:center; color:var(--muted); font-size:.85rem; }
+
+  /* ── TOAST ── */
+  #chatToast {
+    position:fixed; bottom:20px; left:20px; z-index:9999;
+    padding:12px 18px; border-radius:12px;
+    font-size:.85rem; font-weight:600;
+    display:none; align-items:center; gap:8px;
+    box-shadow:0 6px 24px rgba(0,0,0,.18);
+    max-width:340px;
+  }
+  #chatToast.success { background:#d1fae5; color:#166534; border:1px solid #86efac; }
+  #chatToast.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  body.dark #chatToast.success { background:#052e16; border-color:#166534; color:#86efac; }
+  body.dark #chatToast.error   { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 760px) {
+    .pane-list { position:absolute; inset:0; width:100%; z-index:5; }
+    .pane-chat {
+      position:absolute; inset:0; width:100%;
+      transform:translateX(100%); transition:transform .25s ease;
+      background:var(--bg);
+    }
+    .chat-shell.show-chat .pane-chat { transform:translateX(0); z-index:10; }
+    .chat-shell.show-chat .pane-list { display:none; }
+    .back-to-list { display:flex !important; }
+    .bubble { max-width:82%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="chatToast" role="status" aria-live="polite"></div>
+<div id="shareModalRoot"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="#" class="topbar-back" id="topBackLink">
+    <i class="ti ti-chevron-left" aria-hidden="true"></i> Back
+  </a>
+  <div class="topbar-title">Messages</div>
+  <div class="topbar-right">
+    <div class="theme-pill" onclick="toggleTheme()" role="button">
+      <svg class="theme-icon" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+      </svg>
+      <span class="theme-label">Dark</span>
+    </div>
+  </div>
+</header>
+
+<!-- CHAT SHELL -->
+<div class="chat-shell" id="chatShell">
+
+  <!-- LEFT: Contact list -->
+  <aside class="pane-list">
+    <div class="pane-list-head">
+      <span>Conversations</span>
+      <span id="contactCountBadge" style="display:none;"></span>
+    </div>
+    <div id="contactList">
+      <div class="empty-contacts">
+        <i class="ti ti-message-circle-2"></i>
+        Loading…
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Chat pane -->
+  <section class="pane-chat">
+
+    <!-- Empty / loading state -->
+    <div class="chat-empty-state" id="chatEmptyState">
+      <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+      <div>Select a conversation to start chatting</div>
+    </div>
+
+    <!-- Chat header (hidden until room opens) -->
+    <div class="chat-header" id="chatHeader">
+      <button class="back-to-list" id="backToListBtn" aria-label="Back to list">
+        <i class="ti ti-chevron-left"></i>
+      </button>
+      <div class="contact-avatar" id="chatPartnerAvatar"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="chat-header-name" id="chatPartnerName">—</div>
+          <i class="ti ti-lock e2e-lock" title="End-to-end encrypted"></i>
+        </div>
+        <div class="chat-header-sub" id="chatPartnerSub">Secure end-to-end encrypted chat</div>
+      </div>
+    </div>
+
+    <!-- Connection terminated banner -->
+    <div class="terminated-banner" id="terminatedBanner">
+      <i class="ti ti-link-off"></i>
+      This connection has ended. You can no longer send messages here.
+    </div>
+
+    <!-- Messages -->
+    <div class="message-area" id="messageArea"></div>
+
+    <!-- Typing indicator -->
+    <div class="typing-indicator" id="typingIndicator">
+      <i class="ti ti-pencil"></i>
+      <span>Typing…</span>
+    </div>
+
+    <!-- Composer (hidden until room opens) -->
+    <div class="composer" id="composerWrap" style="display:none;">
+      <button class="icon-btn" id="attachBtn" title="Attach" aria-label="Attach">
+        <i class="ti ti-paperclip"></i>
+      </button>
+
+      <!-- Attach menu -->
+      <div class="attach-menu" id="attachMenu">
+        <div class="attach-item" id="optUploadFile">
+          <i class="ti ti-upload"></i> Upload File (PDF/Image)
+        </div>
+        <div class="attach-item" id="optShareSymptom">
+          <i class="ti ti-stethoscope"></i> Share Symptom History
+        </div>
+        <div class="attach-item" id="optShareReport">
+          <i class="ti ti-file-report"></i> Share Medical Report
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;">
+      <textarea id="messageInput" rows="1" placeholder="Type a message…"></textarea>
+      <button class="icon-btn send-btn" id="sendBtn" aria-label="Send">
+        <i class="ti ti-send"></i>
+      </button>
+    </div>
+
+  </section>
+</div>
+
+<script src="js/crypto.js?v=2"></script>
+<script src="js/chat.js?v=3"></script>
+</body>
+</html>

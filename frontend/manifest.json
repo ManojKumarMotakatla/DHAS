@@ -1,0 +1,55 @@
+{
+  "name": "DHAS - Digital Health Assistant",
+  "short_name": "DHAS",
+  "description": "Your personal digital health assistant — symptom checker, medicine reminders, diet guide and more.",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1437",
+  "theme_color": "#2a6cf6",
+  "lang": "en-IN",
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-72.svg",  "sizes": "72x72",   "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-96.svg",  "sizes": "96x96",   "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-128.svg", "sizes": "128x128", "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-144.svg", "sizes": "144x144", "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-152.svg", "sizes": "152x152", "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-384.svg", "sizes": "384x384", "type": "image/svg+xml", "purpose": "maskable any" },
+    { "src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable any" }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "DHAS Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Check Symptoms",
+      "short_name": "Symptoms",
+      "description": "Log your current symptoms",
+      "url": "/symptom.html",
+      "icons": [{ "src": "icons/icon-96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Medicine Reminders",
+      "short_name": "Reminders",
+      "description": "View and manage reminders",
+      "url": "/reminder.html",
+      "icons": [{ "src": "icons/icon-96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Step Counter",
+      "short_name": "Steps",
+      "description": "Track your daily steps",
+      "url": "/steps.html",
+      "icons": [{ "src": "icons/icon-96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ]
+}

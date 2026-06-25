@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="js/config.js"></script>
+<script src="theme.js"></script>
+<script src="js/language.js"></script>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — DHAS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --navy:      #0b1437;
+      --navy-mid:  #112057;
+      --blue:      #2a6cf6;
+      --blue-lt:   #4f8ef9;
+      --teal:      #00c9b1;
+      --amber:     #f4a035;
+      --rose:      #f25c7d;
+      --green:     #22d07a;
+      --purple:    #8250ff;
+      --bg:        #f4f6fc;
+      --surface:   #ffffff;
+      --border:    #e4e9f4;
+      --text:      #0d1b3e;
+      --muted:     #6b7fa3;
+      --radius:    18px;
+      --radius-sm: 10px;
+      --shadow:    0 2px 20px rgba(42,108,246,.09);
+      --shadow-md: 0 6px 32px rgba(42,108,246,.14);
+    }
+    html.dark body, body.dark {
+      --navy:      #111827;
+      --navy-mid:  #1a2540;
+      --bg:        #1a2035;
+      --surface:   #212d45;
+      --border:    #2d3f5e;
+      --text:      #dde6f5;
+      --muted:     #7a90b8;
+      --shadow:    0 2px 20px rgba(0,0,0,.25);
+      --shadow-md: 0 6px 32px rgba(0,0,0,.35);
+    }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { font-size:16px; }
+    body {
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg); color:var(--text);
+      min-height:100vh;
+      transition:background .3s,color .3s;
+    }
+    a { text-decoration:none; color:inherit; }
+    svg { display:block; }
+
+    /* ── SKELETON LOADERS ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.08) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position:fixed; top:0; left:0; width:236px; height:100vh;
+      background:var(--navy);
+      padding:0 12px 24px;
+      display:flex; flex-direction:column; gap:2px;
+      transform:translateX(-100%);
+      transition:transform .32s cubic-bezier(.4,0,.2,1), background .3s;
+      z-index:300; overflow-y:auto;
+    }
+    .sidebar.open { transform:translateX(0); }
+    .sidebar-logo {
+      display:flex; align-items:center; gap:10px;
+      padding:22px 8px 20px;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      margin-bottom:8px; flex-shrink:0;
+    }
+    .sidebar-logo-icon {
+      width:34px; height:34px; border-radius:10px; flex-shrink:0;
+      background:linear-gradient(135deg,var(--blue),var(--teal));
+      display:flex; align-items:center; justify-content:center;
+    }
+    .sidebar-logo-icon svg { width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2; }
+    .sidebar-logo-text { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:700; color:#fff; letter-spacing:.3px; }
+    .sidebar-close {
+      margin-left:auto;
+      width:32px; height:32px;
+      border-radius:8px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; color:rgba(255,255,255,.7);
+      transition:all .2s; flex-shrink:0;
+    }
+    .sidebar-close:hover { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.3); }
+    .sidebar-close svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.5; }
+    @media(min-width:900px) { .sidebar-close { display:none !important; } }
+    .side-link {
+      display:flex; align-items:center; gap:11px;
+      padding:10px 12px; border-radius:11px;
+      font-size:.875rem; font-weight:500;
+      color:rgba(255,255,255,.55);
+      transition:all .2s;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      width: 100%;
+      text-align: left;
+    }
+    .side-link:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .side-link.active { background:rgba(42,108,246,.35); color:#fff; }
+    .side-link i { font-size:17px; flex-shrink:0; }
+    .sidebar-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.45); z-index:299; backdrop-filter:blur(2px);
+    }
+    .sidebar-overlay.show { display:block; }
+    @media(min-width:900px) {
+      .sidebar { transform:translateX(0); }
+      .sidebar-overlay, .ham { display:none !important; }
+      .main-layout { margin-left:236px; }
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position:sticky; top:0; z-index:200;
+      background:rgba(255,255,255,.88);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+      height:62px; display:flex; align-items:center;
+      padding:0 16px; gap:12px;
+      transition:background .3s;
+    }
+    html.dark .topbar, body.dark .topbar { background:rgba(26,32,53,.92); }
+    .ham {
+      width:36px; height:36px; border-radius:9px;
+      background:var(--bg); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; color:var(--muted); transition:all .2s;
+    }
+    .ham:hover { color:var(--blue); border-color:var(--blue); }
+    .ham svg { width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2; }
+    .topbar-brand {
+      font-family:'Fraunces',serif; font-weight:700;
+      font-size:1.1rem; color:var(--blue);
+      display:flex; align-items:center; gap:6px;
+    }
+    .topbar-brand-dot { width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal)); }
+    .topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+    .theme-pill {
+      display:flex; align-items:center; gap:6px;
+      background:var(--bg); border:1px solid var(--border);
+      border-radius:20px; padding:5px 12px 5px 9px;
+      cursor:pointer; font-size:.78rem; font-weight:600;
+      color:var(--muted); user-select:none; white-space:nowrap;
+      transition:all .2s;
+    }
+    .theme-pill:hover { color:var(--blue); border-color:var(--blue); }
+    .theme-pill svg { width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8; }
+    .notif-btn {
+      width:38px; height:38px; border-radius:10px;
+      background:var(--bg); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; position:relative; color:var(--muted); transition:all .2s;
+    }
+    .notif-btn:hover { color:var(--blue); border-color:var(--blue); }
+    .notif-btn i { font-size:18px; }
+    .badge {
+      position:absolute; top:-3px; right:-3px;
+      min-width:16px; height:16px; border-radius:8px;
+      padding:0 3px;
+      background:var(--rose); color:#fff;
+      font-size:.6rem; font-weight:700;
+      display:none; align-items:center; justify-content:center;
+      border:2px solid var(--surface);
+    }
+    .badge.visible { display:flex; }
+
+    /* ── NOTIFICATION DROPDOWN ── */
+    .notif-wrap { position:relative; }
+    .notif-drop {
+      position:absolute; top:calc(100% + 10px); right:0;
+      width:320px; border-radius:16px;
+      background:var(--surface); border:1px solid var(--border);
+      box-shadow:var(--shadow-md); overflow:hidden;
+      opacity:0; visibility:hidden; transform:translateY(-8px);
+      transition:all .22s cubic-bezier(.4,0,.2,1); z-index:400;
+      max-height:420px; display:flex; flex-direction:column;
+    }
+    .notif-drop.open { opacity:1; visibility:visible; transform:translateY(0); }
+    .notif-drop-head {
+      padding:14px 16px 10px;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid var(--border); flex-shrink:0;
+    }
+    .notif-drop-title { font-family:'Fraunces',serif; font-size:.95rem; font-weight:700; color:var(--text); }
+    .notif-clear-btn {
+      font-size:.72rem; font-weight:700; color:var(--blue); cursor:pointer;
+      background:none; border:none; font-family:'DM Sans',sans-serif; padding:0;
+    }
+    .notif-clear-btn:hover { text-decoration:underline; }
+    .notif-list { overflow-y:auto; flex:1; }
+    .notif-item {
+      display:flex; align-items:flex-start; gap:10px;
+      padding:12px 16px; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:background .15s;
+      border-left: 4px solid var(--border);
+      position:relative;
+    }
+    .notif-item:last-child { border-bottom:none; }
+    .notif-item:hover { background:var(--bg); }
+
+    /* ── UNREAD: strong blue left border + blue tint background (LinkedIn style) ── */
+    .notif-item.unread {
+      background: #eef4ff !important;
+      border-left: 4px solid #2a6cf6 !important;
+    }
+    html.dark .notif-item.unread,
+    body.dark  .notif-item.unread {
+      background: rgba(42,108,246,.18) !important;
+      border-left-color: #4f8ef9 !important;
+    }
+    .notif-item.unread .notif-content-title {
+      color: #0d1b3e !important;
+      font-weight: 700 !important;
+    }
+    html.dark .notif-item.unread .notif-content-title,
+    body.dark  .notif-item.unread .notif-content-title {
+      color: #e8efff !important;
+    }
+
+    /* ── READ: transparent left border, dimmed, lighter weight ── */
+    .notif-item:not(.unread) {
+      background: var(--surface);
+      border-left: 4px solid transparent;
+      opacity: .65;
+    }
+    .notif-item:not(.unread):hover { opacity: 1; background: var(--bg); }
+    .notif-item:not(.unread) .notif-content-title { color: var(--muted); font-weight: 500; }
+    .notif-item:not(.unread) .notif-icon { opacity: .4; }
+
+    /* READ chip */
+    .notif-read-label {
+      font-size: .6rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      background: var(--border); border-radius: 20px;
+      padding: 1px 7px; flex-shrink: 0; margin-top: 3px;
+      align-self: flex-start; white-space: nowrap;
+    }
+
+    .notif-icon {
+      width:34px; height:34px; border-radius:10px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:16px;
+    }
+    .notif-icon.msg  { background:#eff6ff; color:var(--blue); }
+    .notif-icon.rem  { background:#fff0f4; color:var(--rose); }
+    html.dark .notif-icon.msg  { background:rgba(42,108,246,.15); color:#7aafff; }
+    html.dark .notif-icon.rem  { background:rgba(242,92,125,.15); color:#f9a8bb; }
+    .notif-content { flex:1; min-width:0; }
+    .notif-content-title { font-size:.82rem; font-weight:700; color:var(--text); line-height:1.3; }
+    .notif-content-sub   { font-size:.72rem; color:var(--muted); margin-top:2px; }
+
+    /* Unread dot — pulsing blue circle shown only for unread items */
+    .notif-dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: #2a6cf6; flex-shrink: 0; margin-top: 4px;
+      box-shadow: 0 0 0 3px rgba(42,108,246,.25);
+      animation: notif-pulse 2s ease-in-out infinite;
+    }
+    @keyframes notif-pulse {
+      0%,100% { box-shadow: 0 0 0 3px rgba(42,108,246,.25); }
+      50%      { box-shadow: 0 0 0 6px rgba(42,108,246,.08); }
+    }
+    .notif-empty {
+      text-align:center; padding:32px 20px; color:var(--muted); font-size:.85rem;
+    }
+    .notif-empty i { font-size:32px; display:block; margin-bottom:8px; opacity:.4; }
+    .avatar-btn {
+      width:38px; height:38px; border-radius:50%;
+      background:linear-gradient(135deg,var(--blue),var(--teal));
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-weight:700; font-size:.9rem;
+      cursor:pointer; position:relative;
+      border:2px solid var(--border); overflow:hidden;
+      transition:transform .2s;
+    }
+    .avatar-btn:hover { transform:scale(1.06); }
+    .avatar-btn img { width:100%;height:100%;object-fit:cover; }
+    .online-dot {
+      position:absolute; bottom:1px; right:1px;
+      width:10px; height:10px; border-radius:50%;
+      background:var(--green); border:2px solid var(--surface);
+    }
+    .profile-wrap { position:relative; }
+    .pdrop {
+      position:absolute; top:calc(100% + 10px); right:0;
+      width:240px; border-radius:16px;
+      background:var(--surface); border:1px solid var(--border);
+      box-shadow:var(--shadow-md); overflow:hidden;
+      opacity:0; visibility:hidden; transform:translateY(-8px);
+      transition:all .22s cubic-bezier(.4,0,.2,1); z-index:400;
+    }
+    .pdrop.open { opacity:1; visibility:visible; transform:translateY(0); }
+    .pdrop-header { padding:16px; background:linear-gradient(135deg,var(--navy-mid),var(--navy)); }
+    .pdrop-name  { font-weight:600; font-size:.9rem; color:#fff; }
+    .pdrop-email { font-size:.73rem; color:rgba(255,255,255,.5); margin-top:2px; }
+    .pdrop-divider { height:1px; background:var(--border); }
+    .pdrop-item {
+      display:flex; align-items:center; gap:10px;
+      padding:11px 16px; font-size:.84rem; font-weight:500;
+      color:var(--text); cursor:pointer; transition:background .15s;
+    }
+    .pdrop-item:hover { background:var(--bg); }
+    .pdrop-item i { font-size:16px; color:var(--muted); flex-shrink:0; }
+    .pdrop-item.danger { color:var(--rose); }
+    .pdrop-item.danger i { color:var(--rose); }
+
+    /* ── PAGE ── */
+    .page { padding:24px 20px 60px; max-width:700px; margin:0 auto; }
+
+    /* ── HERO ── */
+    .hero-card {
+      border-radius:22px;
+      background:linear-gradient(135deg,var(--navy-mid) 0%,var(--navy) 55%,#0a1f5e 100%);
+      padding:28px 24px; margin-bottom:20px;
+      position:relative; overflow:hidden;
+      box-shadow:0 8px 40px rgba(11,20,55,.3);
+      animation:fadeUp .45s ease both;
+    }
+    .hero-card::before {
+      content:''; position:absolute; top:-40px; right:-40px;
+      width:200px; height:200px; border-radius:50%;
+      background:radial-gradient(circle,rgba(42,108,246,.3) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .hero-card::after {
+      content:''; position:absolute; bottom:-60px; left:30%;
+      width:240px; height:240px; border-radius:50%;
+      background:radial-gradient(circle,rgba(0,201,177,.15) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .hero-greeting { font-size:.75rem; font-weight:500; color:rgba(255,255,255,.55); letter-spacing:.8px; text-transform:uppercase; margin-bottom:4px; }
+    .hero-name { font-family:'Fraunces',serif; font-size:1.7rem; font-weight:700; color:#fff; line-height:1.2; margin-bottom:8px; min-height:36px; }
+    .hero-date { font-size:.82rem; color:rgba(255,255,255,.5); margin-bottom:20px; }
+    .hero-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .hstat { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:12px; text-align:center; }
+    .hstat-val { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; color:#fff; line-height:1; min-height:28px; display:flex; align-items:center; justify-content:center; }
+    .hstat-lbl { font-size:.66rem; color:rgba(255,255,255,.45); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+
+    /* ── SECTION HEAD ── */
+    .sec-head { display:flex; align-items:center; justify-content:space-between; margin:20px 0 12px; }
+    .sec-title { font-family:'Fraunces',serif; font-size:1.05rem; font-weight:600; color:var(--text); }
+    .sec-link { font-size:.78rem; color:var(--blue); font-weight:600; cursor:pointer; }
+
+    /* ── SNAPSHOT ── */
+    .snapshot-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; animation:fadeUp .5s .06s ease both; }
+    .snap-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:4px; }
+    .snap-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .snap-icon { width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center; }
+    .snap-icon i { font-size:18px; }
+    .snap-trend { font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:20px; }
+    .snap-trend.up { background:#dcfce7; color:#16a34a; }
+    .snap-trend.dn { background:#fee2e2; color:#dc2626; }
+    .snap-trend.ok { background:#eff6ff; color:var(--blue); }
+    html.dark .snap-trend.up,  body.dark .snap-trend.up  { background:rgba(22,163,74,.15);   color:#4ade80; }
+    html.dark .snap-trend.dn,  body.dark .snap-trend.dn  { background:rgba(220,38,38,.15);   color:#f87171; }
+    html.dark .snap-trend.ok,  body.dark .snap-trend.ok  { background:rgba(42,108,246,.15);  color:#7aafff; }
+    .snap-val { font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;color:var(--text); }
+    .snap-lbl { font-size:.72rem;color:var(--muted); }
+    .snap-val.empty { font-size:.82rem;font-weight:500;color:var(--muted);font-style:italic; }
+    .snap-incomplete { grid-column:span 2; background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius); padding:18px 20px; display:flex; align-items:center; gap:14px; box-shadow:var(--shadow); }
+    .snap-incomplete i { font-size:22px;color:var(--amber);flex-shrink:0; }
+    .snap-incomplete-text { flex:1;font-size:.82rem;color:var(--muted); }
+    .snap-incomplete-text strong { color:var(--text);font-weight:600; }
+    .snap-incomplete-link { font-size:.78rem;color:var(--blue);font-weight:600;white-space:nowrap;cursor:pointer; }
+
+    /* ── QUICK ACTIONS ── */
+    .actions-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; animation:fadeUp .5s .12s ease both; }
+    .action-tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 10px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; box-shadow:var(--shadow); position:relative; overflow:hidden; transition:transform .2s, box-shadow .2s; text-decoration:none; color:inherit; }
+    .action-tile::before { content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s; }
+    .action-tile:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+    .action-tile:hover::before { opacity:1; }
+    .action-tile.c-blue::before    { background:rgba(42,108,246,.06); }
+    .action-tile.c-teal::before    { background:rgba(0,201,177,.06); }
+    .action-tile.c-amber::before   { background:rgba(244,160,53,.06); }
+    .action-tile.c-rose::before    { background:rgba(242,92,125,.06); }
+    .action-tile.c-green::before   { background:rgba(34,208,122,.06); }
+    .action-tile.c-purple::before  { background:rgba(130,80,255,.06); }
+    .action-tile.c-docgreen::before{ background:rgba(5,150,105,.06); }
+    .at-icon { width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;transition:transform .2s; }
+    .at-icon i { font-size:22px; }
+    .action-tile:hover .at-icon { transform:scale(1.1); }
+    .action-tile.c-blue     .at-icon { background:#eff6ff;    color:var(--blue);   }
+    .action-tile.c-teal     .at-icon { background:#e6faf8;    color:var(--teal);   }
+    .action-tile.c-amber    .at-icon { background:#fff8ec;    color:var(--amber);  }
+    .action-tile.c-rose     .at-icon { background:#fff0f4;    color:var(--rose);   }
+    .action-tile.c-green    .at-icon { background:#edfdf4;    color:var(--green);  }
+    .action-tile.c-purple   .at-icon { background:#f3efff;    color:var(--purple); }
+    .action-tile.c-docgreen .at-icon { background:#e6faf8;    color:#059669;       }
+    .at-lbl { font-size:.75rem;font-weight:600;color:var(--text);text-align:center; }
+
+    /* ── REMINDERS STRIP ── */
+    .reminder-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scroll-snap-type:x mandatory; -ms-overflow-style:none; scrollbar-width:none; }
+    .reminder-strip::-webkit-scrollbar { display:none; }
+    .rem-card { min-width:160px; flex-shrink:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); scroll-snap-align:start; border-left:3px solid var(--blue); }
+    .rem-card.warn { border-left-color:var(--amber); }
+    .rem-card.ok   { border-left-color:var(--green); }
+    .rem-header { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+    .rem-icon-wrap { width:28px;height:28px;border-radius:8px;flex-shrink:0;background:rgba(42,108,246,.1);display:flex;align-items:center;justify-content:center; }
+    .rem-card.warn .rem-icon-wrap { background:rgba(244,160,53,.1); }
+    .rem-card.ok   .rem-icon-wrap { background:rgba(34,208,122,.1); }
+    .rem-icon-wrap i { font-size:14px;color:var(--blue); }
+    .rem-card.warn .rem-icon-wrap i { color:var(--amber); }
+    .rem-card.ok   .rem-icon-wrap i { color:var(--green); }
+    .rem-name  { font-size:.83rem;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .rem-time-row { display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);margin-bottom:8px; }
+    .rem-time-row i { font-size:12px;flex-shrink:0; }
+    .rem-pill { display:inline-flex;align-items:center;gap:4px;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:#eff6ff;color:var(--blue); }
+    .rem-card.warn .rem-pill { background:#fff8ec;color:var(--amber); }
+    .rem-card.ok   .rem-pill { background:#edfdf4;color:var(--green); }
+    html.dark .rem-pill,                body.dark .rem-pill                { background:rgba(42,108,246,.15);  color:#7aafff;  }
+    html.dark .rem-card.warn .rem-pill, body.dark .rem-card.warn .rem-pill { background:rgba(244,160,53,.15);  color:#fbbf6a;  }
+    html.dark .rem-card.ok   .rem-pill, body.dark .rem-card.ok   .rem-pill { background:rgba(34,208,122,.15);  color:#4ade80;  }
+
+    /* ── CONNECT DOCTOR CARD ── */
+    .connect-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:18px; margin-bottom:20px;
+      box-shadow:var(--shadow); animation:fadeUp .5s .18s ease both;
+    }
+    .connect-card-head {
+      display:flex; align-items:center; gap:10px; margin-bottom:14px;
+    }
+    .connect-icon-wrap {
+      width:40px; height:40px; border-radius:11px;
+      background:linear-gradient(135deg,#e6faf8,#d1fae5);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .connect-icon-wrap i { font-size:20px; color:#059669; }
+    .connect-head-text .ctitle { font-weight:700; font-size:.92rem; color:var(--text); }
+    .connect-head-text .csub   { font-size:.75rem; color:var(--muted); margin-top:1px; }
+    .connect-input-row { display:flex; gap:8px; }
+    .connect-input {
+      flex:1; padding:10px 14px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif;
+      font-size:.9rem; color:var(--text); background:var(--bg);
+      outline:none; transition:border-color .2s;
+      text-transform:uppercase; letter-spacing:1px; font-weight:700;
+    }
+    .connect-input:focus { border-color:#059669; box-shadow:0 0 0 3px rgba(5,150,105,.12); }
+    html.dark .connect-input, body.dark .connect-input { background:#080f28; color:#e8efff; border-color:#1e2e58; }
+    .connect-btn {
+      padding:10px 18px; border:none; border-radius:var(--radius-sm);
+      background:linear-gradient(135deg,#059669,#00c9b1);
+      color:#fff; font-weight:700; font-size:.85rem; cursor:pointer;
+      font-family:'DM Sans',sans-serif; white-space:nowrap;
+      display:flex; align-items:center; gap:6px; transition:all .2s;
+      box-shadow:0 3px 12px rgba(5,150,105,.3);
+    }
+    .connect-btn:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(5,150,105,.4); }
+    .connect-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+    .connect-btn i { font-size:15px; }
+    .connect-msg {
+      margin-top:10px; padding:10px 14px; border-radius:9px;
+      font-size:.82rem; font-weight:600; display:none;
+    }
+    .connect-msg.success { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+    .connect-msg.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+    html.dark .connect-msg.success { background:rgba(5,150,105,.15); border-color:rgba(5,150,105,.4); color:#6ee7b7; }
+    html.dark .connect-msg.error   { background:rgba(239,68,68,.15);  border-color:rgba(239,68,68,.4);  color:#fca5a5; }
+
+    .disclaimer { text-align:center;font-size:.7rem;color:var(--muted);margin-top:24px;padding-top:16px;border-top:1px solid var(--border);line-height:1.7; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @media(max-width:500px) { .hero-name{font-size:1.35rem;} .hstat-val{font-size:1.2rem;} }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+    </div>
+    <span class="sidebar-logo-text">DHAS</span>
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <a href="dashboard.html"   class="side-link active"><i class="ti ti-layout-dashboard"></i><span data-i18n="dashboard">Dashboard</span></a>
+  <a href="symptom.html"     class="side-link"><i class="ti ti-notes"></i><span data-i18n="symptoms">Symptoms</span></a>
+  <a href="reports.html"     class="side-link"><i class="ti ti-report-medical"></i><span data-i18n="reports">Reports</span></a>
+  <a href="diet.html"        class="side-link"><i class="ti ti-salad"></i><span data-i18n="diet">Diet</span></a>
+  <a href="remedies.html"    class="side-link"><i class="ti ti-plant"></i><span data-i18n="remedies">Remedies</span></a>
+  <a href="reminder.html"    class="side-link"><i class="ti ti-clock"></i><span data-i18n="reminders">Reminders</span></a>
+  <a href="steps.html"       class="side-link"><i class="ti ti-run"></i><span data-i18n="steps">Steps</span></a>
+  <a href="find_doctor.html" class="side-link"><i class="ti ti-stethoscope"></i><span>Find Doctor</span></a>
+  <a href="my_doctors.html"  class="side-link"><i class="ti ti-users"></i><span>My Doctors</span></a>
+  <!--
+    CHANGED: was <a href="chat.html">. The plain link never set
+    sessionStorage.dhas_chat_role, so chat.js's "both sessions exist"
+    fallback could silently open this as the PATIENT (which happens to
+    be correct here) OR, if a doctor session in the same browser is
+    *newer*, behave unpredictably depending on load order. Now we always
+    explicitly say "I am the patient" via the shared openChat() helper
+    from js/config.js, so this never depends on guesswork.
+  -->
+  <button class="side-link" onclick="window.openChat('patient'); closeSidebar();"><i class="ti ti-message-circle-2"></i><span>Chat</span></button>
+  <a href="language.html"    class="side-link"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
+  <a href="profile.html"     class="side-link"><i class="ti ti-user-circle"></i><span data-i18n="profile">Profile</span></a>
+  <a href="change_password.html" class="side-link" id="sideChangePw"><i class="ti ti-lock"></i><span>Change Password</span></a>
+</nav>
+
+<div class="main-layout" id="mainLayout">
+
+  <header class="topbar">
+    <button class="ham" onclick="toggleSidebar()" aria-label="Open menu">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <div class="topbar-brand-dot"></div>
+      DHAS
+    </div>
+    <div class="topbar-right">
+      <div class="theme-pill" onclick="toggleTheme()" title="Toggle theme" role="button">
+        <svg class="theme-icon" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <span class="theme-label">Dark</span>
+      </div>
+      <div class="notif-wrap">
+        <div class="notif-btn" id="notifBtn" onclick="toggleNotifDrop()" title="Notifications" aria-label="Notifications">
+          <i class="ti ti-bell"></i>
+          <div class="badge" id="notifBadge"></div>
+        </div>
+        <div class="notif-drop" id="notifDrop">
+          <div class="notif-drop-head">
+            <div class="notif-drop-title">Notifications</div>
+            <button class="notif-clear-btn" onclick="clearAllNotifs()">Clear all</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-empty"><i class="ti ti-bell-off"></i>No notifications yet</div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-wrap">
+        <div class="avatar-btn" id="avatarBtn" onclick="toggleDropdown()">
+          <span id="avatarInitial">U</span>
+          <div class="online-dot"></div>
+        </div>
+        <div class="pdrop" id="pdrop">
+          <div class="pdrop-header">
+            <div class="pdrop-name"  id="dropName">User</div>
+            <div class="pdrop-email" id="dropEmail">user@email.com</div>
+          </div>
+          <div class="pdrop-divider"></div>
+          <a href="profile.html"         class="pdrop-item"><i class="ti ti-user-circle"></i><span data-i18n="profile">My Profile</span></a>
+          <a href="profile_details.html"  class="pdrop-item"><i class="ti ti-edit"></i>Edit Profile</a>
+          <a href="change_password.html"  class="pdrop-item" id="dashChangePw"><i class="ti ti-lock"></i>Change Password</a>
+          <!--
+            CHANGED: was <a href="chat.html">. Same fix as the sidebar
+            link above — explicit role via openChat() instead of a bare
+            navigation that left chat.js to guess.
+          -->
+          <div class="pdrop-item" onclick="window.openChat('patient')"><i class="ti ti-message-circle-2"></i>Chat</div>
+          <a href="language.html"         class="pdrop-item"><i class="ti ti-language"></i><span data-i18n="language">Language</span></a>
+          <div class="pdrop-divider"></div>
+          <div class="pdrop-item danger" onclick="handleLogout()"><i class="ti ti-logout"></i><span data-i18n="logout">Logout</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- HERO CARD -->
+    <div class="hero-card">
+      <div class="hero-greeting">Good <span id="timeOfDay">morning</span></div>
+      <div class="hero-name" id="heroName">
+        <span class="skeleton" style="width:180px;height:32px;border-radius:8px;"></span>
+      </div>
+      <div class="hero-date" id="heroDate"></div>
+      <div class="hero-stats">
+        <div class="hstat">
+          <div class="hstat-val" id="statSymptoms"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Symptoms logged</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="statReminders"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Reminders active</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-val" id="statReports"><span class="skeleton" style="width:36px;height:28px;border-radius:6px;"></span></div>
+          <div class="hstat-lbl">Reports saved</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEALTH SNAPSHOT -->
+    <div class="sec-head">
+      <div class="sec-title" data-i18n="healthSnapshot">Health Snapshot</div>
+      <a href="profile.html" class="sec-link">View profile →</a>
+    </div>
+    <div class="snapshot-grid" id="snapshotGrid">
+      <div class="snap-card"><div class="snap-top"><span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span><span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span></div><span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span><span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span></div>
+      <div class="snap-card"><div class="snap-top"><span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span><span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span></div><span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span><span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span></div>
+      <div class="snap-card"><div class="snap-top"><span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span><span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span></div><span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span><span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span></div>
+      <div class="snap-card"><div class="snap-top"><span class="skeleton" style="width:36px;height:36px;border-radius:10px;"></span><span class="skeleton" style="width:50px;height:20px;border-radius:20px;"></span></div><span class="skeleton" style="width:60px;height:28px;border-radius:6px;margin-bottom:4px;"></span><span class="skeleton" style="width:40px;height:12px;border-radius:4px;"></span></div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="sec-head" style="margin-top:8px;">
+      <div class="sec-title" data-i18n="quickActions">Quick Actions</div>
+    </div>
+    <div class="actions-grid">
+      <a href="symptom.html"     class="action-tile c-blue">     <div class="at-icon"><i class="ti ti-notes"></i></div>               <div class="at-lbl" data-i18n="symptoms">Symptoms</div></a>
+      <a href="reports.html"     class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-report-medical"></i></div>       <div class="at-lbl" data-i18n="reports">Reports</div></a>
+      <a href="diet.html"        class="action-tile c-amber">    <div class="at-icon"><i class="ti ti-salad"></i></div>               <div class="at-lbl" data-i18n="diet">Diet</div></a>
+      <a href="remedies.html"    class="action-tile c-green">    <div class="at-icon"><i class="ti ti-plant"></i></div>               <div class="at-lbl" data-i18n="remedies">Remedies</div></a>
+      <a href="reminder.html"    class="action-tile c-rose">     <div class="at-icon"><i class="ti ti-clock"></i></div>               <div class="at-lbl" data-i18n="reminders">Reminders</div></a>
+      <a href="steps.html"       class="action-tile c-purple">   <div class="at-icon"><i class="ti ti-run"></i></div>                 <div class="at-lbl" data-i18n="steps">Steps</div></a>
+      <a href="find_doctor.html" class="action-tile c-teal">     <div class="at-icon"><i class="ti ti-stethoscope"></i></div>         <div class="at-lbl">Find Doctor</div></a>
+      <a href="my_doctors.html"  class="action-tile c-docgreen"> <div class="at-icon"><i class="ti ti-users"></i></div>               <div class="at-lbl">My Doctors</div></a>
+      <!--
+        CHANGED: was <a href="chat.html">. The Quick Actions "Chat" tile
+        is the most common way a patient would jump into chat, so this
+        was the highest-impact spot for the role-guessing bug. Now uses
+        the shared openChat() helper — explicit "patient" every time,
+        regardless of what other sessions exist in this browser.
+      -->
+      <div class="action-tile c-blue" onclick="window.openChat('patient')">  <div class="at-icon"><i class="ti ti-message-circle-2"></i></div>    <div class="at-lbl">Chat</div></div>
+    </div>
+
+    <!-- CONNECT WITH DOCTOR -->
+    <div class="sec-head">
+      <div class="sec-title">Connect with a Doctor</div>
+      <a href="my_doctors.html" class="sec-link">My doctors →</a>
+    </div>
+    <div class="connect-card">
+      <div class="connect-card-head">
+        <div class="connect-icon-wrap"><i class="ti ti-link"></i></div>
+        <div class="connect-head-text">
+          <div class="ctitle">Enter an Invite Code</div>
+          <div class="csub">Get the code from your doctor and connect instantly</div>
+        </div>
+      </div>
+      <div class="connect-input-row">
+        <input type="text" id="inviteCodeInput" class="connect-input" placeholder="DR-XXXXXX" maxlength="9" oninput="this.value=this.value.toUpperCase()">
+        <button class="connect-btn" id="connectBtn" onclick="connectToDoctor()">
+          <i class="ti ti-link"></i> Connect
+        </button>
+      </div>
+      <div class="connect-msg" id="connectMsg"></div>
+    </div>
+
+    <!-- TODAY'S REMINDERS -->
+    <div class="sec-head">
+      <div class="sec-title" data-i18n="activeReminders">Today's Active Reminders</div>
+      <a href="saved_reminders.html" class="sec-link">Manage →</a>
+    </div>
+    <div class="reminder-strip" id="reminderStrip">
+      <div class="rem-card" style="min-width:160px;"><div class="rem-header"><span class="skeleton" style="width:28px;height:28px;border-radius:8px;flex-shrink:0;"></span><span class="skeleton" style="width:90px;height:14px;border-radius:4px;"></span></div><span class="skeleton" style="width:100px;height:11px;border-radius:4px;margin-bottom:8px;display:block;"></span><span class="skeleton" style="width:70px;height:18px;border-radius:20px;"></span></div>
+      <div class="rem-card" style="min-width:160px;"><div class="rem-header"><span class="skeleton" style="width:28px;height:28px;border-radius:8px;flex-shrink:0;"></span><span class="skeleton" style="width:90px;height:14px;border-radius:4px;"></span></div><span class="skeleton" style="width:100px;height:11px;border-radius:4px;margin-bottom:8px;display:block;"></span><span class="skeleton" style="width:70px;height:18px;border-radius:20px;"></span></div>
+    </div>
+
+    <p class="disclaimer">
+      DHAS is for informational purposes only.<br>
+      Not a substitute for professional medical advice, diagnosis, or treatment.
+    </p>
+  </main>
+</div>
+
+<script>
+const storedUser = localStorage.getItem("dhas_user");
+if (!storedUser) { window.location.href = "login.html"; }
+const user = JSON.parse(storedUser || "{}");
+const BASE = window.API_BASE;
+
+const hour = new Date().getHours();
+document.getElementById("timeOfDay").textContent =
+  hour < 12 ? window.DHAS_LANG.t("goodMorning")
+  : hour < 17 ? window.DHAS_LANG.t("goodAfternoon")
+  : window.DHAS_LANG.t("goodEvening");
+
+document.getElementById("heroDate").textContent =
+  new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+
+const avatarBtn = document.getElementById("avatarBtn");
+function setAvatar(src, name) {
+  if (src) {
+    avatarBtn.innerHTML = `<img src="${src}" alt="avatar"><div class="online-dot"></div>`;
+  } else {
+    avatarBtn.innerHTML = `<span id="avatarInitial">${(name || "U").charAt(0).toUpperCase()}</span><div class="online-dot"></div>`;
+  }
+}
+setAvatar(user.profile_image || null, user.name);
+document.getElementById("dropName").textContent  = user.name  || "User";
+document.getElementById("dropEmail").textContent = user.email || "—";
+
+/* ── Sidebar ── */
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); document.getElementById("overlay").classList.toggle("show"); }
+function closeSidebar()  { document.getElementById("sidebar").classList.remove("open");  document.getElementById("overlay").classList.remove("show"); }
+
+/* ── Profile dropdown ── */
+function toggleDropdown() { document.getElementById("pdrop").classList.toggle("open"); }
+document.addEventListener("click", e => {
+  if (!document.querySelector(".profile-wrap").contains(e.target))
+    document.getElementById("pdrop").classList.remove("open");
+});
+
+/* ── Logout ── */
+function handleLogout() {
+  if (!confirm("Log out of DHAS?")) return;
+  ["dhas_user", "dhas_token", "googleUser", "loggedInUser"].forEach(k => localStorage.removeItem(k));
+  window.location.href = "login.html";
+}
+
+/* ── Reminder helpers ── */
+function to24(h, m, ampm) {
+  let hour = parseInt(h, 10);
+  if (ampm === "PM" && hour !== 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  return [hour, parseInt(m, 10)];
+}
+function shouldFireToday(r) {
+  const now = new Date();
+  const dow = now.getDay(), dom = now.getDate();
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+  if (r.startDate) { const start = new Date(r.startDate+"T00:00:00"); if (todayMidnight < start) return false; }
+  if (r.duration && r.duration !== "forever") {
+    const base = r.startDate ? new Date(r.startDate+"T00:00:00") : new Date(r.createdAt);
+    base.setHours(0,0,0,0);
+    if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
+  }
+  switch (r.sched) {
+    case "daily":     return true;
+    case "alternate": { if (!r.altBase) return true; const base=new Date(r.altBase); const today=new Date(); today.setHours(0,0,0,0); const bDay=new Date(base.getFullYear(),base.getMonth(),base.getDate()); return Math.round((today-bDay)/86400000)%2===0; }
+    case "weekly": case "twice_week": case "three_week": case "custom": return (r.days||[]).includes(dow);
+    case "monthly": return dom===(r.monthDay||1);
+    default: return false;
+  }
+}
+function hasUpcomingTimeToday(r) {
+  if (!r.times||!r.times.length) return true;
+  const now=new Date(); const nowH=now.getHours(), nowM=now.getMinutes();
+  return r.times.some(t=>{ const [alarmH,alarmM]=to24(t.h,t.m,t.ampm); return alarmH>nowH||(alarmH===nowH&&alarmM>=nowM); });
+}
+function getNextTimeDisplay(r) {
+  if (!r.times||!r.times.length) return r.schedule_label||r.scheduleLabel||"—";
+  const now=new Date(); const nowH=now.getHours(), nowM=now.getMinutes();
+  const upcoming=r.times.find(t=>{ const [alarmH,alarmM]=to24(t.h,t.m,t.ampm); return alarmH>nowH||(alarmH===nowH&&alarmM>=nowM); });
+  const slot=upcoming||r.times[0];
+  return slot.display||`${slot.h}:${slot.m} ${slot.ampm}`;
+}
+
+/* ── Health Snapshot ── */
+function renderSnapshot(p) {
+  const grid=document.getElementById("snapshotGrid");
+  const hasBlood=!!p.blood_group, hasWeight=p.weight!=null&&p.weight!=="", hasHeight=p.height!=null&&p.height!=="";
+  const hasBMI=hasHeight&&hasWeight;
+  let html="";
+
+  if (hasBMI) {
+    const h=parseFloat(p.height)/100, bmi=(parseFloat(p.weight)/(h*h)).toFixed(1);
+    const n=parseFloat(bmi);
+    const status=n<18.5?"Under":n<25?"Normal":n<30?"Over":"Obese";
+    const trendCls=status==="Normal"?"up":status==="Under"?"ok":"dn";
+    html+=`<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff0f4;color:#f25c7d;"><i class="ti ti-heart-rate-monitor"></i></div><div class="snap-trend ${trendCls}">${status}</div></div><div class="snap-val">${bmi}</div><div class="snap-lbl">BMI</div></div>`;
+  } else {
+    html+=`<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff0f4;color:#f25c7d;"><i class="ti ti-heart-rate-monitor"></i></div><div class="snap-trend ok">—</div></div><div class="snap-val empty">Not set</div><div class="snap-lbl">BMI</div></div>`;
+  }
+  html+=`<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-droplet"></i></div><div class="snap-trend ok">${hasBlood?p.blood_group:"—"}</div></div><div class="snap-val ${hasBlood?"":"empty"}">${hasBlood?p.blood_group:"Not set"}</div><div class="snap-lbl">Blood Group</div></div>`;
+  html+=`<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#e6faf8;color:var(--teal);"><i class="ti ti-weight"></i></div><div class="snap-trend ok">${hasWeight?"kg":"—"}</div></div><div class="snap-val ${hasWeight?"":"empty"}">${hasWeight?p.weight:"Not set"}</div><div class="snap-lbl">Weight</div></div>`;
+  html+=`<div class="snap-card"><div class="snap-top"><div class="snap-icon" style="background:#fff8ec;color:var(--amber);"><i class="ti ti-ruler-2"></i></div><div class="snap-trend ok">${hasHeight?"cm":"—"}</div></div><div class="snap-val ${hasHeight?"":"empty"}">${hasHeight?p.height:"Not set"}</div><div class="snap-lbl">Height</div></div>`;
+
+  if (!hasBlood&&!hasWeight&&!hasHeight) {
+    html+=`<div class="snap-incomplete"><i class="ti ti-info-circle"></i><div class="snap-incomplete-text"><strong>Health data missing.</strong> Complete your profile to see your snapshot.</div><a href="profile_details.html" class="snap-incomplete-link">Complete →</a></div>`;
+  }
+  grid.innerHTML=html;
+}
+
+/* ── Connect to Doctor ── */
+async function connectToDoctor() {
+  const code  = document.getElementById("inviteCodeInput").value.trim();
+  const msgEl = document.getElementById("connectMsg");
+  const btn   = document.getElementById("connectBtn");
+
+  if (!code || code.length < 5) {
+    msgEl.textContent = "Please enter a valid invite code (e.g. DR-ABC123).";
+    msgEl.className = "connect-msg error";
+    msgEl.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite;font-size:15px"></i> Connecting…';
+  msgEl.style.display = "none";
+
+  try {
+    const res  = await fetch(`${BASE}/doctor/connect`, {
+      method: "POST",
+      headers: window.getAuthHeaders(),
+      body: JSON.stringify({ invite_code: code })
+    });
+    const data = await res.json();
+
+    msgEl.textContent = data.message || (data.success ? "Connected!" : "Connection failed.");
+    msgEl.className   = "connect-msg " + (data.success ? "success" : "error");
+    msgEl.style.display = "block";
+
+    if (data.success) {
+      document.getElementById("inviteCodeInput").value = "";
+      setTimeout(() => { msgEl.style.display = "none"; }, 4000);
+    }
+  } catch {
+    msgEl.textContent = "Cannot connect to server.";
+    msgEl.className = "connect-msg error";
+    msgEl.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-link"></i> Connect';
+  }
+}
+
+/* ── Load dashboard ── */
+async function loadDashboard() {
+  if (!user.id) { renderSnapshot({}); return; }
+  try {
+    const [pd, rd, rpd] = await Promise.all([
+      fetch(`${BASE}/profile/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json()),
+      fetch(`${BASE}/reminders/${user.id}`, { headers: window.getAuthHeaders() }).then(r => r.json()),
+      fetch(`${BASE}/reports/${user.id}`,   { headers: window.getAuthHeaders() }).then(r => r.json())
+    ]);
+
+    const p = (pd.success && pd.profile) ? pd.profile : {};
+
+    if (p.name) {
+      document.getElementById("heroName").textContent = p.name;
+      document.getElementById("dropName").textContent = p.name;
+    } else {
+      document.getElementById("heroName").textContent = user.name || "there";
+    }
+    if (p.profile_image) { setAvatar(p.profile_image, p.name || user.name); }
+
+    // ── Hide Change Password for Google-only accounts ──
+    // Google accounts have provider="google" and no local password.
+    // CHANGED: this now ALSO updates the cached localStorage user
+    // object's `provider` field, so that change_password.html's own
+    // fallback check (used if its API call fails) has accurate data
+    // too — previously the cached user object could go stale forever
+    // if it was written before provider was being tracked.
+    const isGoogleOnly = (p.provider === "google") || (user.provider === "google");
+    const changePwEl = document.getElementById("dashChangePw");
+    const sideChangePwEl = document.getElementById("sideChangePw");
+    if (isGoogleOnly) {
+      if (changePwEl)     changePwEl.style.display     = "none";
+      if (sideChangePwEl) sideChangePwEl.style.display = "none";
+    }
+    if (p.provider && user.provider !== p.provider) {
+      user.provider = p.provider;
+      try { localStorage.setItem("dhas_user", JSON.stringify(user)); } catch (_) {}
+    }
+
+    document.getElementById("statSymptoms").textContent  = p.symptom_count ?? "0";
+    document.getElementById("statReminders").textContent = rd.success  ? (rd.data  || []).length : "0";
+    document.getElementById("statReports").textContent   = rpd.success ? (rpd.data || []).length : "0";
+
+    renderSnapshot(p);
+
+    // Reminders strip
+    const strip = document.getElementById("reminderStrip");
+    const todayRems = rd.success
+      ? (rd.data || []).filter(r => shouldFireToday(r) && hasUpcomingTimeToday(r))
+      : [];
+
+    if (todayRems.length) {
+      const accentClasses = ["", "warn", "ok"];
+      strip.innerHTML = todayRems.slice(0, 5).map((r, i) => {
+        const name     = r.medicine || r.medicine_name || "Medication";
+        const timeInfo = getNextTimeDisplay(r);
+        const freq     = r.dosesLabel || r.doses_label || r.scheduleLabel || "Daily";
+        const cls      = accentClasses[i % 3];
+        return `<div class="rem-card ${cls}">
+          <div class="rem-header"><div class="rem-icon-wrap"><i class="ti ti-pill"></i></div><span class="rem-name" title="${name}">${name}</span></div>
+          <div class="rem-time-row"><i class="ti ti-clock"></i>${timeInfo}</div>
+          <div class="rem-pill"><i class="ti ti-repeat" style="font-size:10px"></i>${freq}</div>
+        </div>`;
+      }).join("");
+    } else {
+      strip.innerHTML = `<div class="rem-card" style="min-width:240px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">No active reminders for today.<br><a href="reminder.html" style="color:var(--blue);font-weight:600;">Add one →</a></div>`;
+    }
+
+  } catch (e) {
+    console.warn("Dashboard load failed:", e);
+    document.getElementById("heroName").textContent = user.name || "there";
+    document.getElementById("statSymptoms").textContent  = "0";
+    document.getElementById("statReminders").textContent = "0";
+    document.getElementById("statReports").textContent   = "0";
+    renderSnapshot({});
+    document.getElementById("reminderStrip").innerHTML = `<div class="rem-card" style="min-width:240px;text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border-left-color:var(--border);">Could not load reminders.</div>`;
+  }
+}
+
+// ── spin keyframe for button loader ──
+const s = document.createElement("style");
+s.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+document.head.appendChild(s);
+
+loadDashboard();
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICATION SYSTEM
+// Tracks: (1) unread chat messages from doctor
+//         (2) medicine reminders due today
+// Stored in localStorage so badge persists across short
+// navigations but clears when user explicitly clears.
+// ══════════════════════════════════════════════════════════
+
+const NOTIF_KEY = "dhas_notifications_v4";
+
+function loadNotifs() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); } catch { return []; }
+}
+function saveNotifs(list) {
+  try { localStorage.setItem(NOTIF_KEY, JSON.stringify(list)); } catch {}
+}
+
+function addNotif(notif) {
+  // notif: { id, type:"msg"|"reminder", title, sub, ts, unread:true, action }
+  const list = loadNotifs();
+  // deduplicate by id
+  if (list.find(n => n.id === notif.id)) return;
+  list.unshift({ ...notif, unread: true, ts: notif.ts || Date.now() });
+  // Keep max 30
+  saveNotifs(list.slice(0, 30));
+  renderNotifDrop();
+}
+
+function markAllRead() {
+  const list = loadNotifs().map(n => ({ ...n, unread: false }));
+  saveNotifs(list);
+  renderNotifDrop();
+}
+
+function clearAllNotifs() {
+  saveNotifs([]);
+  renderNotifDrop();
+}
+
+function toggleNotifDrop() {
+  const drop = document.getElementById("notifDrop");
+  const isOpen = drop.classList.contains("open");
+  if (isOpen) {
+    drop.classList.remove("open");
+    // Mark all read only when CLOSING the panel (user has seen them)
+    markAllRead();
+  } else {
+    drop.classList.add("open");
+    // Do NOT mark read on open — let user see which are new first
+  }
+}
+
+document.addEventListener("click", e => {
+  const wrap = document.querySelector(".notif-wrap");
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById("notifDrop")?.classList.remove("open");
+  }
+});
+
+function humanAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60)  return "Just now";
+  if (diff < 3600) return Math.floor(diff/60) + " min ago";
+  if (diff < 86400) return Math.floor(diff/3600) + " hr ago";
+  return Math.floor(diff/86400) + "d ago";
+}
+
+function renderNotifDrop() {
+  const list   = loadNotifs();
+  const badge  = document.getElementById("notifBadge");
+  const listEl = document.getElementById("notifList");
+  if (!badge || !listEl) return;
+
+  const unread = list.filter(n => n.unread).length;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? "9+" : String(unread);
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+
+  if (!list.length) {
+    listEl.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off"></i>No notifications yet</div>`;
+    return;
+  }
+
+  // Store notif data in a map keyed by index so click handler can retrieve it
+  // safely without HTML attribute escaping issues
+  window._notifData = list;
+
+  listEl.innerHTML = list.map((n, idx) => {
+    const iconClass = n.type === "msg" ? "msg" : "rem";
+    const iconName  = n.type === "msg" ? "ti-message-circle-2" : "ti-pill";
+    const indicator = n.unread
+      ? '<div class="notif-dot"></div>'
+      : '<span class="notif-read-label">Read</span>';
+    return `<div class="notif-item ${n.unread ? "unread" : ""}" data-idx="${idx}" onclick="handleNotifClick(${idx})">
+      <div class="notif-icon ${iconClass}"><i class="ti ${iconName}"></i></div>
+      <div class="notif-content">
+        <div class="notif-content-title">${escHTML(n.title)}</div>
+        <div class="notif-content-sub">${escHTML(n.sub || "")} · ${humanAgo(n.ts)}</div>
+      </div>
+      ${indicator}
+    </div>`;
+  }).join("");
+}
+
+function escHTML(s) {
+  const d = document.createElement("div");
+  d.textContent = String(s || "");
+  return d.innerHTML;
+}
+
+async function handleNotifClick(idx) {
+  const n = (window._notifData || [])[idx];
+  if (!n) return;
+
+  // Mark this notification as read locally AND remove it
+  // (it will re-appear only if there are new unread messages again)
+  const list = loadNotifs().filter(x => x.id !== n.id);
+  saveNotifs(list);
+  renderNotifDrop();
+  document.getElementById("notifDrop")?.classList.remove("open");
+
+  if (n.type === "msg") {
+    // Call backend to mark messages as read for this room
+    if (n.room_id) {
+      try {
+        await fetch(`${BASE}/chat/read/${n.room_id}`, {
+          method: "PATCH",
+          headers: window.getAuthHeaders()
+        });
+      } catch (_) {}
+    }
+    if (n.partner_id) {
+      window.openChat("patient", n.partner_id);
+    } else {
+      window.openChat("patient");
+    }
+  } else if (n.type === "reminder") {
+    window.location.href = "reminder.html";
+  }
+}
+
+// ── 1. Fetch unread chat messages from doctor ────────────────
+// ONE grouped notification per contact (not one per message).
+// The notification id is keyed on room_id only, so refreshing
+// updates the existing entry's count/preview instead of adding duplicates.
+// When unread_count drops to 0 (messages read in chat), the notification
+// is removed automatically.
+async function fetchChatNotifs() {
+  if (!user.id) return;
+  try {
+    const res  = await fetch(`${BASE}/chat/contacts`, { headers: window.getAuthHeaders() });
+    const data = await res.json();
+    if (!data.success) return;
+
+    let current = loadNotifs();
+
+    (data.data || []).forEach(contact => {
+      const count = parseInt(contact.unread_count) || 0;
+      const notifId = `msg_${contact.room_id}`;
+
+      if (count <= 0) {
+        // Messages were read in the chat — remove any stale notification
+        current = current.filter(n => n.id !== notifId);
+        return;
+      }
+
+      const docName = "Dr. " + (contact.name || "Doctor");
+      const preview = contact.last_message_encrypted
+        ? "🔒 Encrypted message"
+        : (contact.last_message || "New message");
+      const ts = contact.last_message_at ? new Date(contact.last_message_at).getTime() : Date.now();
+
+      // Update-or-insert: remove stale entry for this room, then re-add with fresh data
+      const wasUnread = current.find(n => n.id === notifId)?.unread ?? true;
+      current = current.filter(n => n.id !== notifId);
+      current.unshift({
+        id:           notifId,
+        type:         "msg",
+        title:        `${count} new message${count > 1 ? "s" : ""} from ${docName}`,
+        sub:          preview.length > 60 ? preview.slice(0, 60) + "…" : preview,
+        ts,
+        unread:       wasUnread,
+        action:       "chat",
+        partner_id:   contact.partner_id,
+        room_id:      contact.room_id,
+        unread_count: count
+      });
+    });
+
+    saveNotifs(current.slice(0, 30));
+    renderNotifDrop();
+  } catch (e) {
+    console.warn("fetchChatNotifs error:", e);
+  }
+}
+
+// ── 2. Check today's reminders and add notifs ────────────────
+async function fetchReminderNotifs() {
+  if (!user.id) return;
+  try {
+    const res  = await fetch(`${BASE}/reminders/${user.id}`, { headers: window.getAuthHeaders() });
+    const data = await res.json();
+    if (!data.success) return;
+
+    const reminders = data.data || [];
+    const now  = new Date();
+    const dow  = now.getDay();
+    const dom  = now.getDate();
+    const hh   = now.getHours();
+    const mm   = now.getMinutes();
+
+    reminders.forEach(r => {
+      if (!shouldFireToday(r)) return;
+      (r.times || []).forEach(t => {
+        let hour = parseInt(t.h, 10);
+        if (t.ampm === "PM" && hour !== 12) hour += 12;
+        if (t.ampm === "AM" && hour === 12) hour = 0;
+        const alarmMin = hour * 60 + parseInt(t.m, 10);
+        const nowMin   = hh * 60 + mm;
+
+        // Show notif for alarms that fired in the last 60 min or are upcoming today
+        if (alarmMin <= nowMin && nowMin - alarmMin <= 60) {
+          // Already fired recently — show as "due"
+          addNotif({
+            id:    `rem_${r.id}_${t.label}_${hour}_${parseInt(t.m)}`,
+            type:  "reminder",
+            title: `💊 Time for ${r.medicine}`,
+            sub:   `${t.label}: ${t.display || t.h+":"+t.m+" "+t.ampm}`,
+            ts:    Date.now() - (nowMin - alarmMin) * 60000,
+            action: "reminder"
+          });
+        } else if (alarmMin > nowMin && alarmMin - nowMin <= 30) {
+          // Coming up in ≤30 min — show as upcoming
+          const minLeft = alarmMin - nowMin;
+          addNotif({
+            id:    `rem_upcoming_${r.id}_${t.label}_${hour}`,
+            type:  "reminder",
+            title: `⏰ Upcoming: ${r.medicine}`,
+            sub:   `Due in ${minLeft} min — ${t.display || t.h+":"+t.m+" "+t.ampm}`,
+            ts:    Date.now(),
+            action: "reminder"
+          });
+        }
+      });
+    });
+  } catch (e) {
+    console.warn("fetchReminderNotifs error:", e);
+  }
+}
+
+// ── 3. Init: load stored notifs, then fetch fresh ones ───────
+renderNotifDrop();
+fetchChatNotifs();
+fetchReminderNotifs();
+
+// Refresh every 2 minutes
+setInterval(() => {
+  fetchChatNotifs();
+  fetchReminderNotifs();
+}, 2 * 60 * 1000);
+</script>
+</body>
+</html>

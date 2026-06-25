@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/config.js"></script>
+  <script src="theme.js"></script>
+  <title>Doctor Registration — DHAS</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <style>
+    :root{--navy:#0b1437;--blue:#2a6cf6;--teal:#00c9b1;--bg:#f0f4ff;--surface:#ffffff;--border:#e4e9f4;--text:#0d1b3e;--muted:#6b7fa3;--radius:20px;}
+    body.dark{--bg:#07101f;--surface:#0f1c35;--border:#1a2d4a;--text:#dde9ff;--muted:#6a80a8;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);transition:background .35s;}
+    .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 20px;}
+    .auth-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,201,177,.1);width:100%;max-width:420px;overflow:hidden;}
+    .card-brand{background:linear-gradient(145deg,#064e3b,#059669);padding:28px;text-align:center;}
+    .brand-icon{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#059669,#00c9b1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(0,201,177,.4);}
+    .brand-icon svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:2;}
+    .brand-title{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:4px;}
+    .brand-sub{font-size:.8rem;color:rgba(255,255,255,.5);}
+    .card-body{padding:28px;}
+    .dhas-label{font-size:.71rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:7px;}
+    .dhas-input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text);background:var(--bg);outline:none;transition:border-color .2s;margin-bottom:14px;appearance:none;}
+    .dhas-input:focus{border-color:#059669;box-shadow:0 0 0 4px rgba(5,150,105,.1);background:var(--surface);}
+    body.dark .dhas-input{background:rgba(255,255,255,.04);color:#dde9ff;border-color:#1a2d4a;}
+    .pw-wrap{position:relative;}
+    .pw-wrap .dhas-input{padding-right:3rem;margin-bottom:14px;}
+    .toggle-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;padding:4px;cursor:pointer;color:var(--muted);display:flex;align-items:center;transition:color .2s;}
+    .toggle-eye:hover{color:#059669;}
+    .toggle-eye svg{width:18px;height:18px;pointer-events:none;stroke:currentColor;fill:none;stroke-width:2;}
+    .btn-register{width:100%;padding:13px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;background:linear-gradient(135deg,#059669,#00c9b1);color:#fff;box-shadow:0 4px 20px rgba(5,150,105,.35);transition:all .22s;}
+    .btn-register:hover{transform:translateY(-1px);}
+    .alert{padding:11px 14px;border-radius:10px;font-size:.84rem;font-weight:600;margin-bottom:14px;display:none;}
+    .alert.danger{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+    .alert.success{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;}
+    body.dark .alert.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+    body.dark .alert.success{background:rgba(5,150,105,.12);border-color:rgba(5,150,105,.3);color:#6ee7b7;}
+    .or-divider{display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:var(--muted);font-size:.78rem;font-weight:600;}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+    .google-btn-wrap{display:flex;justify-content:center;background:#fff;border-radius:12px;padding:10px;border:1.5px solid #dadce0;transition:box-shadow .2s;}
+    .google-btn-wrap:hover{box-shadow:0 2px 12px rgba(0,0,0,.12);}
+    .footer-note{text-align:center;font-size:.83rem;color:var(--muted);padding:0 28px 24px;}
+    .footer-note a{color:#059669;font-weight:600;text-decoration:none;}
+
+    /* password strength */
+    .strength-bar-wrap{display:flex;gap:4px;margin-bottom:6px;}
+    .strength-segment{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s;}
+    .strength-label{font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:14px;}
+    .req-list{list-style:none;padding:0;margin:4px 0 14px;font-size:.75rem;}
+    .req-list li{display:flex;align-items:center;gap:6px;color:var(--muted);margin-bottom:3px;transition:color .2s;}
+    .req-list li::before{content:"✗";font-weight:700;color:#e74c3c;min-width:14px;}
+    .req-list li.ok{color:#27ae60;}.req-list li.ok::before{content:"✓";color:#27ae60;}
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="card-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+      </div>
+      <div class="brand-title">Doctor Registration</div>
+      <div class="brand-sub">Create your DHAS Doctor account</div>
+    </div>
+    <div class="card-body">
+      <div id="errMsg"  class="alert danger"></div>
+      <div id="okMsg"   class="alert success"></div>
+
+      <label class="dhas-label">Full Name</label>
+      <input type="text" id="name" class="dhas-input" placeholder="Dr. Your Name">
+
+      <label class="dhas-label">Email Address</label>
+      <input type="email" id="email" class="dhas-input" placeholder="doctor@hospital.com">
+      <label class="dhas-label">Speciality</label>
+<select id="speciality" class="dhas-input">
+  <option value="">Select Speciality</option>
+  <option>General Physician</option>
+  <option>Cardiologist</option>
+  <option>Dermatologist</option>
+  <option>Neurologist</option>
+  <option>Pediatrician</option>
+  <option>Orthopedic Surgeon</option>
+  <option>Psychiatrist</option>
+  <option>Gynecologist</option>
+  <option>ENT Specialist</option>
+  <option>Ophthalmologist</option>
+</select>
+      <label class="dhas-label">Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="password" class="dhas-input"
+               placeholder="Min 6 chars — uppercase, number & symbol"
+               oninput="evalStrength(this.value)">
+        <button type="button" class="toggle-eye" onclick="togglePw()" aria-label="Show/hide password">
+          <svg id="eyeIcon" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="strength-bar-wrap">
+        <div class="strength-segment" id="seg1"></div>
+        <div class="strength-segment" id="seg2"></div>
+        <div class="strength-segment" id="seg3"></div>
+        <div class="strength-segment" id="seg4"></div>
+      </div>
+      <div class="strength-label" id="strengthLbl">—</div>
+
+      <ul class="req-list">
+        <li id="req-len">At least 6 characters</li>
+        <li id="req-upper">One uppercase letter (A–Z)</li>
+        <li id="req-lower">One lowercase letter (a–z)</li>
+        <li id="req-num">One number (0–9)</li>
+        <li id="req-sym">One symbol (!@#$%^&amp;*)</li>
+      </ul>
+
+      <button onclick="register()" class="btn-register">Create Doctor Account</button>
+
+      <div class="or-divider">OR continue with Google</div>
+      <div class="google-btn-wrap">
+        <div id="g_id_onload"
+             data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard" data-size="large" data-theme="outline"
+             data-text="signup_with" data-shape="pill" data-width="320">
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">
+      Already registered? <a href="doctor_login.html">Sign In</a><br><br>
+      <a href="index.html" style="color:var(--muted);font-size:.78rem;">← Back to Home</a>
+    </div>
+  </div>
+</div>
+<script>
+const RULES = {
+  len:   v => v.length >= 6,
+  upper: v => /[A-Z]/.test(v),
+  lower: v => /[a-z]/.test(v),
+  num:   v => /[0-9]/.test(v),
+  sym:   v => /[^A-Za-z0-9]/.test(v)
+};
+const COLORS = ["","#e74c3c","#e67e22","#f1c40f","#27ae60"];
+const LABELS = ["","Weak","Fair","Good","Strong"];
+
+function evalStrength(val) {
+  Object.keys(RULES).forEach(k => {
+    document.getElementById("req-" + k)?.classList.toggle("ok", RULES[k](val));
+  });
+  const score = Object.values(RULES).filter(fn => fn(val)).length;
+  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+  const color = COLORS[bars] || "#e0e0e0";
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById("seg" + i).style.background = i <= bars ? color : "";
+  }
+  const lbl = document.getElementById("strengthLbl");
+  lbl.textContent = val.length === 0 ? "—" : (LABELS[bars] || "—");
+  lbl.style.color = val.length === 0 ? "var(--muted)" : color;
+}
+
+function isPasswordStrong(val) {
+  return Object.values(RULES).every(fn => fn(val));
+}
+
+function togglePw() {
+  const f = document.getElementById("password");
+  const e = document.getElementById("eyeIcon");
+  f.type = f.type === "password" ? "text" : "password";
+  e.innerHTML = f.type === "text"
+    ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+}
+
+function showErr(msg) {
+  const e = document.getElementById("errMsg");
+  e.textContent = msg; e.style.display = "block";
+  document.getElementById("okMsg").style.display = "none";
+}
+
+async function register() {
+  const name       = document.getElementById("name").value.trim();
+  const email      = document.getElementById("email").value.trim();
+  const speciality = document.getElementById("speciality").value;
+  const password = document.getElementById("password").value;
+  document.getElementById("errMsg").style.display = "none";
+
+  if (!name)  { showErr("Full name is required."); return; }
+  if (!email) { showErr("Email address is required."); return; }
+  if (!speciality) {
+  showErr("Please select your speciality.");
+  return;
+}
+  if (!password || !isPasswordStrong(password)) {
+    showErr("Password must be at least 6 characters with uppercase, lowercase, number, and symbol.");
+    return;
+  }
+
+  const res  = await fetch(window.API_BASE + "/doctor/register", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password,speciality})
+  }).then(r => r.json()).catch(() => ({ success: false, message: "Cannot connect to server." }));
+
+  if (res.success) {
+    const ok = document.getElementById("okMsg");
+    ok.textContent = "Account created! Redirecting to login…";
+    ok.style.display = "block";
+    setTimeout(() => window.location.href = "doctor_login.html", 1800);
+  } else {
+    showErr(res.message || "Registration failed.");
+  }
+}
+
+function handleCredentialResponse(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  googleAuthDoctor(payload.name, payload.email, payload.sub);
+}
+
+async function googleAuthDoctor(name, email, googleId) {
+  const speciality = "General Physician";
+  try {
+    const res = await fetch(window.API_BASE + "/doctor/auth/google", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, google_id: googleId, speciality })
+    });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem("dhas_doctor_token", data.token);
+      localStorage.setItem("dhas_doctor",       JSON.stringify(data.doctor));
+      window.location.href = "doctor_dashboard.html";
+    } else {
+      showErr(data.message || "Google sign-in failed.");
+    }
+  } catch (err) {
+    showErr("Cannot connect to server.");
+  }
+}
+</script>
+</body>
+</html>

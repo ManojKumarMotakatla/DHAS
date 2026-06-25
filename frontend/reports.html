@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medical Reports - DHAS</title>
+  
+  <script src="js/config.js"></script>
+<script src="theme.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--teal:#00c9b1}
+    body{font-family:'DM Sans',sans-serif}
+
+    .page-wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
+
+    .page-header{
+      background:linear-gradient(135deg,#112057 0%,#2a6cf6 50%,#00c9b1 100%);
+      border-radius:20px;padding:28px 20px 24px;margin-bottom:20px;
+      position:relative;overflow:hidden;text-align:center;
+    }
+    .page-header::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(255,255,255,0.07);border-radius:50%}
+    .page-header::after{content:'';position:absolute;bottom:-20px;left:40px;width:90px;height:90px;background:rgba(255,255,255,0.05);border-radius:50%}
+
+    .header-icon-wrap{
+      width:60px;height:60px;border-radius:18px;
+      background:rgba(255,255,255,0.15);
+      border:1.5px solid rgba(255,255,255,0.25);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 14px;position:relative;
+    }
+    .header-icon-wrap i{font-size:28px;color:#fff}
+    .page-title{font-family:'Fraunces',serif;color:#fff;font-size:1.75rem;font-weight:700;margin-bottom:6px;position:relative}
+    .page-subtitle{color:rgba(255,255,255,0.72);font-size:0.85rem;font-weight:500;position:relative}
+
+    .dhas-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;box-shadow:0 2px 20px rgba(42,108,246,.09);border:1px solid var(--border,#e4e9f4);margin-bottom:16px;transition:background .35s,border-color .35s}
+    html.dark .dhas-card{background:#111c3c;border-color:#1e2e58}
+    .dhas-card h5{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--blue,#2a6cf6);display:flex;align-items:center;gap:8px}
+    .dhas-card h5 i{font-size:18px;color:currentColor}
+
+    .dhas-label{font-size:.72rem;font-weight:700;color:var(--text-muted,#6b7fa3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+    .dhas-input{width:100%;padding:11px 14px;border:1.5px solid var(--border,#e4e9f4);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--text,#0d1b3e);background:var(--bg,#f4f6fc);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px}
+    .dhas-input:focus{border-color:var(--blue,#2a6cf6);box-shadow:0 0 0 3px rgba(42,108,246,.12)}
+    html.dark .dhas-input{background:#080f28;color:#e8efff;border-color:#1e2e58}
+
+    .btn-dhas{width:100%;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .2s;display:inline-block;text-align:center}
+    .btn-dhas.primary{background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;box-shadow:0 4px 16px rgba(42,108,246,.3)}
+    .btn-dhas.primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(42,108,246,.4)}
+    .btn-dhas.secondary{background:var(--bg,#f4f6fc);color:var(--text,#0d1b3e);border:1.5px solid var(--border,#e4e9f4)}
+    html.dark .btn-dhas.secondary{background:#111c3c;color:#e8efff;border-color:#1e2e58}
+    .mt-12{margin-top:12px}
+
+    .sec-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:12px;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
+    .sec-title i{font-size:18px;color:var(--blue,#2a6cf6)}
+    html.dark .sec-title{color:#e8efff}
+
+    .report-item{background:var(--card-bg,#fff);border:1.5px solid var(--border,#e4e9f4);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .2s,background .35s}
+    .report-item:hover{border-color:var(--blue,#2a6cf6)}
+    html.dark .report-item{background:#111c3c;border-color:#1e2e58}
+    .report-name{font-weight:600;font-size:.95rem;word-break:break-all;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
+    .report-name i{font-size:18px;flex-shrink:0;color:var(--blue,#2a6cf6)}
+    html.dark .report-name{color:#e8efff}
+    .report-date{font-size:.78rem;color:var(--text-muted,#6b7fa3);margin-top:3px;display:flex;align-items:center;gap:5px}
+    .report-date i{font-size:13px}
+
+    .btn-sm{width:auto;padding:6px 14px;font-size:.8rem}
+    .reminder-delete{background:none;border:1px solid var(--border,#e4e9f4);color:#f25c7d;cursor:pointer;font-size:.8rem;font-weight:600;padding:6px 12px;border-radius:8px;transition:background .2s,border-color .2s;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px}
+    .reminder-delete i{font-size:13px}
+    .reminder-delete:hover{background:#fee2e2;border-color:#f25c7d}
+
+    .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted,#6b7fa3)}
+    .empty-state i.big{font-size:48px;opacity:0.5;display:block;margin-bottom:12px}
+    .empty-state p{font-size:.9rem}
+
+    .viewer-back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:10px;border:1.5px solid var(--border,#e4e9f4);background:var(--card-bg,#fff);color:var(--text,#0d1b3e);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none}
+    .viewer-back-btn:hover{border-color:var(--blue,#2a6cf6);color:var(--blue,#2a6cf6)}
+    .viewer-back-btn i{font-size:16px}
+
+    .download-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:10px;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;font-weight:600;font-size:0.85rem;text-decoration:none;transition:all .2s}
+    .download-btn:hover{opacity:.9;transform:translateY(-1px)}
+    .download-btn i{font-size:16px}
+
+    .view-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;font-weight:600;font-size:0.8rem;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+    .view-btn i{font-size:13px}
+
+    /* ── In-page toast ── */
+    #dhasToast {
+      position: fixed;
+      bottom: 24px;
+      left: 20px;
+      z-index: 99999;
+      max-width: 340px;
+      min-width: 240px;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      font-weight: 600;
+      line-height: 1.5;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    html.dark #dhasToast.success, body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    html.dark #dhasToast.error,   body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; font-size: 14px; padding: 0 0 0 8px; }
+    .toast-dismiss:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand" style="font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;color:#fff;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-heart" style="font-size:22px;color:#fff" aria-hidden="true"></i>
+      DHAS
+    </div>
+    <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:6px 16px;border-radius:20px;display:flex;align-items:center;gap:6px">
+      <i class="ti ti-chevron-left" style="font-size:14px" aria-hidden="true"></i>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <i class="ti ti-report-medical" aria-hidden="true"></i>
+      </div>
+      <div class="page-title">Medical Reports</div>
+      <div class="page-subtitle">Upload and manage your health documents securely</div>
+    </div>
+
+    <!-- LIST SECTION -->
+    <div id="listSection">
+
+      <div class="dhas-card">
+        <h5>
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          Upload Report
+        </h5>
+        <label class="dhas-label">Select File (PDF / Image, max 4 MB)</label>
+        <input type="file" class="dhas-input" id="reportFile" accept=".pdf,.jpg,.jpeg,.png">
+        <button id="uploadBtn" class="btn-dhas primary" onclick="uploadReport()">Upload Report</button>
+      </div>
+
+      <div>
+        <div class="sec-title">
+          <i class="ti ti-folder-open" aria-hidden="true"></i>
+          Uploaded Reports
+        </div>
+        <div id="reportList"></div>
+      </div>
+
+    </div>
+
+    <!-- VIEWER SECTION -->
+    <div id="viewerSection" style="display:none;"></div>
+
+  </div>
+
+  <!-- In-page toast -->
+  <div id="dhasToast" role="status" aria-live="polite"></div>
+
+  <script src="js/report.js"></script>
+</body>
+</html>

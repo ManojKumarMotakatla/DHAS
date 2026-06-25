@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step Counter - DHAS</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <style>
+    :root{--navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--teal:#00c9b1}
+    body{font-family:'DM Sans',sans-serif}
+
+    .page-wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
+
+    .page-header{
+     background:linear-gradient(135deg,#112057 0%,#2a6cf6 50%,#00c9b1 100%);
+      border-radius:20px;padding:28px 20px 24px;margin-bottom:20px;
+      position:relative;overflow:hidden;text-align:center;
+    }
+    .page-header::before{content:'';position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(255,255,255,0.07);border-radius:50%}
+    .page-header::after{content:'';position:absolute;bottom:-20px;left:40px;width:90px;height:90px;background:rgba(255,255,255,0.05);border-radius:50%}
+
+    .header-icon-wrap{
+      width:60px;height:60px;border-radius:18px;
+      background:rgba(255,255,255,0.15);
+      border:1.5px solid rgba(255,255,255,0.25);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 14px;position:relative;
+    }
+    .header-icon-wrap svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.8}
+    .page-title{font-family:'Fraunces',serif;color:#fff;font-size:1.75rem;font-weight:700;margin-bottom:6px;position:relative}
+    .page-subtitle{color:rgba(255,255,255,0.72);font-size:0.85rem;font-weight:500;position:relative}
+
+    .dhas-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;box-shadow:0 2px 20px rgba(42,108,246,.09);border:1px solid var(--border,#e4e9f4);margin-bottom:14px;transition:background .35s,border-color .35s}
+    html.dark .dhas-card{background:#111c3c;border-color:#1e2e58}
+    .dhas-card h5{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:14px;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
+    .dhas-card h5 svg{width:18px;height:18px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    html.dark .dhas-card h5{color:#e8efff}
+
+    .gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
+    .gauge-svg{overflow:visible}
+
+    .live-pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;padding:4px 14px;border-radius:20px;margin-bottom:14px;border:1px solid transparent;transition:all .4s}
+    .live-pill.waiting{background:#f5f5f5;color:#888;border-color:#ddd}
+    .live-pill.walking{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+    .live-pill.still{background:#fff8e1;color:#f57f17;border-color:#ffe082}
+    .dot-pulse{width:7px;height:7px;border-radius:50%;background:#4caf50;animation:pulse 1s infinite;flex-shrink:0}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+    .walk-type-row{display:flex;justify-content:space-between;font-size:.75rem;color:#888;margin:12px 0 4px}
+    .walk-bar-bg{height:6px;border-radius:3px;background:#eee;position:relative;overflow:hidden;margin-bottom:4px}
+    .walk-bar-slow{position:absolute;left:0;top:0;height:100%;background:#ffb3a0;border-radius:3px;transition:width .4s}
+    .walk-bar-brisk{position:absolute;right:0;top:0;height:100%;background:var(--primary,#e55);border-radius:3px 0 0 3px;transition:width .4s}
+
+    .cal-fun-card{display:flex;justify-content:space-between;align-items:center;background:#fff3e0;border:1px solid #ffcc80;border-radius:12px;padding:14px 18px;margin-top:12px}
+    html.dark .cal-fun-card{background:rgba(255,193,7,.08);border-color:rgba(255,193,7,.2)}
+    .cal-fun-card .val{font-size:1.6rem;font-weight:700;color:#bf360c}
+    .cal-fun-card .sub{font-size:.75rem;color:#a0522d;margin-top:2px}
+
+    .who-row{display:flex;align-items:center;gap:18px;margin-top:10px}
+    .who-ring-wrap{position:relative;flex-shrink:0}
+    .who-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;line-height:1.3}
+    .who-center .pct{font-size:1rem;font-weight:700}
+    .who-center .mins{font-size:.7rem;color:#888}
+    .who-breakdown .item{display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid #f0f0f0}
+    .who-breakdown .item:last-child{border:none}
+    .dot-icon{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+
+    .week-chart{display:flex;align-items:flex-end;gap:5px;height:80px;margin:10px 0 4px}
+    .week-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+    .week-bar{width:100%;border-radius:4px 4px 0 0;background:#ffd54f;min-height:3px;position:relative;transition:height .4s}
+    .week-bar.today{background:var(--primary,#e55)}
+    .week-crown{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;display:none}
+    .week-day-label{font-size:9px;color:#aaa}
+
+    .steps-big{font-size:2.8rem;font-weight:700;margin:4px 0 2px}
+    .steps-sub{font-size:.8rem;color:#888;margin-bottom:6px}
+
+    .steps-goal{color:var(--text-muted,#6b7fa3);font-size:.9rem;margin-top:6px}
+    .steps-progress{height:8px;background:var(--border,#e4e9f4);border-radius:99px;margin:16px 0;overflow:hidden}
+    .steps-bar{height:100%;background:linear-gradient(90deg,#2a6cf6,#00c9b1);border-radius:99px;transition:width .4s}
+    .text-center{text-align:center}
+    .text-muted{color:var(--text-muted,#6b7fa3)}
+
+    .connect-card{background:var(--card-bg,#fff);border-radius:18px;padding:20px;border:1px solid var(--border,#e4e9f4);margin-bottom:14px;box-shadow:0 2px 20px rgba(42,108,246,.09)}
+    html.dark .connect-card{background:#111c3c;border-color:#1e2e58}
+    .connect-card h4{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;margin-bottom:10px;color:var(--text,#0d1b3e);display:flex;align-items:center;gap:8px}
+    .connect-card h4 svg{width:18px;height:18px;stroke:var(--blue,#2a6cf6);fill:none;stroke-width:2}
+    html.dark .connect-card h4{color:#e8efff}
+    .connect-card p{font-size:.87rem;color:var(--text-muted,#6b7fa3);line-height:1.6;margin-bottom:0}
+
+    .info-box{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px;margin-top:12px;font-size:.82rem;color:#795548;line-height:1.6}
+    html.dark .info-box{background:rgba(255,224,130,.08);border-color:rgba(255,224,130,.2);color:#d4a017}
+
+    .dhas-btn{display:inline-block;padding:11px 20px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;background:linear-gradient(135deg,#2a6cf6,#4f8ef9);color:#fff;transition:all .2s;margin-top:12px}
+    .dhas-btn:hover{transform:translateY(-1px)}
+
+    #fitStatus{font-size:.8rem;color:#2e7d32;margin-top:4px;display:none}
+
+    /* ── In-page toast ── */
+    #dhasToast {
+      position: fixed;
+      bottom: 24px;
+      left: 20px;
+      z-index: 99999;
+      max-width: 340px;
+      min-width: 240px;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-size: 0.87rem;
+      font-weight: 600;
+      line-height: 1.5;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    html.dark #dhasToast.success, body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    html.dark #dhasToast.error,   body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; font-size: 14px; padding: 0 0 0 8px; }
+    .toast-dismiss:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand" style="font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;color:#fff;display:flex;align-items:center;gap:8px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      DHAS
+    </div>
+    <a href="dashboard.html" style="color:#fff;font-size:0.85rem;text-decoration:none;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:6px 16px;border-radius:20px;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- ── Hero Header ── -->
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      </div>
+      <div class="page-title">Step Counter</div>
+      <div class="page-subtitle">Track your daily steps and stay active</div>
+    </div>
+
+    <!-- Google Fit connect card -->
+    <div class="connect-card" id="fitConnectCard">
+      <h4>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        Sync Activity Data
+      </h4>
+      <p>Connect your fitness account to enable real-time step tracking, calorie analysis, distance monitoring, and weekly health insights.</p>
+
+      <div class="info-box">
+        <strong>First time using this feature?</strong><br>
+        Install Google Fit and allow Activity Tracking permissions on your phone.<br><br>
+        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.fitness" target="_blank"
+           style="display:inline-block;background:#34a853;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:600">
+          Install Google Fit
+        </a><br><br>
+        <strong>Setup:</strong>
+        <ol style="padding-left:18px;margin-top:6px">
+          <li>Install Google Fit and log in</li>
+          <li>Allow Activity &amp; Fitness permissions</li>
+          <li>Walk with your phone for a few minutes</li>
+          <li>Return here and connect</li>
+        </ol>
+      </div>
+
+      <button onclick="connectGoogleFit()" class="dhas-btn">Connect with Google Fit</button>
+    </div>
+
+    <!-- Main counter card -->
+    <div class="dhas-card text-center">
+
+      <div id="livePill" class="live-pill waiting">
+        <span class="dot-pulse" id="dotPulse" style="display:none"></span>
+        <span id="pillText">Initialising sensor…</span>
+      </div>
+
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" width="210" height="115" viewBox="0 0 210 115" role="img" aria-label="Step progress gauge">
+          <path d="M20,105 A85,85 0 0,1 190,105" fill="none" stroke="#eee" stroke-width="10" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M20,105 A85,85 0 0,1 190,105" fill="none" stroke="var(--primary,#e55)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 267" style="transition:stroke-dasharray .5s ease"/>
+          <line id="gaugeNeedle" x1="105" y1="105" x2="20" y2="105" stroke="var(--primary,#e55)" stroke-width="3" stroke-linecap="round" style="transform-origin:105px 105px;transition:transform .5s ease"/>
+          <circle cx="105" cy="105" r="6" fill="var(--primary,#e55)"/>
+          <text x="18" y="120" font-size="9" fill="#aaa" text-anchor="middle">0</text>
+          <text x="192" y="120" font-size="9" fill="#aaa" text-anchor="middle">10k</text>
+        </svg>
+
+        <div class="steps-big" id="stepCount">0</div>
+        <div class="steps-sub">Steps</div>
+        <div id="fitStatus">Connected to Google Fit</div>
+      </div>
+
+      <div class="steps-goal">Goal: <span id="goalDisplay">10,000</span> steps</div>
+      <div class="steps-progress" style="margin:8px 0 4px"><div class="steps-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="text-muted" id="progressText" style="font-size:.8rem;margin-bottom:14px">0% of daily goal</div>
+
+      <div class="walk-type-row">
+        <span id="slowLabel">0 · 0%</span>
+        <span>Slow &nbsp;&nbsp; Brisk</span>
+        <span id="briskLabel">0 · 0%</span>
+      </div>
+      <div class="walk-bar-bg">
+        <div class="walk-bar-slow" id="slowBar" style="width:0%"></div>
+        <div class="walk-bar-brisk" id="briskBar" style="width:0%"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-around;margin:12px 0 16px">
+        <div>
+          <div style="font-size:.75rem;color:#888">Distance</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#29b6f6"><span id="kmDisplay">0.00</span> km</div>
+        </div>
+        <div style="width:1px;background:#eee"></div>
+        <div>
+          <div style="font-size:.75rem;color:#888">Calories</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--primary,#e55)"><span id="calDisplay">0</span> kcal</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats card -->
+    <div class="dhas-card">
+      <h5>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Today's Stats
+      </h5>
+      <div style="display:flex;justify-content:space-around;text-align:center;margin-top:8px">
+        <div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--primary)" id="calorieDisplay">0</div>
+          <div class="text-muted" style="font-size:.8rem">Calories</div>
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:700;color:#29b6f6" id="kmStatDisplay">0.00</div>
+          <div class="text-muted" style="font-size:.8rem">Km Walked</div>
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:700;color:#22d07a" id="minuteDisplay">0</div>
+          <div class="text-muted" style="font-size:.8rem">Min Active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calorie fun -->
+    <div class="cal-fun-card">
+      <div>
+        <div style="font-size:.8rem;color:#a0522d">Total calories burned</div>
+        <div class="val"><span id="calFunVal">0</span> kcal</div>
+        <div class="sub" id="calFunSub">≈ 0.00 banana chips</div>
+      </div>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bf360c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+    </div>
+
+    <!-- WHO goal card -->
+    <div class="dhas-card" style="margin-top:12px">
+      <h5>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Aerobic Exercise (WHO Goal)
+      </h5>
+      <div style="font-size:.8rem;color:#888;margin-bottom:8px">Goal this week: 150 Min (<span id="whoRemaining">150</span> Min remaining)</div>
+      <div class="who-row">
+        <div class="who-ring-wrap">
+          <svg width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="WHO aerobic goal ring">
+            <circle cx="38" cy="38" r="30" fill="none" stroke="#eee" stroke-width="7"/>
+            <circle cx="38" cy="38" r="30" fill="none" stroke="var(--primary,#e55)" stroke-width="7" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 38 38)" id="whoCircle" style="transition:stroke-dashoffset .5s"/>
+          </svg>
+          <div class="who-center">
+            <div class="pct" id="whoPct">0%</div>
+            <div class="mins" id="whoMins">0 Min</div>
+          </div>
+        </div>
+        <div class="who-breakdown" style="flex:1">
+          <div class="item">
+            <span><span class="dot-icon" style="background:var(--primary,#e55)"></span>Brisk walking</span>
+            <span id="briskMinsDisplay">0 Min</span>
+          </div>
+          <div class="item">
+            <span><span class="dot-icon" style="background:#42a5f5"></span>Running</span>
+            <span>0 Min</span>
+          </div>
+          <div class="item">
+            <span><span class="dot-icon" style="background:#ab47bc"></span>Cycling</span>
+            <span>0 Min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly summary -->
+    <div class="dhas-card" style="margin-top:12px">
+      <h5>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        This Week's Record
+      </h5>
+      <div style="display:flex;gap:12px;text-align:center;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:1.2rem;font-weight:700" id="weekSteps">0</div><div class="text-muted" style="font-size:.75rem">Steps</div></div>
+        <div style="width:1px;background:#eee"></div>
+        <div style="flex:1"><div style="font-size:1.2rem;font-weight:700" id="weekKm">0.00 km</div><div class="text-muted" style="font-size:.75rem">Distance</div></div>
+        <div style="width:1px;background:#eee"></div>
+        <div style="flex:1"><div style="font-size:1.2rem;font-weight:700" id="weekCal">0 kcal</div><div class="text-muted" style="font-size:.75rem">Calories</div></div>
+      </div>
+      <div class="week-chart" id="weekChart"></div>
+      <div style="display:flex;justify-content:space-between" id="weekDayLabels"></div>
+    </div>
+
+  </div>
+
+  <!-- In-page toast -->
+  <div id="dhasToast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ── In-page toast ─────────────────────────────────────────
+    let _toastTimer = null;
+    function showToast(text, type = "success", duration = 4500) {
+      const t = document.getElementById("dhasToast");
+      if (!t) return;
+      const icon = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+      t.className = type;
+      t.innerHTML = `<i class="ti ${icon}" style="font-size:16px;flex-shrink:0;margin-top:1px" aria-hidden="true"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss"><i class="ti ti-x"></i></button>`;
+      t.style.display = "flex";
+      if (_toastTimer) clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
+    }
+
+    // Override connectGoogleFit to use toast instead of alert
+    async function connectGoogleFit() {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: "935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/fitness.activity.read",
+        callback: async (response) => {
+          try {
+            localStorage.setItem("fitness_token", response.access_token);
+            const fitnessResponse = await fetch(
+              "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${response.access_token}`,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
+                  bucketByTime: { durationMillis: 86400000 },
+                  startTimeMillis: new Date().setHours(0, 0, 0, 0),
+                  endTimeMillis: Date.now()
+                })
+              }
+            );
+            const data = await fitnessResponse.json();
+            let googleSteps = 0;
+            if (
+              data.bucket && data.bucket.length > 0 &&
+              data.bucket[0].dataset && data.bucket[0].dataset.length > 0 &&
+              data.bucket[0].dataset[0].point && data.bucket[0].dataset[0].point.length > 0
+            ) {
+              googleSteps = data.bucket[0].dataset[0].point[0].value[0].intVal || 0;
+            }
+            steps = googleSteps;
+            save();
+            updateDisplay();
+            document.getElementById("fitConnectCard").style.display = "none";
+            document.getElementById("fitStatus").style.display = "block";
+            showToast(`Synced ${googleSteps.toLocaleString()} steps from Google Fit.`, "success");
+          } catch (err) {
+            console.error(err);
+            showToast("Unable to sync Google Fit data. Please try again.", "error");
+          }
+        }
+      });
+      client.requestAccessToken();
+    }
+  </script>
+  <script src="js/steps.js"></script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diet Guide - DHAS</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #94a3b8;
+      --radius-sm: 12px;
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+    }
+
+    /* ─── DARK MODE ─────────────────────────────────── */
+    html.dark, html.dark body, body.dark {
+      --bg: #080f28 !important;
+      --surface: #111c3c !important;
+      --border: #1e2e58 !important;
+      --text: #e8efff !important;
+      --text-muted: #7d93c3 !important;
+      background: #080f28 !important;
+      color: #e8efff !important;
+    }
+    html.dark .search-wrap input, body.dark .search-wrap input {
+      background: #111c3c !important; color: #e8efff !important; border-color: #1e2e58 !important;
+    }
+    html.dark .search-wrap input::placeholder, body.dark .search-wrap input::placeholder { color: #7d93c3; }
+    html.dark .disease-item, body.dark .disease-item {
+      background: #111c3c !important; border-color: #1e2e58 !important; color: #e8efff !important;
+    }
+    html.dark .disease-item:hover, body.dark .disease-item:hover {
+      background: #1a2e58 !important; border-color: #2563eb !important;
+    }
+    html.dark .disease-name, body.dark .disease-name { color: #e8efff !important; }
+    html.dark .result-card, body.dark .result-card {
+      background: #111c3c !important; border-color: #1e2e58 !important;
+    }
+    html.dark .result-title, body.dark .result-title {
+      color: #e8efff !important; border-bottom-color: #1e2e58 !important;
+    }
+    html.dark .back-btn, body.dark .back-btn {
+      background: #111c3c !important; border-color: #1e2e58 !important; color: #e8efff !important;
+    }
+    html.dark .back-btn:hover, body.dark .back-btn:hover {
+      border-color: var(--primary) !important; color: #7aafff !important;
+    }
+    html.dark .alpha-sidebar, body.dark .alpha-sidebar {
+      background: rgba(6,15,40,0.97) !important;
+    }
+    html.dark .food-eat, body.dark .food-eat {
+      background: rgba(16,185,129,0.15) !important; color: #6ee7b7 !important;
+      border-color: rgba(16,185,129,0.3) !important;
+    }
+    html.dark .food-avoid, body.dark .food-avoid {
+      background: rgba(239,68,68,0.15) !important; color: #fca5a5 !important;
+      border-color: rgba(239,68,68,0.3) !important;
+    }
+    html.dark .no-result, body.dark .no-result { color: #7d93c3 !important; }
+    html.dark .food-section-label.eat, body.dark .food-section-label.eat { color: #6ee7b7 !important; }
+    html.dark .food-section-label.avoid, body.dark .food-section-label.avoid { color: #fca5a5 !important; }
+    html.dark .section-divider, body.dark .section-divider {
+      background: linear-gradient(90deg,#2563eb,transparent) !important;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+      transition: background .35s, color .35s;
+    }
+
+    /* ── Navbar ── */
+    .dhas-navbar {
+      background: linear-gradient(145deg, #112057, #0b1437);
+      padding: 0 20px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.3);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .brand {
+      font-family: 'Playfair Display', serif;
+      color: #fff; font-size: 1.2rem; font-weight: 900;
+      letter-spacing: 1px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .brand svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; }
+    .dhas-navbar a {
+      color: rgba(255,255,255,0.85); font-size: 0.85rem; text-decoration: none;
+      background: rgba(255,255,255,0.15); padding: 6px 16px; border-radius: 20px;
+      transition: background .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .dhas-navbar a svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+    .dhas-navbar a:hover { background: rgba(255,255,255,0.25); }
+
+    .page-wrap { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; position: relative; }
+
+    /* ── Hero Header ── */
+    .page-header {
+      background: linear-gradient(135deg, #112057 0%, #2a6cf6 50%, #00c9b1 100%);
+      border-radius: 20px; padding: 28px 20px 24px; margin-bottom: 20px;
+      position: relative; overflow: hidden; text-align: center;
+    }
+    .page-header::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 130px; height: 130px; background: rgba(255,255,255,0.07); border-radius: 50%;
+    }
+    .page-header::after {
+      content: ''; position: absolute; bottom: -20px; left: 40px;
+      width: 90px; height: 90px; background: rgba(255,255,255,0.05); border-radius: 50%;
+    }
+    .header-icon-wrap {
+      width: 60px; height: 60px; border-radius: 18px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px; position: relative;
+    }
+    .header-icon-wrap svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 1.8; }
+    .page-title {
+      font-family: 'Playfair Display', serif; color: #fff;
+      font-size: 1.75rem; font-weight: 900; margin-bottom: 6px; position: relative;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.72); font-size: 0.85rem; font-weight: 500; position: relative; }
+
+    /* ── Search ── */
+    .search-wrap { position: relative; margin-bottom: 14px; }
+    .search-wrap input {
+      width: 100%; padding: 13px 16px 13px 44px; border: 2px solid var(--border);
+      border-radius: 14px; font-size: 0.92rem; font-family: 'DM Sans', sans-serif;
+      background: var(--surface); color: var(--text); outline: none;
+      transition: border-color .2s, box-shadow .2s, background .35s, color .35s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .search-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+    .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      display: flex; align-items: center;
+    }
+    .search-icon svg { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+
+    /* ── Layout ── */
+    .content-layout { display: flex; gap: 10px; align-items: flex-start; }
+    .main-content { flex: 1; min-width: 0; }
+    .alpha-sidebar {
+      display: flex; flex-direction: column; gap: 2px;
+      position: sticky; top: 70px; max-height: calc(100vh - 90px);
+      overflow-y: auto; scrollbar-width: none; flex-shrink: 0;
+      background: rgba(30,41,59,0.88); border-radius: 14px; padding: 8px 5px;
+      backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      transition: background .35s;
+    }
+    .alpha-sidebar::-webkit-scrollbar { display: none; }
+    .alpha-btn {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: transparent; font-weight: 700; font-size: 0.72rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s; color: rgba(255,255,255,0.65); font-family: 'DM Sans', sans-serif;
+    }
+    .alpha-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .alpha-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.4); }
+
+    /* ── Disease list ── */
+    .disease-item {
+      background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: all .2s, background .35s, border-color .35s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .disease-item:hover { border-color: var(--primary); background: rgba(37,99,235,0.06); transform: translateX(-3px); }
+    .disease-name {
+      font-weight: 700; font-size: 0.95rem;
+      display: flex; align-items: center; gap: 10px; color: var(--text);
+    }
+    .disease-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #0ea5e9); flex-shrink: 0;
+    }
+    .disease-arrow { color: var(--text-muted); transition: transform .2s; display: flex; align-items: center; }
+    .disease-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+    .disease-item:hover .disease-arrow { transform: translateX(3px); color: var(--primary); }
+
+    /* ── Result card ── */
+    .diet-result { display: none; animation: fadeIn .35s ease; }
+    .diet-result.show { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result-card {
+      background: var(--surface); border-radius: 20px; padding: 22px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08); border: 2px solid var(--border);
+      transition: background .35s, border-color .35s;
+    }
+    .result-title {
+      font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 900;
+      color: var(--text); margin-bottom: 18px; padding-bottom: 12px;
+      border-bottom: 2px dashed var(--border);
+      display: flex; align-items: center; gap: 10px;
+      transition: color .35s, border-color .35s;
+    }
+    .result-title svg { width: 22px; height: 22px; stroke: var(--primary); fill: none; stroke-width: 2; flex-shrink: 0; }
+
+    .food-section-label {
+      font-weight: 700; font-size: 0.82rem; letter-spacing: 0.8px; text-transform: uppercase;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+      transition: color .35s;
+    }
+    .food-section-label svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+    .food-section-label.eat { color: #065f46; }
+    .food-section-label.avoid { color: #991b1b; }
+    .food-section-label::after { content: ''; flex: 1; height: 1.5px; background: currentColor; opacity: 0.2; border-radius: 2px; }
+
+    .food-tags-wrap { margin-bottom: 20px; }
+    .food-tag {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px;
+      border-radius: 50px; font-size: 0.82rem; font-weight: 600; margin: 3px;
+      font-family: 'DM Sans', sans-serif; transition: background .35s, color .35s, border-color .35s;
+    }
+    .food-tag svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+    .food-eat { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; border: 1.5px solid #6ee7b7; }
+    .food-avoid { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; border: 1.5px solid #fca5a5; }
+
+    .section-divider { height: 2px; background: linear-gradient(90deg, var(--primary), transparent); border-radius: 2px; margin: 10px 0 16px; opacity: 0.15; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+      border-radius: 12px; border: 2px solid var(--border); background: var(--surface);
+      color: var(--text); font-weight: 700; font-size: 0.87rem; cursor: pointer;
+      transition: all .2s; font-family: 'DM Sans', sans-serif; margin-top: 16px;
+    }
+    .back-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+    .back-btn:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+
+    .no-result { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 0.92rem; }
+    .no-result svg { width: 48px; height: 48px; stroke: var(--text-muted); fill: none; stroke-width: 1.2; margin-bottom: 12px; opacity: 0.5; display: block; margin-left: auto; margin-right: auto; }
+  </style>
+</head>
+<body>
+
+  <nav class="dhas-navbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      DHAS
+    </div>
+    <a href="dashboard.html">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- ── Hero Header ── -->
+    <div class="page-header">
+      <div class="header-icon-wrap">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      </div>
+      <div class="page-title">Diet Guide</div>
+      <div class="page-subtitle">Find the right foods for every condition</div>
+    </div>
+
+    <!-- ── Search ── -->
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </span>
+      <input type="text" id="searchInput" placeholder="Search disease (e.g. Viral Fever, Cold...)" oninput="handleSearch()">
+    </div>
+
+    <div class="content-layout">
+      <div class="main-content">
+        <div id="diseaseList"></div>
+
+        <!-- ── Result view ── -->
+        <div class="diet-result" id="dietResult">
+          <div class="result-card">
+            <div class="result-title" id="dietTitle">
+              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              Diet Plan
+            </div>
+
+            <div class="food-section-label eat">
+              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Foods to Eat
+            </div>
+            <div class="food-tags-wrap" id="eatTags"></div>
+
+            <div class="section-divider"></div>
+
+            <div class="food-section-label avoid">
+              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              Foods to Avoid
+            </div>
+            <div class="food-tags-wrap" id="avoidTags"></div>
+
+            <button class="back-btn" onclick="clearResult()">
+              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              Back to List
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="alpha-sidebar" id="alphaSidebar"></div>
+    </div>
+  </div>
+
+  <script>
+    const DISEASES = [
+      { name:"Asthma",letter:"A",eat:["Ginger tea","Honey","Turmeric milk","Garlic","Spinach","Apples","Avocado"],avoid:["Processed foods","Sulphites (wine, dried fruits)","Cold drinks","Excess salt","Artificial colours"]},
+      { name:"Arthritis",letter:"A",eat:["Fatty fish (salmon)","Walnuts","Berries","Spinach","Olive oil","Ginger","Turmeric"],avoid:["Fried food","Processed sugar","Red meat","Alcohol","Refined carbs"]},
+      { name:"Common Cold",letter:"C",eat:["Warm soups","Tulsi tea","Ginger-honey milk","Garlic","Vitamin C fruits","Warm water"],avoid:["Cold water","Ice cream","Fried snacks","Excess sugar","Alcohol"]},
+      { name:"COVID-19 Like Illness",letter:"C",eat:["Warm turmeric milk","High protein foods (dal, eggs)","Fresh fruits","Giloy tea","Zinc-rich foods"],avoid:["Cold foods","Alcohol","Junk food","Excess sugar","Processed food"]},
+      { name:"Constipation",letter:"C",eat:["High-fibre foods (oats, beans)","Fruits (papaya, guava)","Water (3L daily)","Leafy greens","Prunes"],avoid:["Refined flour (maida)","Fried food","Red meat","Alcohol","Low-fibre foods"]},
+      { name:"Diabetes",letter:"D",eat:["Bitter gourd (karela)","Fenugreek (methi)","Brown rice","Whole grains","Leafy greens","Amla"],avoid:["White rice","Sugary drinks","Sweets and desserts","Refined flour","Fruit juices"]},
+      { name:"Dengue",letter:"D",eat:["Papaya leaf juice","Coconut water","Pomegranate juice","Kiwi","Vegetable soup","ORS"],avoid:["Oily food","Spicy food","Caffeine","Alcohol","Junk food"]},
+      { name:"Diarrhea",letter:"D",eat:["ORS solution","Banana","Plain boiled rice","Toast / rusk","Curd (probiotic)","Coconut water"],avoid:["Oily food","Spicy food","Raw vegetables","Caffeinated drinks","Dairy (except curd)"]},
+      { name:"Fever",letter:"F",eat:["Warm water","Coconut water","Vegetable soup","Light khichdi","Fresh fruits","Herbal teas"],avoid:["Oily food","Spicy food","Junk food","Cold drinks","Heavy meals"]},
+      { name:"Flu (Influenza)",letter:"F",eat:["Warm vegetable soup","Oranges","Ginger tea with honey","Light khichdi","Bananas"],avoid:["Junk food","Cold drinks","Oily foods","Spicy food","Alcohol"]},
+      { name:"Gastritis",letter:"G",eat:["Curd (probiotic)","Banana","Oats","Coconut water","Boiled vegetables","Ginger tea"],avoid:["Spicy food","Alcohol","Coffee","Citrus fruits","Fried food","Carbonated drinks"]},
+      { name:"Headache / Migraine",letter:"H",eat:["Plenty of water","Banana","Almonds","Spinach","Ginger tea","Watermelon","Magnesium-rich foods"],avoid:["Excess caffeine","Alcohol","Processed meats","Too much salt","Skipping meals"]},
+      { name:"Hypertension (High BP)",letter:"H",eat:["Banana","Leafy greens","Beets","Garlic","Oats","Low-fat dairy","Berries"],avoid:["Excess salt","Processed foods","Alcohol","Red meat","Caffeine","Pickles"]},
+      { name:"Jaundice",letter:"J",eat:["Sugarcane juice","Coconut water","Papaya","Lemon water","Vegetable soup","Rice gruel"],avoid:["Oily food","Spicy food","Alcohol","Red meat","Fried food","Junk food"]},
+      { name:"Kidney Stones",letter:"K",eat:["Plenty of water (3-4L)","Lemon water","Coconut water","Low-oxalate fruits","Calcium-rich foods"],avoid:["Spinach (excess)","Nuts (excess)","Salt","Animal protein (excess)","Vitamin C supplements"]},
+      { name:"Malaria",letter:"M",eat:["Warm soups","Coconut water","Papaya","Pomegranate","Light khichdi","Ginger tea"],avoid:["Spicy food","Oily food","Alcohol","Junk food","Cold drinks"]},
+      { name:"Nausea / Vomiting",letter:"N",eat:["Ginger tea","Plain crackers / rusk","Banana","Clear broths","Coconut water","Small frequent meals"],avoid:["Oily food","Spicy food","Strong smells","Dairy","Large heavy meals"]},
+      { name:"Obesity",letter:"O",eat:["Fruits and vegetables","Whole grains","Lean protein (dal, fish)","Water before meals","Green tea"],avoid:["Sugary drinks","Junk food","Fried food","White bread/rice","Late-night eating"]},
+      { name:"Sore Throat",letter:"S",eat:["Warm water with honey and lemon","Ginger tea","Turmeric milk","Soft foods (khichdi)","Coconut water"],avoid:["Cold drinks","Ice cream","Spicy food","Alcohol","Hard crunchy foods"]},
+      { name:"Typhoid",letter:"T",eat:["Boiled water","Light khichdi","Banana","Boiled potatoes","Curd","Coconut water","Vegetable soup"],avoid:["Oily food","Spicy food","Raw vegetables","Junk food","Alcohol","Unboiled water"]},
+      { name:"Viral Fever",letter:"V",eat:["Warm herbal teas","Papaya, pomegranate","Light rice porridge (kanji)","Coconut water","Honey"],avoid:["Oily food","Cold items","Spicy curries","Junk food","Caffeine"]},
+    ];
+
+    /* SVG check/x for food tags */
+    const CHECK_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>`;
+    const CROSS_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>`;
+
+    let activeLetter = "All";
+
+    function buildAlpha() {
+      const letters = ["All", ...new Set(DISEASES.map(d => d.letter))].sort((a,b) => a==="All" ? -1 : b==="All" ? 1 : a.localeCompare(b));
+      const sidebar = document.getElementById("alphaSidebar");
+      sidebar.innerHTML = '';
+      letters.forEach(l => {
+        const btn = document.createElement("button");
+        btn.className = "alpha-btn" + (l === activeLetter ? " active" : "");
+        btn.textContent = l;
+        btn.onclick = () => { activeLetter = l; document.getElementById("searchInput").value = ""; buildAlpha(); renderList(); };
+        sidebar.appendChild(btn);
+      });
+    }
+
+    function renderList(filter = "") {
+      const list = document.getElementById("diseaseList");
+      document.getElementById("dietResult").classList.remove("show");
+      let diseases = DISEASES;
+      if (activeLetter !== "All") diseases = diseases.filter(d => d.letter === activeLetter);
+      if (filter) diseases = DISEASES.filter(d => d.name.toLowerCase().includes(filter.toLowerCase()));
+      if (diseases.length === 0) {
+        list.innerHTML = `<div class="no-result">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          No disease found for "<strong>${filter}</strong>"
+        </div>`;
+        return;
+      }
+      list.innerHTML = diseases.map(d => `
+        <div class="disease-item" onclick="showDiet(${DISEASES.indexOf(d)})">
+          <span class="disease-name"><span class="disease-dot"></span>${d.name}</span>
+          <span class="disease-arrow">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+          </span>
+        </div>`).join("");
+    }
+
+    function showDiet(index) {
+      const d = DISEASES[index];
+      document.getElementById("diseaseList").innerHTML = "";
+      document.getElementById("searchWrap").style.display = "none";
+      document.getElementById("alphaSidebar").style.display = "none";
+      document.getElementById("dietTitle").innerHTML = `
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Diet for ${d.name}`;
+      document.getElementById("eatTags").innerHTML = d.eat.map(f => `<span class="food-tag food-eat">${CHECK_SVG} ${f}</span>`).join("");
+      document.getElementById("avoidTags").innerHTML = d.avoid.map(f => `<span class="food-tag food-avoid">${CROSS_SVG} ${f}</span>`).join("");
+      document.getElementById("dietResult").classList.add("show");
+    }
+
+    function clearResult() {
+      document.getElementById("dietResult").classList.remove("show");
+      document.getElementById("searchWrap").style.display = "block";
+      document.getElementById("alphaSidebar").style.display = "flex";
+      renderList();
+    }
+
+    function handleSearch() {
+      const val = document.getElementById("searchInput").value;
+      activeLetter = "All"; buildAlpha(); renderList(val);
+    }
+
+    window.onload = function() { buildAlpha(); renderList(); };
+  </script>
+</body>
+</html>

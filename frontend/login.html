@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="theme.js"></script>
+  <title>Login - DHAS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--blue-lt:#4f8ef9;
+  --teal:#00c9b1;--bg:#f0f4ff;--surface:#ffffff;--border:#e4e9f4;
+  --text:#0d1b3e;--muted:#6b7fa3;--radius:20px;
+}
+body.dark {
+  --bg:#07101f;--surface:#0f1c35;--border:#1a2d4a;
+  --text:#dde9ff;--muted:#6a80a8;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  transition: background .4s, color .4s;
+  color: var(--text);
+  /* Subtle mesh gradient background */
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(42,108,246,.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,201,177,.07) 0%, transparent 60%);
+}
+body.dark {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(42,108,246,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,201,177,.04) 0%, transparent 60%);
+}
+
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  gap: 0;
+}
+
+/* ── Theme pill ── */
+.theme-toggle-wrap { position: fixed; top: 18px; right: 18px; z-index: 200; }
+.theme-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 24px; padding: 7px 16px 7px 11px;
+  cursor: pointer; font-size: .75rem; font-weight: 600;
+  color: var(--muted); transition: all .2s; white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.theme-pill:hover { color: var(--blue); border-color: var(--blue); }
+.theme-pill svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+/* ════════════════════════════════════════
+   LOGIN CARD
+════════════════════════════════════════ */
+.login-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 20px 60px rgba(42,108,246,.1);
+  width: 100%; max-width: 420px;
+  overflow: hidden;
+  animation: cardIn .4s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(20px) scale(.98); }
+  to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+
+/* Brand header */
+.card-brand {
+  background: linear-gradient(145deg, #0e1e50 0%, #0b1437 100%);
+  padding: 32px 28px 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.card-brand::before {
+  content: '';
+  position: absolute; top: -60px; right: -60px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(42,108,246,.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+.card-brand::after {
+  content: '';
+  position: absolute; bottom: -40px; left: -20px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,201,177,.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.brand-logo-wrap {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: linear-gradient(135deg, #2a6cf6 0%, #00c9b1 100%);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(42,108,246,.4);
+  position: relative; z-index: 1;
+}
+.brand-logo-wrap svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 2; }
+.brand-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.6rem; font-weight: 700; color: #fff;
+  margin-bottom: 5px; position: relative; z-index: 1;
+}
+.brand-sub {
+  font-size: .8rem; color: rgba(255,255,255,.5);
+  position: relative; z-index: 1; letter-spacing: .2px;
+}
+
+/* Form area */
+.card-body { padding: 28px 28px 24px; }
+
+.alert-danger {
+  background: #fff1f1; border: 1px solid #fecaca;
+  border-left: 3px solid #ef4444;
+  border-radius: 10px; padding: 11px 14px;
+  font-size: .84rem; font-weight: 600; color: #b91c1c; margin-bottom: 18px;
+}
+body.dark .alert-danger {
+  background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.25);
+  border-left-color: #ef4444; color: #fca5a5;
+}
+
+.field-group { margin-bottom: 16px; }
+.form-label {
+  font-size: .71rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .7px;
+  display: block; margin-bottom: 7px;
+}
+.form-control {
+  width: 100%; padding: 12px 16px;
+  border: 1.5px solid var(--border); border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: .92rem;
+  color: var(--text); background: var(--bg); outline: none;
+  transition: border-color .2s, box-shadow .2s, background .3s;
+}
+.form-control:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(42,108,246,.1);
+  background: var(--surface);
+}
+.form-control::placeholder { color: var(--muted); opacity: .7; }
+body.dark .form-control { background: rgba(255,255,255,.04); }
+body.dark .form-control:focus { background: rgba(255,255,255,.07); }
+
+.pw-wrap { position: relative; }
+.pw-wrap .form-control { padding-right: 3rem; }
+.toggle-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 4px; cursor: pointer;
+  color: var(--muted); display: flex; align-items: center; transition: color .2s;
+}
+.toggle-eye:hover { color: var(--blue); }
+.toggle-eye svg { width: 18px; height: 18px; pointer-events: none; }
+
+.btn-signin {
+  width: 100%; padding: 13px; border: none; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: .95rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2a6cf6 0%, #4f8ef9 100%);
+  color: #fff; letter-spacing: .2px;
+  box-shadow: 0 4px 20px rgba(42,108,246,.35);
+  transition: all .22s;
+  margin-top: 4px;
+}
+.btn-signin:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(42,108,246,.45); }
+.btn-signin:active { transform: translateY(0); }
+
+.divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 20px 0; color: var(--muted); font-size: .75rem; font-weight: 600;
+  letter-spacing: .5px; text-transform: uppercase;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.google-btn-wrap {
+  display: flex; justify-content: center;
+  background: #fff; border-radius: 12px; padding: 10px;
+  border: 1.5px solid #e2e8f0;
+  transition: border-color .2s, box-shadow .2s;
+}
+.google-btn-wrap:hover { border-color: #cbd5e1; box-shadow: 0 2px 16px rgba(0,0,0,.1); }
+.google-btn-wrap iframe, .google-btn-wrap > div { filter: none !important; }
+
+.card-footer {
+  padding: 0 28px 24px;
+  text-align: center; font-size: .83rem; color: var(--muted);
+}
+.card-footer a { color: var(--blue); font-weight: 600; text-decoration: none; }
+.card-footer a:hover { text-decoration: underline; }
+
+/* ════════════════════════════════════════
+   CONTINUE / CONFIRM SCREEN
+   Matches the style in your reference photo:
+   App logo · Account chip · Continue btn
+════════════════════════════════════════ */
+#continueScreen {
+  width: 100%; max-width: 440px;
+  animation: cardIn .35s cubic-bezier(.4,0,.2,1) both;
+}
+
+.cont-outer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 20px 60px rgba(42,108,246,.1);
+  overflow: hidden;
+}
+
+/* Top section — white/light, like Google's own confirm screen */
+.cont-top {
+  background: var(--surface);
+  padding: 36px 32px 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+body.dark .cont-top { background: #0f1c35; }
+
+.cont-app-logo {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, #2a6cf6, #00c9b1);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 6px 20px rgba(42,108,246,.3);
+}
+.cont-app-logo svg { width: 26px; height: 26px; stroke: #fff; fill: none; stroke-width: 2.2; }
+
+.cont-heading {
+  font-family: 'Fraunces', serif;
+  font-size: 1.3rem; font-weight: 700;
+  color: var(--text); margin-bottom: 20px; line-height: 1.3;
+}
+
+/* Account chip — exactly like Google's "account selector" pill */
+.cont-account-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 50px; padding: 8px 18px 8px 8px;
+  margin: 0 auto 8px; cursor: default;
+  transition: border-color .2s;
+}
+body.dark .cont-account-chip { background: rgba(255,255,255,.05); }
+.cont-account-chip:hover { border-color: var(--blue); }
+
+.chip-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #2a6cf6, #00c9b1);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .95rem; color: #fff;
+  flex-shrink: 0; overflow: hidden;
+}
+.chip-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+.chip-info { text-align: left; }
+.chip-name  { font-size: .88rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+.chip-email { font-size: .74rem; color: var(--muted); margin-top: 1px; }
+
+.chip-check {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #d1fae5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chip-check svg { width: 12px; height: 12px; stroke: #059669; fill: none; stroke-width: 2.5; }
+body.dark .chip-check { background: rgba(5,150,105,.2); }
+
+/* Bottom section — actions */
+.cont-bottom { padding: 24px 28px 28px; }
+
+.cont-info {
+  display: flex; align-items: flex-start; gap: 11px;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: 12px; padding: 13px 15px; margin-bottom: 20px;
+}
+body.dark .cont-info { background: rgba(5,150,105,.08); border-color: rgba(5,150,105,.2); }
+.cont-info-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.cont-info-text p:first-child {
+  font-size: .82rem; font-weight: 700; color: #14532d; margin-bottom: 2px;
+}
+body.dark .cont-info-text p:first-child { color: #6ee7b7; }
+.cont-info-text p:last-child {
+  font-size: .76rem; color: #166534; line-height: 1.55; margin: 0;
+}
+body.dark .cont-info-text p:last-child { color: #4ade80; opacity: .8; }
+
+.btn-continue {
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: .95rem;
+  cursor: pointer; letter-spacing: .2px;
+  background: linear-gradient(135deg, #2a6cf6, #4f8ef9);
+  color: #fff; box-shadow: 0 4px 20px rgba(42,108,246,.35);
+  transition: all .22s; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-continue:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(42,108,246,.45); }
+.btn-continue:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+.btn-continue svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.2; }
+
+.btn-switch {
+  width: 100%; padding: 12px; border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: .87rem;
+  cursor: pointer; transition: all .2s;
+}
+.btn-switch:hover { border-color: var(--blue); color: var(--blue); background: var(--surface); }
+
+.cont-legal {
+  text-align: center; font-size: .7rem; color: var(--muted);
+  margin-top: 16px; line-height: 1.6; opacity: .8;
+}
+.cont-legal strong { color: var(--text); font-weight: 600; }
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-icon {
+  width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<div class="theme-toggle-wrap">
+  <div class="theme-pill" onclick="toggleTheme()">
+    <svg class="theme-icon" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+    </svg>
+    <span class="theme-label">Dark</span>
+  </div>
+</div>
+
+<div class="auth-wrap">
+
+  <!-- ══ LOGIN CARD ══ -->
+  <div class="login-card" id="loginCard">
+
+    <div class="card-brand">
+      <div class="brand-logo-wrap">
+        <svg viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+      </div>
+      <div class="brand-title">DHAS</div>
+      <div class="brand-sub">Digital Health Assistant System</div>
+    </div>
+
+    <div class="card-body">
+
+      <div id="loginError" class="alert-danger" style="display:none;"></div>
+
+      <div class="field-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-control" id="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="field-group">
+        <label class="form-label">Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-control" id="password" placeholder="Your password" autocomplete="current-password">
+          <button type="button" class="toggle-eye" onclick="togglePw('password','eyeLogin')" aria-label="Show or hide password">
+            <svg id="eyeLogin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="button" onclick="submitLogin()" class="btn-signin">Sign In →</button>
+
+      <div class="divider">or continue with</div>
+
+      <div class="google-btn-wrap">
+        <div id="g_id_onload"
+             data-client_id="935050379586-3vj8chtqv922uqmqurgknmtdseh0vlpv.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard" data-size="large" data-theme="outline"
+             data-text="signin_with" data-shape="pill" data-width="320">
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card-footer">
+      Don't have an account? <a href="register.html">Create one free</a>
+    </div>
+
+  </div>
+  <!-- end #loginCard -->
+
+</div><!-- end .auth-wrap -->
+
+<script>
+/* ── Password toggle ── */
+function togglePw(fieldId, iconId) {
+  const field = document.getElementById(fieldId);
+  const icon  = document.getElementById(iconId);
+  const hiding = field.type === "password";
+  field.type = hiding ? "text" : "password";
+  icon.innerHTML = hiding
+    ? `<path stroke-linecap="round" stroke-linejoin="round"
+           d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7
+              a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5
+              c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02
+              M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+       <path stroke-linecap="round" stroke-linejoin="round"
+           d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7
+              -1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+}
+
+
+
+/* ── Email/password login ── */
+function submitLogin() {
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errBox   = document.getElementById("loginError");
+  errBox.style.display = "none";
+  if (!email || !password) {
+    errBox.textContent = "Please enter your email and password.";
+    errBox.style.display = "block";
+    return;
+  }
+  handleLogin(email, password);   // plain password — no SHA-256
+}
+
+/* ── Google OAuth callback ── */
+function handleCredentialResponse(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  showContinueScreen(payload.name, payload.email, payload.sub, payload.picture);
+}
+
+/* ── Continue / confirm screen ── */
+function showContinueScreen(name, email, googleId, picture) {
+  document.getElementById("loginCard").style.display = "none";
+
+  const initials = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0,2);
+  const firstName = name.split(' ')[0];
+
+  const screen = document.createElement('div');
+  screen.id = 'continueScreen';
+
+  screen.innerHTML = `
+    <div class="cont-outer">
+
+      <!-- Top: app logo + account chip -->
+      <div class="cont-top">
+        <div class="cont-app-logo">
+          <svg viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </div>
+
+        <div class="cont-heading">Continue to DHAS<br>as ${firstName}?</div>
+
+        <!-- Account chip -->
+        <div class="cont-account-chip">
+          <div class="chip-avatar" id="chipAvatar">${initials}</div>
+          <div class="chip-info">
+            <div class="chip-name">${name}</div>
+            <div class="chip-email">${email}</div>
+          </div>
+          <div class="chip-check">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom: info + actions -->
+      <div class="cont-bottom">
+
+        <div class="cont-info">
+          <span class="cont-info-icon">🔒</span>
+          <div class="cont-info-text">
+            <p>Signing in securely with Google</p>
+            <p>DHAS will access your name and email address to create or access your health account. Your medical data stays private.</p>
+          </div>
+        </div>
+
+        <button id="contBtn" class="btn-continue" onclick="proceedGoogleAuth('${googleId}','${name}','${email}')">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          Continue as ${firstName}
+        </button>
+
+        <button class="btn-switch" onclick="cancelContinue()">
+          ← Not you? Use a different account
+        </button>
+
+        <p class="cont-legal">
+          By continuing you agree to DHAS <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>.<br>
+          Signed in as <strong>${email}</strong>
+        </p>
+
+      </div>
+    </div>`;
+
+  /* Set avatar photo if available */
+  if (picture) {
+    const av = screen.querySelector('#chipAvatar');
+    av.innerHTML = `<img src="${picture}" alt="${initials}" onerror="this.parentElement.textContent='${initials}'">`;
+  }
+
+  document.querySelector('.auth-wrap').appendChild(screen);
+}
+
+function proceedGoogleAuth(googleId, name, email) {
+  const btn = document.getElementById('contBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner-icon"></div> Signing in…`;
+  handleGoogleAuth(name, email, googleId);
+}
+
+function cancelContinue() {
+  document.getElementById('continueScreen')?.remove();
+  document.getElementById('loginCard').style.display = 'block';
+}
+
+/* Enter key */
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter") submitLogin();
+});
+</script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

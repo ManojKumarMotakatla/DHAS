@@ -1,0 +1,353 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DHAS — Digital Health Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,600&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <style>
+    :root {
+      --navy:#0b1437;--navy-mid:#112057;--blue:#2a6cf6;--blue-lt:#4f8ef9;
+      --teal:#00c9b1;--amber:#f4a035;--rose:#f25c7d;--green:#22d07a;--purple:#8250ff;
+      --bg:#f4f6fc;--surface:#ffffff;--border:#e4e9f4;--text:#0d1b3e;--muted:#6b7fa3;
+      --radius:18px;--shadow:0 2px 20px rgba(42,108,246,.09);--shadow-md:0 8px 40px rgba(42,108,246,.16);
+    }
+    html.dark-mode body,body.dark {
+      --navy:#07101f;--navy-mid:#0c1830;--blue:#4a84f5;--blue-lt:#6b9ef7;
+      --teal:#00b09b;--amber:#e09530;--rose:#e04f6e;--green:#1db86a;
+      --bg:#0a1120;--surface:#0f1d35;--border:#1a2d4a;--text:#c8d8f0;--muted:#607a9a;
+      --shadow:0 2px 20px rgba(0,0,0,.35);--shadow-md:0 8px 40px rgba(0,0,0,.5);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px;scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .35s,color .35s;overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    svg{display:block}
+
+    /* ── TOPBAR ── */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;padding:0 24px;background:rgba(244,246,252,.88);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:background .35s}
+    body.dark .topbar{background:rgba(10,17,32,.88)}
+    .logo{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:700;font-size:1.3rem;color:var(--blue);letter-spacing:-.2px}
+    .logo-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+    .topbar-right{margin-left:auto}
+    .theme-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px 6px 10px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted);transition:all .2s;white-space:nowrap}
+    .theme-pill:hover{color:var(--blue);border-color:var(--blue)}
+    .theme-pill svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+    /* ── HERO ── */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 24px 72px;position:relative;overflow:hidden;text-align:center}
+    .hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(42,108,246,.12) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(0,201,177,.1) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 50% 50%,rgba(130,80,255,.06) 0%,transparent 70%)}
+    body.dark .hero::before{background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(74,132,245,.07) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(0,176,155,.06) 0%,transparent 60%)}
+    .blob{position:absolute;border-radius:50%;pointer-events:none;filter:blur(60px);opacity:.18;animation:drift 12s ease-in-out infinite alternate}
+    body.dark .blob{opacity:.08}
+    .blob-1{width:420px;height:420px;background:var(--blue);top:-80px;left:-100px;animation-delay:0s}
+    .blob-2{width:320px;height:320px;background:var(--teal);bottom:-60px;right:-80px;animation-delay:-4s}
+    .blob-3{width:260px;height:260px;background:var(--purple);top:40%;right:10%;animation-delay:-8s}
+    @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(30px,20px) scale(1.05)}}
+
+    .hero-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(42,108,246,.1);border:1px solid rgba(42,108,246,.2);color:var(--blue);font-size:.72rem;font-weight:600;padding:5px 14px;border-radius:20px;margin-bottom:22px;letter-spacing:.5px;text-transform:uppercase;animation:fadeUp .5s ease both}
+    body.dark .hero-badge{background:rgba(74,132,245,.12);border-color:rgba(74,132,245,.25)}
+    .hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+    .hero-title{font-family:'Fraunces',serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:700;line-height:1.1;color:var(--text);margin-bottom:16px;animation:fadeUp .55s .06s ease both}
+    .hero-title em{font-style:italic;color:var(--blue)}
+    .hero-sub{font-size:clamp(.9rem,2vw,1.1rem);color:var(--muted);max-width:520px;line-height:1.65;margin-bottom:48px;animation:fadeUp .55s .12s ease both}
+
+    /* ── PORTAL CARDS ── */
+    .portals{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:760px;width:100%;animation:fadeUp .55s .2s ease both;position:relative}
+    @media(max-width:600px){.portals{grid-template-columns:1fr;gap:16px;max-width:380px}}
+
+    .portal-card{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;padding:32px 28px;box-shadow:var(--shadow);transition:all .28s;position:relative;overflow:hidden;text-align:left}
+    .portal-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:24px 24px 0 0}
+    .portal-card.patient::before{background:linear-gradient(90deg,var(--blue),var(--blue-lt))}
+    .portal-card.doctor::before{background:linear-gradient(90deg,#059669,var(--teal))}
+    .portal-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-md)}
+
+    /* subtle glow on hover */
+    .portal-card.patient:hover{border-color:rgba(42,108,246,.35)}
+    .portal-card.doctor:hover{border-color:rgba(5,150,105,.35)}
+
+    /* decorative circle in card */
+    .portal-card::after{content:'';position:absolute;bottom:-40px;right:-40px;width:130px;height:130px;border-radius:50%;opacity:.07;pointer-events:none}
+    .portal-card.patient::after{background:var(--blue)}
+    .portal-card.doctor::after{background:#059669}
+
+    .portal-icon-wrap{width:54px;height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+    .portal-card.patient .portal-icon-wrap{background:rgba(42,108,246,.1)}
+    .portal-card.doctor  .portal-icon-wrap{background:rgba(5,150,105,.1)}
+    .portal-icon-wrap svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .portal-card.patient .portal-icon-wrap svg{stroke:var(--blue)}
+    .portal-card.doctor  .portal-icon-wrap svg{stroke:#059669}
+
+    .portal-label{font-size:.66rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
+    .portal-card.patient .portal-label{color:var(--blue)}
+    .portal-card.doctor  .portal-label{color:#059669}
+
+    .portal-title{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.2}
+    .portal-desc{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:24px}
+
+    .portal-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .portal-btn-primary{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;font-size:.84rem;font-weight:700;border:none;cursor:pointer;transition:all .22s;font-family:'DM Sans',sans-serif}
+    .portal-btn-secondary{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:12px;font-size:.84rem;font-weight:600;border:1.5px solid;cursor:pointer;transition:all .22s;font-family:'DM Sans',sans-serif;background:transparent}
+
+    .portal-card.patient .portal-btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-lt));color:#fff;box-shadow:0 4px 18px rgba(42,108,246,.3)}
+    .portal-card.patient .portal-btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(42,108,246,.45)}
+    .portal-card.patient .portal-btn-secondary{border-color:rgba(42,108,246,.3);color:var(--blue)}
+    .portal-card.patient .portal-btn-secondary:hover{background:rgba(42,108,246,.07);border-color:var(--blue)}
+
+    .portal-card.doctor .portal-btn-primary{background:linear-gradient(135deg,#059669,var(--teal));color:#fff;box-shadow:0 4px 18px rgba(5,150,105,.3)}
+    .portal-card.doctor .portal-btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(5,150,105,.45)}
+    .portal-card.doctor .portal-btn-secondary{border-color:rgba(5,150,105,.3);color:#059669}
+    .portal-card.doctor .portal-btn-secondary:hover{background:rgba(5,150,105,.07);border-color:#059669}
+
+    .portal-btn-primary svg,.portal-btn-secondary svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2}
+
+    /* pill tags on cards */
+    .portal-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:20px}
+    .portal-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:600}
+    .portal-card.patient .portal-tag{background:rgba(42,108,246,.08);color:var(--blue)}
+    .portal-card.doctor  .portal-tag{background:rgba(5,150,105,.08);color:#059669}
+
+    /* divider between portals (desktop only) */
+    .portal-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative;z-index:1}
+    @media(max-width:600px){.portal-divider{flex-direction:row;margin:0}}
+    .divider-line{flex:1;width:1px;background:var(--border)}
+    @media(max-width:600px){.divider-line{flex:none;height:1px;width:40px}}
+    .divider-or{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.5px;white-space:nowrap}
+
+    .hero-scroll{margin-top:56px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:.72rem;font-weight:500;letter-spacing:.5px;animation:fadeUp .55s .38s ease both}
+    .scroll-dot{width:28px;height:46px;border:2px solid var(--border);border-radius:14px;position:relative}
+    .scroll-dot::after{content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);width:4px;height:8px;border-radius:3px;background:var(--blue);animation:scrollDown 1.8s ease infinite}
+    @keyframes scrollDown{0%,100%{top:6px;opacity:1}80%{top:22px;opacity:0}}
+
+    /* ── FEATURES ── */
+    .features{padding:80px 24px;max-width:1000px;margin:0 auto}
+    .sec-label{text-align:center;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);margin-bottom:12px}
+    .sec-title{text-align:center;font-family:'Fraunces',serif;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;color:var(--text);margin-bottom:48px}
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px 24px;box-shadow:var(--shadow);transition:all .25s;position:relative;overflow:hidden}
+    .feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2))}
+    .feat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+    .feat-icon{width:48px;height:48px;border-radius:13px;margin-bottom:16px;display:flex;align-items:center;justify-content:center}
+    .feat-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+    .feat-name{font-weight:600;font-size:1rem;color:var(--text);margin-bottom:8px}
+    .feat-desc{font-size:.83rem;color:var(--muted);line-height:1.6}
+
+    /* ── STATS ── */
+    .stats-band{margin:0 24px 80px;border-radius:22px;background:linear-gradient(135deg,var(--navy-mid),var(--navy));padding:48px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;text-align:center;box-shadow:0 16px 60px rgba(11,20,55,.25);position:relative;overflow:hidden}
+    .stats-band::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(42,108,246,.2),transparent 70%);pointer-events:none}
+    .stat-val{font-family:'Fraunces',serif;font-size:2.4rem;font-weight:700;color:#fff;line-height:1;margin-bottom:8px}
+    .stat-lbl{font-size:.78rem;color:rgba(255,255,255,.45);letter-spacing:.5px}
+
+    /* ── HOW IT WORKS ── */
+    .how{padding:0 24px 80px;max-width:800px;margin:0 auto;text-align:center}
+    .steps-list{display:flex;flex-direction:column;gap:0;margin-top:44px}
+    .step{display:flex;gap:20px;align-items:flex-start;text-align:left;padding:20px 0;border-bottom:1px solid var(--border)}
+    .step:last-child{border-bottom:none}
+    .step-num{width:44px;height:44px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff}
+    .step-title{font-weight:600;font-size:.95rem;color:var(--text);margin-bottom:4px}
+    .step-desc{font-size:.82rem;color:var(--muted);line-height:1.6}
+
+    /* ── CTA BANNER ── */
+    .cta-banner{margin:0 24px 80px;border-radius:22px;background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 100%);padding:56px 36px;text-align:center;box-shadow:0 16px 60px rgba(42,108,246,.3);position:relative;overflow:hidden}
+    .cta-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(255,255,255,.08),transparent 60%);pointer-events:none}
+    .cta-banner-title{font-family:'Fraunces',serif;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;color:#fff;margin-bottom:12px;line-height:1.2}
+    .cta-banner-sub{font-size:.95rem;color:rgba(255,255,255,.7);margin-bottom:28px;line-height:1.6}
+    .cta-banner-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .cta-white{padding:13px 30px;border-radius:12px;background:#fff;color:var(--blue);font-weight:700;font-size:.95rem;border:none;cursor:pointer;transition:all .22s;display:inline-flex;align-items:center;gap:8px}
+    .cta-white:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.2)}
+    .cta-white svg{width:16px;height:16px;stroke:var(--blue);fill:none;stroke-width:2}
+    .cta-outline{padding:13px 28px;border-radius:12px;background:transparent;border:2px solid rgba(255,255,255,.4);color:#fff;font-weight:600;font-size:.95rem;cursor:pointer;transition:all .22s}
+    .cta-outline:hover{background:rgba(255,255,255,.12);border-color:#fff}
+
+    /* ── FOOTER ── */
+    .footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center;color:var(--muted);font-size:.78rem;line-height:1.8}
+    .footer-logo{font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--blue);margin-bottom:8px}
+    .footer-disclaimer{max-width:480px;margin:8px auto 0;font-size:.72rem;color:var(--muted)}
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+
+    @media(max-width:600px){
+      .stats-band{padding:36px 20px}
+      .hero{padding:90px 16px 60px}
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+    </div>
+    DHAS
+  </a>
+  <div class="topbar-right">
+    <div class="theme-pill" onclick="toggleTheme()" title="Toggle theme">
+      <svg class="theme-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      <span class="theme-label">Dark</span>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="hero-badge"><span></span>Digital Health Assistant System</div>
+  <h1 class="hero-title">Your health, <em>smarter</em><br>than ever before</h1>
+  <p class="hero-sub">DHAS brings patients and doctors together — track symptoms, manage medications, share reports, and get personalised health guidance all in one place.</p>
+
+  <!-- ── DUAL PORTAL CARDS ── -->
+  <div class="portals">
+
+    <!-- PATIENT PORTAL -->
+    <div class="portal-card patient">
+      <div class="portal-icon-wrap">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      </div>
+      <div class="portal-label">For Patients</div>
+      <div class="portal-title">Patient Portal</div>
+      <div class="portal-desc">Monitor your health, check symptoms, set medicine reminders, upload reports, and connect with your doctor.</div>
+      <div class="portal-tags">
+        <span class="portal-tag">Symptom Checker</span>
+        <span class="portal-tag">Reminders</span>
+        <span class="portal-tag">Diet Guide</span>
+        <span class="portal-tag">Step Tracker</span>
+      </div>
+      <div class="portal-btns">
+        <a href="register.html" class="portal-btn-primary">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          Get Started
+        </a>
+        <a href="login.html" class="portal-btn-secondary">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          Sign In
+        </a>
+      </div>
+    </div>
+
+    <!-- DOCTOR PORTAL -->
+    <div class="portal-card doctor">
+      <div class="portal-icon-wrap">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+      </div>
+      <div class="portal-label">For Doctors</div>
+      <div class="portal-title">Doctor Portal</div>
+      <div class="portal-desc">View connected patient records, symptom history, and medical reports — all in a secure, private dashboard.</div>
+      <div class="portal-tags">
+        <span class="portal-tag">Patient Dashboard</span>
+        <span class="portal-tag">Symptom History</span>
+        <span class="portal-tag">Medical Reports</span>
+        <span class="portal-tag">Invite Code</span>
+      </div>
+      <div class="portal-btns">
+        <a href="doctor_register.html" class="portal-btn-primary">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          Register
+        </a>
+        <a href="doctor_login.html" class="portal-btn-secondary">
+          <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          Sign In
+        </a>
+      </div>
+    </div>
+
+  </div><!-- end .portals -->
+
+  <div class="hero-scroll"><div class="scroll-dot"></div>SCROLL TO EXPLORE</div>
+</section>
+
+<section class="features">
+  <div class="sec-label">What's inside</div>
+  <div class="sec-title">Everything you need for your health</div>
+  <div class="features-grid">
+    <div class="feat-card reveal" style="--c1:var(--blue);--c2:var(--blue-lt)">
+      <div class="feat-icon" style="background:#eff6ff;color:var(--blue)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      <div class="feat-name">Symptom Checker</div>
+      <div class="feat-desc">Log symptoms and get instant condition analysis with severity levels and personalised advice.</div>
+    </div>
+    <div class="feat-card reveal" style="--c1:var(--rose);--c2:var(--amber)">
+      <div class="feat-icon" style="background:#fff0f4;color:var(--rose)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <div class="feat-name">Medicine Reminders</div>
+      <div class="feat-desc">Never miss a dose. Set flexible reminders with daily, weekly, or custom schedules and sound alerts.</div>
+    </div>
+    <div class="feat-card reveal" style="--c1:var(--amber);--c2:#ffcc70">
+      <div class="feat-icon" style="background:#fff8ec;color:var(--amber)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
+      <div class="feat-name">Diet Guidance</div>
+      <div class="feat-desc">Get condition-specific food recommendations — what to eat, what to avoid, and home remedies.</div>
+    </div>
+    <div class="feat-card reveal" style="--c1:var(--teal);--c2:var(--green)">
+      <div class="feat-icon" style="background:#e6faf8;color:var(--teal)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      <div class="feat-name">Health Reports</div>
+      <div class="feat-desc">Upload and store medical reports securely. View, manage, and download whenever you need them.</div>
+    </div>
+    <div class="feat-card reveal" style="--c1:var(--purple);--c2:var(--blue-lt)">
+      <div class="feat-icon" style="background:#f3efff;color:var(--purple)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
+      <div class="feat-name">Step Tracker</div>
+      <div class="feat-desc">Monitor your daily activity with the built-in pedometer. Hit your fitness goals every day.</div>
+    </div>
+    <div class="feat-card reveal" style="--c1:var(--green);--c2:var(--teal)">
+      <div class="feat-icon" style="background:#edfdf4;color:var(--green)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      <div class="feat-name">Doctor Connect</div>
+      <div class="feat-desc">Patients share health data with their doctor using a simple invite code — private and secure.</div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-band reveal">
+  <div><div class="stat-val">6+</div><div class="stat-lbl">Health modules</div></div>
+  <div><div class="stat-val">10+</div><div class="stat-lbl">Conditions detected</div></div>
+  <div><div class="stat-val">100%</div><div class="stat-lbl">Private &amp; secure</div></div>
+  <div><div class="stat-val">24/7</div><div class="stat-lbl">Always available</div></div>
+</div>
+
+<section class="how">
+  <div class="sec-label">How it works</div>
+  <div class="sec-title">Up and running in minutes</div>
+  <div class="steps-list">
+    <div class="step reveal"><div class="step-num">1</div><div><div class="step-title">Create your account</div><div class="step-desc">Sign up as a patient or doctor in seconds. Your data stays private and secure.</div></div></div>
+    <div class="step reveal"><div class="step-num">2</div><div><div class="step-title">Complete your health profile</div><div class="step-desc">Add your vitals, blood group, weight and height. DHAS uses this to personalise everything.</div></div></div>
+    <div class="step reveal"><div class="step-num">3</div><div><div class="step-title">Log symptoms &amp; set reminders</div><div class="step-desc">Select your symptoms to get an instant analysis. Set medicine reminders so you never miss a dose.</div></div></div>
+    <div class="step reveal"><div class="step-num">4</div><div><div class="step-title">Connect with your doctor</div><div class="step-desc">Enter your doctor's invite code to securely share your health data for better care.</div></div></div>
+  </div>
+</section>
+
+<div class="cta-banner reveal">
+  <div class="cta-banner-title">Ready to take charge of your health?</div>
+  <div class="cta-banner-sub">Join DHAS today — it's free, private, and always with you.</div>
+  <div class="cta-banner-btns">
+    <a href="register.html" class="cta-white"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>Patient Sign Up</a>
+    <a href="doctor_register.html" class="cta-outline">Doctor Sign Up</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-logo">DHAS </div>
+  <div>Digital Health Assistant</div>
+  <div class="footer-disclaimer">For informational purposes only. Not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.</div>
+</footer>
+
+<script>
+const revealEls = document.querySelectorAll(".reveal");
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) { setTimeout(() => e.target.classList.add("visible"), i * 60); io.unobserve(e.target); }
+  });
+}, { threshold: 0.1 });
+revealEls.forEach(el => io.observe(el));
+</script>
+</body>
+</html>
+

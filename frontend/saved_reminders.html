@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Reminders — DHAS</title>
+  <script src="js/config.js"></script>
+<script src="theme.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --navy: #0b1437; --navy-mid: #112057;
+      --blue: #2a6cf6; --blue-lt: #4f8ef9;
+      --teal: #00c9b1; --amber: #f4a035;
+      --rose: #f25c7d; --green: #22d07a; --purple: #8250ff;
+      --bg: #f4f6fc; --surface: #ffffff; --border: #e4e9f4;
+      --text: #0d1b3e; --muted: #6b7fa3;
+      --radius: 18px; --radius-sm: 10px;
+      --shadow: 0 2px 20px rgba(42,108,246,.09);
+      --shadow-md: 0 6px 32px rgba(42,108,246,.14);
+    }
+    body.dark {
+      --bg: #080f28; --surface: #111c3c; --border: #1e2e58;
+      --text: #e8efff; --muted: #7d93c3;
+      --shadow: 0 2px 20px rgba(0,0,0,.4);
+      --shadow-md: 0 6px 32px rgba(0,0,0,.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; transition: background .35s, color .35s;
+      padding-bottom: 60px;
+    }
+    a { text-decoration: none; color: inherit; }
+    svg { display: block; }
+
+    /* BOTTOM-LEFT TOAST */
+    #dhasPageToast {
+      position: fixed; bottom: 24px; left: 20px; z-index: 99998;
+      max-width: 340px; min-width: 240px; padding: 13px 18px;
+      border-radius: 14px; font-size: 0.87rem; font-weight: 600;
+      line-height: 1.5; display: none; align-items: flex-start;
+      gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,0.18);
+      animation: dhasToastIn 0.3s cubic-bezier(.4,0,.2,1);
+      font-family: 'DM Sans', sans-serif;
+    }
+    #dhasPageToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasPageToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    body.dark #dhasPageToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    body.dark #dhasPageToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    @keyframes dhasToastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    #dhasPageToast .toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    #dhasPageToast .toast-dismiss {
+      margin-left: auto; background: none; border: none;
+      cursor: pointer; color: inherit; opacity: 0.6;
+      font-size: 14px; padding: 0 0 0 8px; flex-shrink: 0;
+    }
+    #dhasPageToast .toast-dismiss:hover { opacity: 1; }
+
+    /* TOPBAR */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      height: 60px; display: flex; align-items: center;
+      padding: 0 20px; gap: 14px;
+      background: rgba(255,255,255,.88); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border); transition: background .35s;
+    }
+    body.dark .topbar { background: rgba(8,15,40,.88); }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .82rem; font-weight: 600; color: var(--muted);
+      padding: 7px 12px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--bg); transition: all .18s; cursor: pointer;
+    }
+    .back-btn:hover { color: var(--blue); border-color: var(--blue); }
+    .back-btn i { font-size: 15px; }
+    .topbar-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1rem; color: var(--text); flex: 1; text-align: center; }
+    .add-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .8rem; font-weight: 700; color: #fff;
+      padding: 7px 14px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+      border: none; cursor: pointer; transition: all .18s;
+      box-shadow: 0 3px 12px rgba(42,108,246,.3);
+    }
+    .add-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(42,108,246,.4); }
+    .add-btn i { font-size: 14px; }
+
+    .page { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
+
+    /* HEADER CARD */
+    .header-card {
+      background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy) 60%, #0a1f5e 100%);
+      border-radius: 20px; padding: 22px 20px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .header-card::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 140px; height: 140px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(42,108,246,.3), transparent 70%); pointer-events: none;
+    }
+    .hc-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .hc-icon {
+      width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+      background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hc-icon i { font-size: 22px; color: #fff; }
+    .hc-title { font-family: 'Fraunces', serif; font-size: 1.35rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .hc-sub { font-size: .78rem; color: rgba(255,255,255,.55); }
+    .hc-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .hc-stat { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px; text-align: center; }
+    .hc-stat-val { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 700; color: #fff; line-height: 1; }
+    .hc-stat-lbl { font-size: .62rem; color: rgba(255,255,255,.45); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* FILTER TABS */
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+      border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: all .18s;
+    }
+    .tab-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .tab-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+
+    /* REMINDER CARD */
+    .rem-item {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 0; margin-bottom: 10px;
+      box-shadow: var(--shadow); overflow: hidden; transition: border-color .2s, box-shadow .2s;
+      animation: slideIn .25s ease both;
+    }
+    .rem-item:hover { border-color: var(--blue); box-shadow: var(--shadow-md); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .rem-item-inner { display: flex; align-items: stretch; }
+    .rem-accent { width: 4px; flex-shrink: 0; background: var(--blue); }
+    .rem-accent.warn   { background: var(--amber); }
+    .rem-accent.ok     { background: var(--green); }
+    .rem-accent.purple { background: var(--purple); }
+    .rem-body { flex: 1; padding: 14px 14px 14px 16px; }
+    .rem-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .rem-name-row { display: flex; align-items: center; gap: 8px; }
+    .rem-pill-icon { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; background: rgba(42,108,246,.1); display: flex; align-items: center; justify-content: center; }
+    .rem-pill-icon i { font-size: 16px; color: var(--blue); }
+    .rem-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+    .rem-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .rem-action-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border-radius: 7px; font-size: .75rem; font-weight: 700;
+      cursor: pointer; border: 1.5px solid; transition: all .18s; font-family: 'DM Sans', sans-serif;
+    }
+    .rem-action-btn i { font-size: 13px; }
+    .btn-edit { background: rgba(42,108,246,.08); border-color: rgba(42,108,246,.25); color: var(--blue); }
+    .btn-edit:hover { background: rgba(42,108,246,.16); border-color: var(--blue); }
+    .btn-delete { background: rgba(242,92,125,.07); border-color: rgba(242,92,125,.25); color: var(--rose); }
+    .btn-delete:hover { background: rgba(242,92,125,.15); border-color: var(--rose); }
+    .btn-delete.confirm-state { background: var(--rose); color: #fff; border-color: var(--rose); }
+
+    .rem-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; }
+    .chip i { font-size: 11px; }
+    .chip-blue   { background: #eff6ff; color: var(--blue); }
+    .chip-amber  { background: #fff8ec; color: var(--amber); }
+    .chip-green  { background: #edfdf4; color: var(--green); }
+    .chip-purple { background: #f3efff; color: var(--purple); }
+    body.dark .chip-blue   { background: rgba(42,108,246,.15); color: #7aafff; }
+    body.dark .chip-amber  { background: rgba(244,160,53,.15);  color: #fbbf6a; }
+    body.dark .chip-green  { background: rgba(34,208,122,.15);  color: #4ade80; }
+    body.dark .chip-purple { background: rgba(130,80,255,.15);  color: #c4b5fd; }
+
+    .rem-times { display: flex; flex-wrap: wrap; gap: 5px; }
+    .time-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 4px 10px; font-size: .75rem; font-weight: 600; color: var(--text);
+    }
+    .time-badge i { font-size: 12px; color: var(--muted); }
+
+    /* INLINE EDIT PANEL */
+    .edit-panel {
+      background: var(--surface); border: 2px solid var(--blue);
+      border-radius: 16px; padding: 20px; margin: 0 0 10px 0;
+      animation: editSlide .25s ease;
+    }
+    body.dark .edit-panel { background: #111c3c; }
+    @keyframes editSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .edit-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .edit-panel-title { font-size: .92rem; font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 7px; }
+    .edit-panel-title i { font-size: 16px; }
+    .edit-close-btn {
+      background: var(--bg); border: 1px solid var(--border);
+      width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+      font-size: 1rem; color: var(--muted); display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .edit-close-btn:hover { border-color: var(--rose); color: var(--rose); }
+    .edit-close-btn i { font-size: 14px; }
+
+    .dhas-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
+    .dhas-input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text);
+      background: var(--bg); outline: none; transition: border-color .2s, box-shadow .2s;
+      margin-bottom: 14px; appearance: none;
+    }
+    .dhas-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(42,108,246,.12); }
+    body.dark .dhas-input { background: #080f28; color: #e8efff; border-color: #1e2e58; }
+    select.dhas-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%236b7fa3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px; cursor: pointer;
+    }
+    .day-tile {
+      width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700; cursor: pointer; color: var(--muted);
+      background: var(--bg); transition: all .18s; user-select: none;
+    }
+    .day-tile:hover { border-color: var(--blue); color: var(--blue); }
+    .day-tile.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .edit-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-cancel {
+      flex: 1; padding: 11px; border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--text); font-weight: 600; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-cancel:hover { border-color: var(--rose); color: var(--rose); }
+    .btn-save-edit {
+      flex: 2; padding: 11px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+      color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 14px rgba(42,108,246,.3);
+    }
+    .btn-save-edit:hover { opacity: .9; }
+    .btn-save-edit i { font-size: 15px; }
+    .sound-preview-inline {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 8px;
+      padding: 9px 14px; cursor: pointer; font-size: .82rem; font-weight: 700;
+      white-space: nowrap; display: flex; align-items: center; gap: 5px;
+    }
+    .sound-preview-inline i { font-size: 13px; }
+
+    /* EMPTY STATE */
+    .empty-wrap {
+      text-align: center; padding: 50px 20px;
+      background: var(--surface); border: 1.5px dashed var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .empty-icon-wrap { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px; background: #eff6ff; display: flex; align-items: center; justify-content: center; }
+    body.dark .empty-icon-wrap { background: rgba(42,108,246,.12); }
+    .empty-icon-wrap i { font-size: 28px; color: var(--blue); }
+    .empty-title { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-sub { font-size: .84rem; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+    .empty-cta {
+      display: inline-flex; align-items: center; gap: 7px; padding: 11px 24px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt)); color: #fff; font-weight: 700; font-size: .9rem;
+      box-shadow: 0 4px 16px rgba(42,108,246,.3); transition: all .2s; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+    .empty-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(42,108,246,.4); }
+    .empty-cta i { font-size: 16px; }
+
+    .loading-wrap { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .spinner { width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 14px; border: 3px solid var(--border); border-top-color: var(--blue); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="dhasPageToast" role="status" aria-live="polite"></div>
+
+<header class="topbar">
+  <a href="dashboard.html" class="back-btn">
+    <i class="ti ti-chevron-left" aria-hidden="true"></i>
+    Dashboard
+  </a>
+  <div class="topbar-title">Saved Reminders</div>
+  <a href="reminder.html" class="add-btn">
+    <i class="ti ti-plus" aria-hidden="true"></i>
+    Add New
+  </a>
+</header>
+
+<main class="page">
+  <div class="header-card">
+    <div class="hc-top">
+      <div class="hc-icon"><i class="ti ti-clock" aria-hidden="true"></i></div>
+      <div>
+        <div class="hc-title">My Reminders</div>
+        <div class="hc-sub">All your medicine schedules</div>
+      </div>
+    </div>
+    <div class="hc-stats">
+      <div class="hc-stat"><div class="hc-stat-val" id="statTotal">—</div><div class="hc-stat-lbl">Total</div></div>
+      <div class="hc-stat"><div class="hc-stat-val" id="statActive">—</div><div class="hc-stat-lbl">Active</div></div>
+      <div class="hc-stat"><div class="hc-stat-val" id="statToday">—</div><div class="hc-stat-lbl">Today</div></div>
+    </div>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="tab-btn active" onclick="filterReminders('all', this)">All</button>
+    <button class="tab-btn" onclick="filterReminders('daily', this)">Daily</button>
+    <button class="tab-btn" onclick="filterReminders('alternate', this)">Alternate</button>
+    <button class="tab-btn" onclick="filterReminders('weekly', this)">Weekly</button>
+    <button class="tab-btn" onclick="filterReminders('monthly', this)">Monthly</button>
+  </div>
+
+  <div id="reminderList">
+    <div class="loading-wrap"><div class="spinner"></div>Loading your reminders…</div>
+  </div>
+</main>
+
+<script>
+const BASE = window.API_BASE;
+const user = JSON.parse(localStorage.getItem("dhas_user") || "{}");
+if (!user || !user.id) window.location.href = "login.html";
+if (localStorage.getItem("dhas_theme") === "dark") document.body.classList.add("dark");
+
+let allReminders  = [];
+let currentFilter = "all";
+
+
+// ── Bottom-left toast ──────────────────────────────────────────
+let _msgTimer = null;
+function showMsg(text, type = "success", duration = 5000) {
+  const toast = document.getElementById("dhasPageToast");
+  if (!toast) return;
+  const iconClass = type === "success" ? "ti-circle-check" : "ti-alert-circle";
+  toast.className = type;
+  toast.innerHTML = `
+    <i class="ti ${iconClass} toast-icon" aria-hidden="true"></i>
+    <span>${text}</span>
+    <button class="toast-dismiss" onclick="this.parentElement.style.display='none'" aria-label="Dismiss">
+      <i class="ti ti-x" aria-hidden="true"></i>
+    </button>`;
+  toast.style.display = "flex";
+  if (_msgTimer) clearTimeout(_msgTimer);
+  _msgTimer = setTimeout(() => { toast.style.display = "none"; }, duration);
+}
+
+// ── Audio ──────────────────────────────────────────────────────
+let _audioCtx = null;
+function getACtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+const SOUNDS = {
+  bell:   { label:"Bell",   play(ctx){ playT(ctx,[{freq:880,dur:.3,delay:0,gain:.6},{freq:660,dur:.3,delay:.35,gain:.5},{freq:880,dur:.5,delay:.7,gain:.7}],"sine"); } },
+  chime:  { label:"Chime",  play(ctx){ [523,659,784,1047,784,659,523].forEach((f,i)=>playT(ctx,[{freq:f,dur:.25,delay:i*.18,gain:.45}],"sine")); } },
+  beep:   { label:"Beep",   play(ctx){ [0,.35,.7].forEach(d=>playT(ctx,[{freq:1000,dur:.2,delay:d,gain:.5}],"square")); } },
+  gentle: { label:"Gentle", play(ctx){ playT(ctx,[{freq:440,dur:.8,delay:0,gain:.3},{freq:550,dur:.8,delay:.5,gain:.25},{freq:440,dur:.8,delay:1,gain:.2}],"sine"); } },
+  alarm:  { label:"Alarm",  play(ctx){ for(let i=0;i<6;i++) playT(ctx,[{freq:i%2===0?880:660,dur:.18,delay:i*.2,gain:.6}],"sawtooth"); } }
+};
+function playT(ctx, notes, type) {
+  notes.forEach(({freq,dur,delay,gain}) => {
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,ctx.currentTime+delay);
+    g.gain.setValueAtTime(0,ctx.currentTime+delay);
+    g.gain.linearRampToValueAtTime(gain,ctx.currentTime+delay+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime+delay); o.stop(ctx.currentTime+delay+dur+.05);
+  });
+}
+function playSound(key) {
+  try { (SOUNDS[key]||SOUNDS.bell).play(getACtx()); } catch(e) {}
+}
+
+// ── Inline edit helpers ────────────────────────────────────────
+const DOSE_DEFAULTS = {
+  "1":[{label:"Daily",h:"8",m:"00",ampm:"AM"}],
+  "2":[{label:"Morning",h:"8",m:"00",ampm:"AM"},{label:"Evening",h:"8",m:"00",ampm:"PM"}],
+  "3":[{label:"Morning",h:"8",m:"00",ampm:"AM"},{label:"Afternoon",h:"2",m:"00",ampm:"PM"},{label:"Night",h:"9",m:"00",ampm:"PM"}]
+};
+const MAX_DAYS      = { weekly:1, twice_week:2, three_week:3, custom:null };
+const ALL_DAYS      = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const ALL_DAYS_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function ordinal(n){ return n===1?"st":n===2?"nd":n===3?"rd":"th"; }
+function doseLabel(n){ return {"1":"Once daily","2":"Twice daily","3":"Three times daily"}[n]||""; }
+function hourOpts(sel) {
+  return Array.from({length:12},(_,i)=>{const s=String(i+1);return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
+}
+function minOpts(sel) {
+  return Array.from({length:12},(_,i)=>{const s=String(i*5).padStart(2,"0");return`<option value="${s}"${s===String(sel)?" selected":""}>${s}</option>`;}).join("");
+}
+function buildSchedLabel(sched, days, monthDay) {
+  switch(sched) {
+    case "daily":      return "Every day";
+    case "alternate":  return "Alternate days";
+    case "monthly":    return `${monthDay}${ordinal(monthDay)} of every month`;
+    case "weekly":     return days.length ? "Every "+ALL_DAYS_FULL[days[0]] : "Once a week";
+    case "twice_week": return days.length===2 ? ALL_DAYS_FULL[days[0]]+" & "+ALL_DAYS_FULL[days[1]] : "Twice a week";
+    case "three_week": return days.length===3 ? days.map(d=>ALL_DAYS[d]).join(", ") : "3x a week";
+    case "custom":     return days.length ? days.map(d=>ALL_DAYS_FULL[d]).join(", ") : "Custom days";
+    default:           return sched;
+  }
+}
+function buildTimeSlots(existingTimes, doseCount) {
+  const slots = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+  return slots.map((slot, i) => {
+    const ex = existingTimes[i] || slot;
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <label style="min-width:88px;font-size:.83rem;font-weight:600;color:var(--muted);flex-shrink:0;">${slot.label}</label>
+        <select id="et_h_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${hourOpts(ex.h||slot.h)}</select>
+        <span style="font-weight:700;color:var(--muted);">:</span>
+        <select id="et_m_${i}"  class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;margin-bottom:0;">${minOpts(ex.m||slot.m)}</select>
+        <select id="et_ap_${i}" class="dhas-input" style="width:66px;padding:7px 4px;text-align:center;font-weight:700;color:var(--blue);margin-bottom:0;">
+          <option value="AM" ${(ex.ampm||slot.ampm)==="AM"?"selected":""}>AM</option>
+          <option value="PM" ${(ex.ampm||slot.ampm)==="PM"?"selected":""}>PM</option>
+        </select>
+      </div>`;
+  }).join("");
+}
+
+let _openEditId = null;
+
+function openInlineEdit(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+  if (_openEditId === id) { closeInlineEdit(); return; }
+  closeInlineEdit();
+  _openEditId = id;
+
+  const sched     = r.sched || "daily";
+  const doseCount = String(r.doseCount || r.dose_count || 1);
+  const duration  = r.duration || "forever";
+  const sound     = r.sound || "bell";
+  const days      = r.days || [];
+  const monthDay  = r.monthDay || r.month_day || 1;
+  const times     = r.times || [];
+
+  const schedOpts = [
+    ["daily","Every Day"],["alternate","Alternate Days"],
+    ["weekly","Once a Week"],["twice_week","Twice a Week"],
+    ["three_week","3 Times a Week"],["monthly","Once a Month"],["custom","Custom Days"]
+  ].map(([val,lbl])=>`<option value="${val}" ${val===sched?"selected":""}>${lbl}</option>`).join("");
+
+  const durOpts = [
+    ["forever","Ongoing (until removed)"],["1","1 Day only"],
+    ["2","2 Days"],["3","3 Days"],["5","5 Days"],
+    ["7","1 Week"],["14","2 Weeks"],["30","1 Month"]
+  ].map(([val,lbl])=>`<option value="${val}" ${val===duration?"selected":""}>${lbl}</option>`).join("");
+
+  const soundOpts = Object.entries(SOUNDS)
+    .map(([val,obj])=>`<option value="${val}" ${val===sound?"selected":""}>${obj.label}</option>`).join("");
+
+  const doseOpts = [["1","Once a day"],["2","Twice a day"],["3","Three times a day"]]
+    .map(([val,lbl])=>`<option value="${val}" ${val===doseCount?"selected":""}>${lbl}</option>`).join("");
+
+  const showDayPicker = ["weekly","twice_week","three_week","custom"].includes(sched);
+  const showMonthDay  = sched === "monthly";
+
+  const dayPickerHtml = ALL_DAYS.map((day, i) => {
+    const active = days.includes(i) ? "active" : "";
+    return `<div class="day-tile ${active}" id="edt_day_${i}" onclick="etToggleDay(${i},'${sched}')">${day}</div>`;
+  }).join("");
+
+  let monthDayOpts = "";
+  for (let d = 1; d <= 28; d++) {
+    monthDayOpts += `<option value="${d}" ${d===monthDay?"selected":""}>${d}${ordinal(d)} of every month</option>`;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "edit-panel";
+  panel.id = `editPanel_${id}`;
+  panel.innerHTML = `
+    <div class="edit-panel-header">
+      <div class="edit-panel-title">
+        <i class="ti ti-edit" aria-hidden="true"></i>
+        Edit — ${r.medicine}
+      </div>
+      <button class="edit-close-btn" onclick="closeInlineEdit()" title="Close">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+    <label class="dhas-label">Schedule</label>
+    <select id="et_sched" class="dhas-input" onchange="etOnSchedChange()">${schedOpts}</select>
+    <div id="et_daySection" style="display:${showDayPicker?"block":"none"};margin-bottom:10px;">
+      <label class="dhas-label">Select Day(s)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;" id="et_dayPicker">${dayPickerHtml}</div>
+    </div>
+    <div id="et_monthSection" style="display:${showMonthDay?"block":"none"};">
+      <label class="dhas-label">Day of the Month</label>
+      <select id="et_monthDay" class="dhas-input">${monthDayOpts}</select>
+    </div>
+    <label class="dhas-label">Times per Day</label>
+    <select id="et_doseCount" class="dhas-input" onchange="etOnDoseChange(${id})">${doseOpts}</select>
+    <label class="dhas-label">Set Time(s)</label>
+    <div id="et_timeSlots">${buildTimeSlots(times, doseCount)}</div>
+    <label class="dhas-label">Duration</label>
+    <select id="et_duration" class="dhas-input" style="margin-bottom:14px;">${durOpts}</select>
+    <label class="dhas-label">Alarm Sound</label>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
+      <select id="et_sound" class="dhas-input" style="margin-bottom:0;flex:1;">${soundOpts}</select>
+      <button type="button" class="sound-preview-inline" onclick="playSound(document.getElementById('et_sound').value)">
+        <i class="ti ti-player-play" aria-hidden="true"></i> Preview
+      </button>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-cancel" onclick="closeInlineEdit()">Cancel</button>
+      <button class="btn-save-edit" onclick="saveInlineEdit(${id})">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i>
+        Save Changes
+      </button>
+    </div>`;
+
+  const card = document.getElementById(`remCard_${id}`);
+  if (card && card.nextSibling) {
+    card.parentNode.insertBefore(panel, card.nextSibling);
+  } else if (card) {
+    card.parentNode.appendChild(panel);
+  }
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeInlineEdit() {
+  if (_openEditId !== null) {
+    const p = document.getElementById(`editPanel_${_openEditId}`);
+    if (p) p.remove();
+    _openEditId = null;
+  }
+}
+
+function etOnSchedChange() {
+  const sched = document.getElementById("et_sched").value;
+  const dp = document.getElementById("et_daySection");
+  const mp = document.getElementById("et_monthSection");
+  if (dp) dp.style.display = ["weekly","twice_week","three_week","custom"].includes(sched) ? "block" : "none";
+  if (mp) mp.style.display = sched === "monthly" ? "block" : "none";
+  document.querySelectorAll("#et_dayPicker .day-tile").forEach((tile, i) => {
+    tile.setAttribute("onclick", `etToggleDay(${i},'${sched}')`);
+  });
+}
+
+function etToggleDay(index, mode) {
+  const tile   = document.getElementById(`edt_day_${index}`);
+  const active = document.querySelectorAll("#et_dayPicker .day-tile.active");
+  const maxSel = MAX_DAYS[mode];
+  if (tile.classList.contains("active")) {
+    tile.classList.remove("active");
+  } else {
+    if (maxSel !== null && active.length >= maxSel) active[0].classList.remove("active");
+    tile.classList.add("active");
+  }
+}
+
+function etOnDoseChange(id) {
+  const r         = allReminders.find(x => x.id === id);
+  const doseCount = document.getElementById("et_doseCount").value;
+  const currentT  = r?.times || [];
+  const slotsEl   = document.getElementById("et_timeSlots");
+  if (slotsEl) slotsEl.innerHTML = buildTimeSlots(currentT, doseCount);
+}
+
+async function saveInlineEdit(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+
+  const sched     = document.getElementById("et_sched").value;
+  const duration  = document.getElementById("et_duration").value;
+  const sound     = document.getElementById("et_sound").value;
+  const doseCount = document.getElementById("et_doseCount").value;
+  const monthDay  = parseInt(document.getElementById("et_monthDay")?.value || r.monthDay || 1);
+
+  const days = Array.from(
+    document.querySelectorAll("#et_dayPicker .day-tile.active")
+  ).map(t => parseInt(t.id.replace("edt_day_", "")));
+
+  if (sched==="weekly"     && days.length!==1) { showMsg("Please select 1 day for weekly schedule.", "error"); return; }
+  if (sched==="twice_week" && days.length!==2) { showMsg("Please select exactly 2 days.", "error"); return; }
+  if (sched==="three_week" && days.length!==3) { showMsg("Please select exactly 3 days.", "error"); return; }
+  if (sched==="custom"     && days.length===0) { showMsg("Please select at least 1 day.", "error"); return; }
+
+  const slots    = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
+  const newTimes = slots.map((slot, i) => ({
+    label:   slot.label,
+    display: `${document.getElementById(`et_h_${i}`).value}:${document.getElementById(`et_m_${i}`).value} ${document.getElementById(`et_ap_${i}`).value}`,
+    h:    document.getElementById(`et_h_${i}`).value,
+    m:    document.getElementById(`et_m_${i}`).value,
+    ampm: document.getElementById(`et_ap_${i}`).value
+  }));
+
+  const saveBtn = document.querySelector(`#editPanel_${id} .btn-save-edit`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Saving…'; }
+
+  try {
+    // ── FIXED: auth headers on delete ──
+    const delData = await (await fetch(`${BASE}/reminders/delete/${id}`, {
+      method:"DELETE",
+      headers: window.getAuthHeaders()
+    })).json();
+    if (!delData.success) { showMsg("Could not update reminder. Please try again.", "error"); return; }
+
+    const payload = {
+      user_id:       user.id,
+      medicine:      r.medicine,
+      sched,
+      scheduleLabel: buildSchedLabel(sched, days, monthDay),
+      doseCount:     parseInt(doseCount),
+      dosesLabel:    doseLabel(doseCount),
+      times:         newTimes,
+      days,
+      monthDay,
+      duration,
+      sound,
+      startDate:     r.startDate || new Date().toISOString().split("T")[0],
+      altBase:       sched==="alternate" ? new Date().toISOString() : null
+    };
+
+    // ── FIXED: auth headers on add ──
+    const addData = await (await fetch(`${BASE}/reminders/add`, {
+      method:"POST",
+     headers: window.getAuthHeaders(),
+      body: JSON.stringify(payload)
+    })).json();
+
+    if (!addData.success) { showMsg(addData.message || "Failed to save changes.", "error"); return; }
+
+    closeInlineEdit();
+    await loadReminders();
+    showMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
+
+  } catch(err) {
+    showMsg("Network error — could not save changes.", "error");
+  }
+}
+
+// ── Delete ─────────────────────────────────────────────────────
+const _pendingDelete = {};
+async function deleteReminder(id) {
+  const r = allReminders.find(x => x.id === id);
+  if (!r) return;
+
+  if (!_pendingDelete[id]) {
+    _pendingDelete[id] = true;
+    const btn = document.querySelector(`#remCard_${id} .btn-delete`);
+    if (btn) {
+      btn.classList.add("confirm-state");
+      btn.innerHTML = '<i class="ti ti-alert-triangle" style="font-size:13px"></i> Confirm';
+    }
+    showMsg(`Tap "Confirm" again to permanently delete "${r.medicine}".`, "error", 4000);
+    setTimeout(() => {
+      delete _pendingDelete[id];
+      const b = document.querySelector(`#remCard_${id} .btn-delete`);
+      if (b) {
+        b.classList.remove("confirm-state");
+        b.innerHTML = '<i class="ti ti-trash" style="font-size:13px"></i> Delete';
+      }
+    }, 4000);
+    return;
+  }
+
+  delete _pendingDelete[id];
+  try {
+    // ── FIXED: auth headers on delete ──
+    const data = await (await fetch(`${BASE}/reminders/delete/${id}`, {
+      method:"DELETE",
+      headers: window.getAuthHeaders()
+    })).json();
+    if (!data.success) { showMsg("Could not delete reminder. Please try again.", "error"); return; }
+    allReminders = allReminders.filter(r => r.id !== id);
+    if (_openEditId === id) closeInlineEdit();
+    filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
+    updateStats(allReminders);
+    showMsg("Reminder deleted successfully.", "success");
+  } catch(e) {
+    showMsg("Network error — could not delete.", "error");
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────
+const SCHED_LABELS = {
+  daily:"Every Day", alternate:"Alternate Days", weekly:"Once a Week",
+  twice_week:"Twice a Week", three_week:"3x a Week", monthly:"Monthly", custom:"Custom"
+};
+const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function accentClass(i) { return ["","warn","ok","purple","","warn","ok"][i % 7]; }
+function chipColor(sched) {
+  if (sched === "daily")     return "chip-green";
+  if (sched === "alternate") return "chip-amber";
+  if (sched === "monthly")   return "chip-purple";
+  return "chip-blue";
+}
+
+function buildCard(r, i) {
+  const name    = r.medicine || "Medication";
+  const sched   = r.sched || "daily";
+  const schedLbl= r.scheduleLabel || SCHED_LABELS[sched] || sched;
+  const doseLbl = r.dosesLabel || r.doses_label || "";
+  const dur     = r.duration === "forever" ? "Ongoing" : `${r.duration} day(s)`;
+  const times   = r.times || [];
+  // startDate: use server value, fall back to createdAt so old records always show a date
+  const _rawStart = r.startDate || r.start_date
+    || (r.createdAt ? r.createdAt.split("T")[0] : new Date().toISOString().split("T")[0]);
+  const startDateLabel = new Date(_rawStart + "T00:00:00")
+    .toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+
+  // End date chip — only for fixed-duration reminders
+  let endDateLabel = "";
+  if (r.duration && r.duration !== "forever") {
+    const endD = new Date(_rawStart + "T00:00:00");
+    endD.setDate(endD.getDate() + parseInt(r.duration));
+    endDateLabel = endD.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+  }
+  const accent  = accentClass(i);
+  const chipCol = chipColor(sched);
+
+  const dayChips = (r.days || []).length
+    ? r.days.map(d => `<span class="chip chip-blue"><i class="ti ti-calendar-week" aria-hidden="true"></i>${DAYS_SHORT[d]}</span>`).join("")
+    : "";
+
+  const timeBadges = times.map(t => {
+    const display = t.display || `${t.h}:${t.m} ${t.ampm}`;
+    return `<span class="time-badge"><i class="ti ti-clock" aria-hidden="true"></i>${t.label}: ${display}</span>`;
+  }).join("");
+
+  return `
+    <div class="rem-item" id="remCard_${r.id}">
+      <div class="rem-item-inner">
+        <div class="rem-accent ${accent}"></div>
+        <div class="rem-body">
+          <div class="rem-top">
+            <div class="rem-name-row">
+              <div class="rem-pill-icon"><i class="ti ti-pill" aria-hidden="true"></i></div>
+              <span class="rem-name">${name}</span>
+            </div>
+            <div class="rem-actions">
+              <button class="rem-action-btn btn-edit" onclick="openInlineEdit(${r.id})" title="Edit reminder">
+                <i class="ti ti-edit" aria-hidden="true"></i> Edit
+              </button>
+              <button class="rem-action-btn btn-delete" onclick="deleteReminder(${r.id})" title="Delete">
+                <i class="ti ti-trash" aria-hidden="true"></i> Delete
+              </button>
+            </div>
+          </div>
+          <div class="rem-chips">
+  <span class="chip ${chipCol}"><i class="ti ti-calendar"></i>${schedLbl}</span>
+  ${doseLbl ? `<span class="chip chip-blue"><i class="ti ti-repeat"></i>${doseLbl}</span>` : ""}
+  <span class="chip chip-purple"><i class="ti ti-hourglass"></i>${dur}</span>
+  ${dayChips}
+</div>
+
+${times.length ? `<div class="rem-times">${timeBadges}</div>` : ""}
+
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">
+  <span class="chip" style="background:rgba(42,108,246,.13);color:#7aafff;border:1px solid rgba(42,108,246,.25);">
+    <i class="ti ti-calendar-event" style="font-size:11px"></i>
+    Started: ${startDateLabel}
+  </span>
+  ${endDateLabel ? `<span class="chip" style="background:rgba(244,160,53,.13);color:#fbbf6a;border:1px solid rgba(244,160,53,.25);">
+    <i class="ti ti-calendar-x" style="font-size:11px"></i>
+    Ends: ${endDateLabel}
+  </span>` : ""}
+</div>
+          
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderList(reminders) {
+  const list = document.getElementById("reminderList");
+  if (!reminders.length) {
+    const isFiltered = currentFilter !== "all";
+    list.innerHTML = `
+      <div class="empty-wrap">
+        <div class="empty-icon-wrap"><i class="ti ti-clock" aria-hidden="true"></i></div>
+        <div class="empty-title">${isFiltered ? "No reminders in this category" : "No reminders yet"}</div>
+        <div class="empty-sub">${isFiltered ? "Try a different filter or add a new reminder." : "Stay on top of your medication by adding your first reminder."}</div>
+        <button class="empty-cta" onclick="window.location.href='reminder.html'">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add First Reminder
+        </button>
+      </div>`;
+    return;
+  }
+  list.innerHTML = reminders.map((r, i) => buildCard(r, i)).join("");
+}
+
+function shouldFireToday(r) {
+  const now           = new Date();
+  const dow           = now.getDay(), dom = now.getDate();
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+  if (r.startDate) {
+    const start = new Date(r.startDate + "T00:00:00");
+    if (todayMidnight < start) return false;
+  }
+  if (r.duration && r.duration !== "forever") {
+    const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
+    base.setHours(0,0,0,0);
+    if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
+  }
+  switch (r.sched) {
+    case "daily":     return true;
+    case "alternate": {
+      if (!r.altBase) return true;
+      const base  = new Date(r.altBase);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const bDay  = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+      return Math.round((today - bDay) / 86400000) % 2 === 0;
+    }
+    case "weekly": case "twice_week": case "three_week": case "custom":
+      return (r.days || []).includes(dow);
+    case "monthly": return dom === (r.monthDay || 1);
+    default: return false;
+  }
+}
+
+function updateStats(reminders) {
+  const activeCount = reminders.filter(r => r.duration === "forever" || !r.duration).length;
+  const todayCount  = reminders.filter(r => shouldFireToday(r)).length;
+  document.getElementById("statTotal").textContent  = reminders.length;
+  document.getElementById("statActive").textContent = activeCount;
+  document.getElementById("statToday").textContent  = todayCount;
+}
+
+function filterReminders(filter, btn) {
+  currentFilter = filter;
+  if (_openEditId !== null) closeInlineEdit();
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  const filtered = filter === "all" ? allReminders : allReminders.filter(r => {
+    const s = r.sched || "daily";
+    if (filter === "daily")     return s === "daily";
+    if (filter === "alternate") return s === "alternate";
+    if (filter === "weekly")    return ["weekly","twice_week","three_week"].includes(s);
+    if (filter === "monthly")   return s === "monthly";
+    return true;
+  });
+  renderList(filtered);
+}
+
+// Auto-delete fully-expired fixed-duration reminders
+// For same-day reminders: also wait until last alarm time has passed
+async function purgeSavedExpired() {
+  const now           = new Date();
+  const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+
+  const toDelete = allReminders.filter(r => {
+    if (!r.duration || r.duration === "forever") return false;
+    const base = r.startDate
+      ? new Date(r.startDate + "T00:00:00")
+      : (r.createdAt ? new Date(r.createdAt) : new Date());
+    base.setHours(0,0,0,0);
+
+    const daysSince = Math.floor((todayMidnight - base) / 86400000);
+    const dur       = parseInt(r.duration);
+
+    // Well past the window — delete immediately
+    if (daysSince > dur) return true;
+
+    // On or after the last day (daysSince >= dur means the duration has been
+    // fully used: e.g. 1-day reminder started day 0, today is day 1 → daysSince=1, dur=1)
+    // Delete only after all alarms have fired + 5 min grace
+    if (daysSince >= dur) {
+      const times = r.times || [];
+      if (!times.length) return true;
+      const latestMinute = Math.max(...times.map(t => {
+        let h = parseInt(t.h); const m = parseInt(t.m);
+        if (t.ampm === "PM" && h !== 12) h += 12;
+        if (t.ampm === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+      }));
+      return (now.getHours() * 60 + now.getMinutes()) >= latestMinute + 5;
+    }
+
+    return false;
+  });
+
+  for (const r of toDelete) {
+    try {
+      await fetch(`${BASE}/reminders/delete/${r.id}`, {
+        method:"DELETE", headers: window.getAuthHeaders()
+      });
+      allReminders = allReminders.filter(x => x.id !== r.id);
+      showMsg(`"${r.medicine}" (${r.duration}-day reminder) has been automatically removed.`, "success", 5000);
+    } catch(e) { console.warn("purge failed for", r.id, e); }
+  }
+  if (toDelete.length) {
+    updateStats(allReminders);
+    filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
+  }
+}
+
+async function loadReminders() {
+  try {
+    // ── FIXED: auth headers on load ──
+    const res  = await fetch(`${BASE}/reminders/${user.id}`, {
+      method: "GET",
+     headers: window.getAuthHeaders()
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showMsg(err.message || "Session expired. Please log in again.", "error");
+      if (res.status === 401) {
+        setTimeout(() => window.location.href = "login.html", 2000);
+      }
+      return;
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      allReminders = data.data || [];
+      console.log("REMINDERS:", allReminders);
+      // Auto-delete reminders whose duration has fully expired
+      await purgeSavedExpired();
+    }
+    else showMsg(data.message || "Failed to load reminders.", "error");
+  } catch(e) {
+    console.error("Load reminders failed:", e);
+    showMsg("Cannot connect to server. Is it running?", "error");
+  }
+  updateStats(allReminders);
+  filterReminders(currentFilter, document.querySelector(".tab-btn.active"));
+}
+
+loadReminders();
+
+// ── Alarm ticker for saved_reminders page ──────────────────────
+// Fires alarms even when user is viewing this page instead of reminder.html
+(function initSRAlarmTicker() {
+    let _audioCtxSR = null;
+    function _getACtxSR() {
+        if (!_audioCtxSR) _audioCtxSR = new (window.AudioContext || window.webkitAudioContext)();
+        return _audioCtxSR;
+    }
+    ["click","touchstart","keydown"].forEach(ev =>
+        document.addEventListener(ev, () => {
+            try { const c=_getACtxSR(); if(c.state==="suspended") c.resume(); } catch(e){}
+        }, { passive:true })
+    );
+    function _playT(ctx,notes,type){
+        notes.forEach(({freq,dur,delay,gain})=>{
+            const o=ctx.createOscillator(),g=ctx.createGain();
+            o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+delay);
+            g.gain.setValueAtTime(0,ctx.currentTime+delay);
+            g.gain.linearRampToValueAtTime(gain,ctx.currentTime+delay+.02);
+            g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+dur);
+            o.connect(g);g.connect(ctx.destination);
+            o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+dur+.05);
+        });
+    }
+    const _SND={
+        bell:  c=>_playT(c,[{freq:880,dur:.3,delay:0,gain:.6},{freq:660,dur:.3,delay:.35,gain:.5},{freq:880,dur:.5,delay:.7,gain:.7}],"sine"),
+        chime: c=>[523,659,784,1047,784,659,523].forEach((f,i)=>_playT(c,[{freq:f,dur:.25,delay:i*.18,gain:.45}],"sine")),
+        beep:  c=>[0,.35,.7].forEach(d=>_playT(c,[{freq:1000,dur:.2,delay:d,gain:.5}],"square")),
+        gentle:c=>_playT(c,[{freq:440,dur:.8,delay:0,gain:.3},{freq:550,dur:.8,delay:.5,gain:.25},{freq:440,dur:.8,delay:1,gain:.2}],"sine"),
+        alarm: c=>{for(let i=0;i<6;i++)_playT(c,[{freq:i%2===0?880:660,dur:.18,delay:i*.2,gain:.6}],"sawtooth");}
+    };
+    function _playSound(key){
+        try{const c=_getACtxSR();if(c.state==="suspended")c.resume().then(()=>(_SND[key]||_SND.bell)(c));else(_SND[key]||_SND.bell)(c);}catch(e){}
+    }
+    function _to24(h,m,ampm){
+        let hr=parseInt(h,10);
+        if(ampm==="PM"&&hr!==12)hr+=12;
+        if(ampm==="AM"&&hr===12)hr=0;
+        return[hr,parseInt(m,10)];
+    }
+    function _shouldFire(r){
+        const now=new Date(),dow=now.getDay(),dom=now.getDate();
+        const mid=new Date();mid.setHours(0,0,0,0);
+        if(r.startDate){const s=new Date(r.startDate+"T00:00:00");if(mid<s)return false;}
+        if(r.duration&&r.duration!=="forever"){
+            const base=r.startDate?new Date(r.startDate+"T00:00:00"):(r.createdAt?new Date(r.createdAt):new Date());
+            base.setHours(0,0,0,0);
+            if(Math.floor((mid-base)/86400000)>=parseInt(r.duration))return false;
+        }
+        switch(r.sched||"daily"){
+            case "daily":return true;
+            case "alternate":{
+                if(!r.altBase)return true;
+                const base=new Date(r.altBase),today=new Date();today.setHours(0,0,0,0);
+                return Math.round((today-new Date(base.getFullYear(),base.getMonth(),base.getDate()))/86400000)%2===0;
+            }
+            case "weekly":case "twice_week":case "three_week":case "custom":
+                return(r.days||[]).map(Number).includes(dow);
+            case "monthly":return dom===(parseInt(r.monthDay)||1);
+            default:return false;
+        } 
+    }
+    const _fired={};
+    function _tick(){
+        if(!allReminders||!allReminders.length)return;
+        const now=new Date(),hh=now.getHours(),mm=now.getMinutes();
+        allReminders.forEach(r=>{
+            if(!_shouldFire(r))return;
+            (r.times||[]).forEach(t=>{
+                const[aH,aM]=_to24(t.h,t.m,t.ampm);
+                if(isNaN(aH)||isNaN(aM))return;
+                if((hh*60+mm)!==(aH*60+aM))return;
+                const key=`${r.id}-${t.label}-${aH}-${aM}`;
+                if(_fired[key])return;
+                _fired[key]=true;
+                setTimeout(()=>delete _fired[key],5*60*1000);
+                _playSound(r.sound||"bell");
+                showMsg(`💊 Time for <strong>${r.medicine}</strong> — ${t.label}: ${t.display||""}`, "success", 30000);
+                if(Notification.permission==="granted"){
+                    navigator.serviceWorker?.ready.then(reg=>reg.showNotification(r.medicine,{
+                        body:`${t.label}: ${t.display||""}\n${r.scheduleLabel||""}`,
+                        icon:"/favicon.ico",vibrate:[300,100,300],requireInteraction:true,
+                        tag:`dhas-${r.id}-${t.label}`
+                    }));
+                }
+            });
+        });
+    }
+    // Aligned minute ticker: fires at xx:yy:00 so exact match never misses
+    setTimeout(_tick, 500);
+    (function scheduleMinuteTick(){
+        const now=new Date();
+        const msLeft=(60-now.getSeconds())*1000-now.getMilliseconds()+200;
+        setTimeout(()=>{ _tick(); setInterval(_tick,60000); },msLeft);
+    })();
+})();
+</script>
+</body>
+</html>

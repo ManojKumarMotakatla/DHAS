@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <a href="language.html?portal=doctor">Language</a>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Dashboard — DHAS</title>
+  <script src="js/config.js"></script>
+  <script src="theme.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --green:     #059669;
+      --green-lt:  #10b981;
+      --teal:      #00c9b1;
+      --navy:      #064e3b;
+      --navy-mid:  #065f46;
+      --bg:        #f0fdf4;
+      --surface:   #ffffff;
+      --border:    #d1fae5;
+      --text:      #064e3b;
+      --muted:     #6b9a8a;
+      --blue:      #2a6cf6;
+      --rose:      #f25c7d;
+      --amber:     #f4a035;
+      --purple:    #8250ff;
+      --radius:    18px;
+      --radius-sm: 10px;
+      --shadow:    0 2px 20px rgba(5,150,105,.09);
+      --shadow-md: 0 6px 32px rgba(5,150,105,.14);
+    }
+    html.dark body, body.dark {
+      --bg:      #031a10;
+      --surface: #052e1a;
+      --border:  #0a4a28;
+      --text:    #c8f5e5;
+      --muted:   #4a9a7a;
+      --shadow:    0 2px 20px rgba(0,0,0,.35);
+      --shadow-md: 0 6px 32px rgba(0,0,0,.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background .35s, color .35s; }
+    a { text-decoration: none; color: inherit; }
+    svg { display: block; }
+
+    .skeleton { background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,.06) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; display: inline-block; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* TOAST */
+    #dhasToast { position: fixed; bottom: 24px; left: 20px; z-index: 99999; max-width: 360px; min-width: 240px; padding: 13px 18px; border-radius: 14px; font-size: .87rem; font-weight: 600; line-height: 1.5; display: none; align-items: flex-start; gap: 10px; box-shadow: 0 6px 28px rgba(0,0,0,.18); font-family: 'DM Sans', sans-serif; }
+    #dhasToast.success { background: #d1fae5; border: 1.5px solid #86efac; color: #166534; }
+    #dhasToast.error   { background: #fee2e2; border: 1.5px solid #fca5a5; color: #991b1b; }
+    #dhasToast.info    { background: #eff6ff; border: 1.5px solid #93c5fd; color: #1d4ed8; }
+    body.dark #dhasToast.success { background: #052e16; border-color: #166534; color: #86efac; }
+    body.dark #dhasToast.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .toast-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; color: inherit; opacity: .6; font-size: 14px; padding: 0 0 0 8px; flex-shrink: 0; }
+    .toast-dismiss:hover { opacity: 1; }
+
+    /* NOTIFICATION BELL */
+    .notif-wrap { position: relative; }
+    .notif-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative; color: var(--muted); transition: all .2s;
+    }
+    .notif-btn:hover { color: var(--green); border-color: var(--green); }
+    .notif-btn i { font-size: 18px; }
+    .notif-badge {
+      position: absolute; top: -3px; right: -3px;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      padding: 0 3px;
+      background: var(--rose); color: #fff;
+      font-size: .6rem; font-weight: 700;
+      display: none; align-items: center; justify-content: center;
+      border: 2px solid var(--surface);
+    }
+    .notif-badge.visible { display: flex; }
+    .notif-drop {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      width: 310px; border-radius: 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      box-shadow: var(--shadow-md); overflow: hidden;
+      opacity: 0; visibility: hidden; transform: translateY(-8px);
+      transition: all .22s cubic-bezier(.4,0,.2,1); z-index: 400;
+      max-height: 420px; display: flex; flex-direction: column;
+    }
+    .notif-drop.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .notif-drop-head {
+      padding: 13px 16px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .notif-drop-title { font-family: 'Fraunces', serif; font-size: .95rem; font-weight: 700; color: var(--text); }
+    .notif-clear-btn {
+      font-size: .72rem; font-weight: 700; color: var(--green); cursor: pointer;
+      background: none; border: none; font-family: 'DM Sans', sans-serif; padding: 0;
+    }
+    .notif-clear-btn:hover { text-decoration: underline; }
+    .notif-list { overflow-y: auto; flex: 1; }
+    .notif-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+      border-left: 4px solid var(--border);
+      position: relative;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: var(--bg); }
+
+    /* ── UNREAD: strong green left border + green tint bg (LinkedIn style) ── */
+    .notif-item.unread {
+      background: #edfdf7 !important;
+      border-left: 4px solid #059669 !important;
+    }
+    body.dark .notif-item.unread {
+      background: rgba(5,150,105,.18) !important;
+      border-left-color: #10b981 !important;
+    }
+    .notif-item.unread .notif-content-title {
+      color: #064e3b !important;
+      font-weight: 700 !important;
+    }
+    body.dark .notif-item.unread .notif-content-title {
+      color: #c8f5e5 !important;
+    }
+
+    /* ── READ: transparent left border, dimmed ── */
+    .notif-item:not(.unread) {
+      background: var(--surface);
+      border-left: 4px solid transparent;
+      opacity: .65;
+    }
+    .notif-item:not(.unread):hover { opacity: 1; background: var(--bg); }
+    .notif-item:not(.unread) .notif-content-title { color: var(--muted); font-weight: 500; }
+    .notif-item:not(.unread) .notif-icon { opacity: .4; }
+
+    /* READ chip */
+    .notif-read-label {
+      font-size: .6rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      background: var(--border); border-radius: 20px;
+      padding: 1px 7px; flex-shrink: 0; margin-top: 3px;
+      align-self: flex-start; white-space: nowrap;
+    }
+
+    .notif-icon {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .notif-icon.msg  { background: #eff6ff; color: var(--blue); }
+    .notif-icon.req  { background: #fff8ec; color: var(--amber); }
+    .notif-icon.ok   { background: #d1fae5; color: var(--green); }
+    body.dark .notif-icon.msg  { background: rgba(42,108,246,.15); color: #7aafff; }
+    body.dark .notif-icon.req  { background: rgba(244,160,53,.15); color: #fbbf6a; }
+    body.dark .notif-icon.ok   { background: rgba(5,150,105,.18); color: #34d399; }
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-content-title { font-size: .82rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .notif-content-sub   { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    /* Unread dot — pulsing green glow */
+    .notif-dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: #059669; flex-shrink: 0; margin-top: 4px;
+      box-shadow: 0 0 0 3px rgba(5,150,105,.25);
+      animation: notif-pulse-g 2s ease-in-out infinite;
+    }
+    @keyframes notif-pulse-g {
+      0%,100% { box-shadow: 0 0 0 3px rgba(5,150,105,.25); }
+      50%      { box-shadow: 0 0 0 6px rgba(5,150,105,.08); }
+    }
+    .notif-empty { text-align: center; padding: 32px 20px; color: var(--muted); font-size: .85rem; }
+    .notif-empty i { font-size: 32px; display: block; margin-bottom: 8px; opacity: .35; }
+
+    /* CONFIRM MODAL */
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; z-index: 99998; padding: 20px; backdrop-filter: blur(4px); }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box { background: var(--surface); width: 100%; max-width: 400px; border-radius: 20px; padding: 28px 24px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: popIn .25s cubic-bezier(.4,0,.2,1); }
+    body.dark .confirm-box { background: #052e1a; border: 1px solid #0a4a28; }
+    @keyframes popIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+    .confirm-icon { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    .confirm-icon.danger  { background: #fee2e2; color: #dc2626; }
+    .confirm-icon.warning { background: #fff8ec; color: var(--amber); }
+    .confirm-icon.success { background: #d1fae5; color: var(--green); }
+    .confirm-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .confirm-msg { font-size: .87rem; color: var(--muted); line-height: 1.65; margin-bottom: 22px; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-cancel { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-weight: 600; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+    .confirm-cancel:hover { border-color: var(--muted); }
+    .confirm-ok { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none; font-weight: 700; font-size: .9rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+    .confirm-ok.danger  { background: #dc2626; color: #fff; }
+    .confirm-ok.warning { background: var(--amber); color: #fff; }
+    .confirm-ok.success { background: var(--green); color: #fff; }
+    .confirm-ok:hover { opacity: .9; }
+    .confirm-ok:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* SIDEBAR */
+    .sidebar { position: fixed; top: 0; left: 0; width: 236px; height: 100vh; background: var(--navy); padding: 0 12px 24px; display: flex; flex-direction: column; gap: 2px; transform: translateX(-100%); transition: transform .32s cubic-bezier(.4,0,.2,1); z-index: 300; overflow-y: auto; }
+    .sidebar.open { transform: translateX(0); }
+    @media(min-width:900px) { .sidebar { transform: translateX(0); } .sidebar-overlay, .ham { display: none !important; } .main-layout { margin-left: 236px; } }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 22px 8px 20px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; flex-shrink: 0; }
+    .sidebar-logo-icon { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; }
+    .sidebar-logo-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; }
+    .sidebar-logo-text { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .sidebar-close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,.7); transition: all .2s; flex-shrink: 0; }
+    .sidebar-close:hover { background: rgba(255,255,255,.2); color: #fff; }
+    .sidebar-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+    @media(min-width:900px) { .sidebar-close { display: none !important; } }
+    .side-link { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 11px; font-size: .875rem; font-weight: 500; color: rgba(255,255,255,.55); transition: all .2s; cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; width: 100%; text-align: left; }
+    .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .side-link.active { background: rgba(5,150,105,.35); color: #fff; }
+    .side-link i { font-size: 17px; flex-shrink: 0; }
+    .sidebar-section-label { font-size: .65rem; font-weight: 700; color: rgba(255,255,255,.25); text-transform: uppercase; letter-spacing: 1px; padding: 14px 12px 4px; margin-top: 6px; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 299; backdrop-filter: blur(2px); }
+    .sidebar-overlay.show { display: block; }
+
+    /* TOPBAR */
+    .topbar { position: sticky; top: 0; z-index: 200; background: rgba(255,255,255,.88); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); height: 62px; display: flex; align-items: center; padding: 0 16px; gap: 12px; transition: background .35s; }
+    html.dark .topbar, body.dark .topbar { background: rgba(3,26,16,.92); }
+    .ham { width: 36px; height: 36px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all .2s; }
+    .ham:hover { color: var(--green); border-color: var(--green); }
+    .ham svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .topbar-brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; color: var(--green); display: flex; align-items: center; gap: 6px; }
+    .topbar-brand-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .theme-pill { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--muted); user-select: none; white-space: nowrap; transition: all .2s; }
+    .theme-pill:hover { color: var(--green); border-color: var(--green); }
+    .theme-pill svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .profile-wrap { position: relative; }
+    .avatar-btn { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer; position: relative; border: 2px solid var(--border); overflow: hidden; transition: transform .2s; }
+    .avatar-btn:hover { transform: scale(1.06); }
+    .avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+    .online-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #22d07a; border: 2px solid var(--surface); }
+    .pdrop { position: absolute; top: calc(100% + 10px); right: 0; width: 240px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md); overflow: hidden; opacity: 0; visibility: hidden; transform: translateY(-8px); transition: all .22s cubic-bezier(.4,0,.2,1); z-index: 400; }
+    .pdrop.open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .pdrop-header { padding: 14px 16px; background: linear-gradient(135deg, var(--navy), var(--navy-mid)); }
+    .pdrop-name  { font-weight: 600; font-size: .9rem; color: #fff; }
+    .pdrop-email { font-size: .73rem; color: rgba(255,255,255,.5); margin-top: 2px; }
+    .pdrop-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(34,208,122,.2); border: 1px solid rgba(34,208,122,.3); color: #6ee7b7; font-size: .65rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; margin-top: 8px; text-transform: uppercase; letter-spacing: .5px; }
+    .pdrop-divider { height: 1px; background: var(--border); }
+    .pdrop-item { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: .84rem; font-weight: 500; color: var(--text); cursor: pointer; transition: background .15s; }
+    .pdrop-item:hover { background: var(--bg); }
+    .pdrop-item i { font-size: 16px; color: var(--muted); }
+    .pdrop-item.danger { color: var(--rose); }
+    .pdrop-item.danger i { color: var(--rose); }
+
+    /* VIEWS */
+    .view { display: none; }
+    .view.active { display: block; }
+    .page { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    /* HERO */
+    .hero-card { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 55%, #059669 100%); border-radius: 22px; padding: 28px 24px; margin-bottom: 20px; position: relative; overflow: hidden; box-shadow: 0 8px 40px rgba(6,78,59,.3); animation: fadeUp .45s ease both; }
+    .hero-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.25), transparent 70%); pointer-events: none; }
+    .hero-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+    .hero-avatar { width: 72px; height: 72px; border-radius: 20px; flex-shrink: 0; background: linear-gradient(135deg, #059669, #00c9b1); border: 3px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: #fff; overflow: hidden; }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-text { flex: 1; }
+    .hero-greeting { font-size: .72rem; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 3px; }
+    .hero-name { font-family: 'Fraunces', serif; font-size: 1.55rem; font-weight: 700; color: #fff; margin-bottom: 3px; min-height: 32px; }
+    .hero-spec { font-size: .85rem; color: rgba(255,255,255,.6); display: flex; align-items: center; gap: 6px; }
+    .hero-spec i { font-size: 13px; color: var(--teal); }
+    .invite-box { background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2); border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .invite-label { font-size: .7rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .invite-code { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700; color: #fff; letter-spacing: 2px; }
+    .copy-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; padding: 8px 16px; font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px; transition: all .2s; white-space: nowrap; }
+    .copy-btn:hover { background: rgba(255,255,255,.25); }
+    .copy-btn.copied { background: rgba(34,208,122,.25); border-color: rgba(34,208,122,.4); }
+
+    /* STATS */
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; animation: fadeUp .5s .06s ease both; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; box-shadow: var(--shadow); }
+    .stat-val { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: var(--green); min-height: 36px; display: flex; align-items: center; justify-content: center; }
+    .stat-lbl { font-size: .66rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+
+    .sec-head { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 12px; }
+    .sec-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .sec-link { font-size: .78rem; color: var(--green); font-weight: 600; cursor: pointer; }
+
+    /* QUICK ACTIONS */
+    .actions-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; animation: fadeUp .5s .1s ease both; }
+    .action-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; text-decoration: none; color: inherit; }
+    .action-tile::before { content:''; position:absolute; inset:0; opacity:0; transition: opacity .2s; }
+    .action-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .action-tile:hover::before { opacity: 1; }
+    .action-tile.c-green::before  { background: rgba(5,150,105,.06); }
+    .action-tile.c-blue::before   { background: rgba(42,108,246,.06); }
+    .action-tile.c-amber::before  { background: rgba(244,160,53,.06); }
+    .at-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; transition: transform .2s; }
+    .at-icon i { font-size: 22px; }
+    .action-tile:hover .at-icon { transform: scale(1.1); }
+    .action-tile.c-green .at-icon { background: #e6faf8; color: var(--green); }
+    .action-tile.c-blue  .at-icon { background: #eff6ff; color: var(--blue); }
+    .action-tile.c-amber .at-icon { background: #fff8ec; color: var(--amber); }
+    .at-lbl { font-size: .75rem; font-weight: 600; color: var(--text); text-align: center; }
+
+    /* PENDING */
+    .pending-count-badge { background: rgba(244,160,53,.15); border: 1px solid rgba(244,160,53,.35); color: var(--amber); font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; margin-left: 4px; }
+    body.dark .pending-count-badge { background: rgba(244,160,53,.2); border-color: rgba(244,160,53,.4); }
+    .pending-req-card { background: var(--surface); border: 1.5px solid rgba(244,160,53,.35); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px; animation: fadeUp .3s ease both; }
+    body.dark .pending-req-card { border-color: rgba(244,160,53,.3); }
+    .pending-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--amber), #fcd34d); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .pending-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .accept-btn { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--green); color: #fff; font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s; }
+    .accept-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .reject-btn { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; border: 1.5px solid rgba(242,92,125,.3); background: rgba(242,92,125,.08); color: var(--rose); font-size: .78rem; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all .18s; }
+    .reject-btn:hover { background: rgba(242,92,125,.18); border-color: var(--rose); }
+
+    /* PATIENTS */
+    .patient-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; display: flex; align-items: center; gap: 14px; transition: border-color .2s, transform .18s, box-shadow .18s; animation: fadeUp .3s ease both; position: relative; }
+    .patient-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .patient-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .patient-name { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 3px; }
+    .patient-meta { font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; }
+    .patient-meta span { display: flex; align-items: center; gap: 3px; }
+    .patient-meta i { font-size: 12px; }
+    .patient-arrow { margin-left: auto; color: var(--muted); font-size: 1.1rem; }
+    .patient-card:hover .patient-arrow { color: var(--green); }
+    .disconnect-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0; }
+    .disconnect-btn:hover { background: #fee2e2; border-color: var(--rose); color: var(--rose); }
+    body.dark .disconnect-btn { background: #031a10; border-color: #0a4a28; }
+    body.dark .disconnect-btn:hover { background: rgba(242,92,125,.15); border-color: var(--rose); color: var(--rose); }
+    .chat-icon-btn { position: absolute; top: 10px; right: 46px; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all .18s; z-index: 2; flex-shrink: 0; }
+    .chat-icon-btn:hover { background: #eff6ff; border-color: var(--blue); color: var(--blue); }
+    body.dark .chat-icon-btn { background: #031a10; border-color: #0a4a28; }
+    body.dark .chat-icon-btn:hover { background: rgba(42,108,246,.15); border-color: var(--blue); color: var(--blue); }
+
+    /* DETAIL */
+    .detail-back { display: flex; align-items: center; gap: 7px; font-size: .82rem; font-weight: 600; color: var(--muted); padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; margin-bottom: 16px; width: fit-content; transition: all .18s; }
+    .detail-back:hover { color: var(--green); border-color: var(--green); }
+    .detail-header { background: linear-gradient(135deg, var(--navy), var(--navy-mid)); border-radius: 20px; padding: 22px 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+    .detail-header::before { content: ''; position: absolute; top: -30px; right: -30px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.2), transparent 70%); pointer-events: none; }
+    .detail-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; position: relative; }
+    .detail-email { font-size: .8rem; color: rgba(255,255,255,.5); position: relative; }
+    .detail-vitals { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; position: relative; }
+    .vital-chip { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 4px 12px; font-size: .75rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 5px; }
+    .vital-chip i { font-size: 12px; opacity: .7; }
+    .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .info-card-title { font-family: 'Fraunces', serif; font-size: .95rem; font-weight: 600; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+    .info-card-title i { font-size: 17px; color: var(--green); }
+    .sym-row { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+    .sym-row:last-child { border-bottom: none; }
+    .sym-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .sym-cond { font-weight: 700; font-size: .88rem; color: var(--text); }
+    .sym-date { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .sev-tag { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; margin-left: 6px; }
+    .sev-high   { background: #fee2e2; color: #991b1b; }
+    .sev-medium { background: #fef3c7; color: #92400e; }
+    .sev-low    { background: #d1fae5; color: #065f46; }
+    .report-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+      cursor: pointer; transition: border-color .18s, box-shadow .18s;
+    }
+    .report-row:last-child { margin-bottom: 0; }
+    .report-row:hover { border-color: var(--blue); box-shadow: 0 2px 12px rgba(42,108,246,.1); }
+    .report-icon-wrap {
+      width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .report-icon-wrap.pdf  { background: rgba(242,92,125,.12); }
+    .report-icon-wrap.img  { background: rgba(42,108,246,.12); }
+    .report-icon-wrap.file { background: rgba(107,154,138,.12); }
+    .report-icon-wrap i { font-size: 20px; }
+    .report-name { font-weight: 700; font-size: .88rem; color: var(--text); word-break: break-word; line-height: 1.3; }
+    .report-meta {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .72rem; color: var(--muted); margin-top: 3px;
+    }
+    .report-meta i { font-size: 11px; flex-shrink: 0; }
+    .report-meta .sep { opacity: .4; }
+
+    /* PROFILE VIEW */
+    .prof-hero { background: linear-gradient(145deg, var(--navy) 0%, var(--navy-mid) 60%, #071a10 100%); padding: 28px 20px 60px; text-align: center; position: relative; overflow: hidden; border-radius: 20px; }
+    .prof-hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,201,177,.2), transparent 70%); pointer-events: none; }
+    .avatar-wrap { position: relative; display: inline-block; margin-bottom: 14px; cursor: pointer; }
+    .avatar-circle { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--teal)); border: 3px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: #fff; overflow: hidden; margin: 0 auto; }
+    .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-edit-ring { position: absolute; bottom: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: var(--green); border: 3px solid var(--navy); display: flex; align-items: center; justify-content: center; }
+    .avatar-edit-ring svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2.2; }
+    .prof-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .prof-email { font-size: .8rem; color: rgba(255,255,255,.5); margin-bottom: 10px; }
+    .status-pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 5px 14px; font-size: .75rem; font-weight: 600; color: #fff; }
+    .sdot { width: 7px; height: 7px; border-radius: 50%; }
+    .prof-body { margin-top: -36px; position: relative; z-index: 10; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+
+    .v-banner { display: flex; align-items: center; gap: 12px; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 14px; }
+    .v-banner.verified   { background: #d1fae5; border: 1px solid #6ee7b7; }
+    .v-banner.unverified { background: #fffbeb; border: 1px solid #fcd34d; }
+    body.dark .v-banner.verified   { background: rgba(5,150,105,.15); border-color: rgba(5,150,105,.4); }
+    body.dark .v-banner.unverified { background: rgba(244,160,53,.12); border-color: rgba(244,160,53,.4); }
+    .vb-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vb-icon i { font-size: 20px; }
+    .verified   .vb-icon { background: #f0fdf4; }
+    .verified   .vb-icon i { color: #065f46; }
+    .unverified .vb-icon { background: #fef3c7; }
+    .unverified .vb-icon i { color: #92400e; }
+    .vb-content .vb-title { font-size: .88rem; font-weight: 700; }
+    .verified   .vb-content .vb-title { color: #065f46; }
+    .unverified .vb-content .vb-title { color: #92400e; }
+    .vb-content .vb-sub { font-size: .73rem; margin-top: 2px; }
+    .verified   .vb-content .vb-sub { color: #047857; }
+    .unverified .vb-content .vb-sub { color: #b45309; }
+    body.dark .verified   .vb-content .vb-title { color: #6ee7b7; }
+    body.dark .verified   .vb-content .vb-sub   { color: #34d399; }
+    body.dark .unverified .vb-content .vb-title { color: #fcd34d; }
+    body.dark .unverified .vb-content .vb-sub   { color: #f4a035; }
+
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 12px; }
+    .section-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; display: flex; align-items: center; gap: 8px; }
+    .section-head i { font-size: 14px; }
+    .irow { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
+    .irow:last-child { border-bottom: none; }
+    .iicon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .iicon i { font-size: 18px; }
+    .icontent { flex: 1; min-width: 0; }
+    .ilbl { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .ival { font-size: .9rem; font-weight: 600; color: var(--text); margin-top: 2px; }
+    .ival.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+    .arow { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; transition: background .15s; }
+    .arow:hover { background: var(--bg); }
+    .arow:last-child { border-bottom: none; }
+    .acontent { flex: 1; }
+    .albl { font-size: .9rem; font-weight: 600; color: var(--text); }
+    .adesc { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .arow.danger .albl, .arow.danger .adesc { color: var(--rose); }
+    .achev i { font-size: 16px; color: var(--muted); }
+    .arow.danger .achev i { color: var(--rose); }
+
+    /* EDIT FORM */
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
+    .form-head { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; display: flex; align-items: center; gap: 8px; }
+    .form-head i { font-size: 14px; }
+    .form-body { padding: 18px; }
+    .field-group { margin-bottom: 16px; }
+    .field-label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
+    .dhas-input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text); background: var(--bg); outline: none; transition: border-color .2s; margin-bottom: 0; appearance: none; }
+    .dhas-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(5,150,105,.12); }
+    body.dark .dhas-input { background: #031a10; color: #c8f5e5; border-color: #0a4a28; }
+    textarea.dhas-input { resize: vertical; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-save { width: 100%; padding: 12px 24px; border: none; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--green), var(--teal)); color: #fff; font-weight: 700; font-size: .92rem; cursor: pointer; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 16px rgba(5,150,105,.3); transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 20px; }
+    .btn-save:hover { transform: translateY(-1px); opacity: .92; }
+    .btn-save:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .tags-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.25); color: var(--green); border-radius: 20px; padding: 4px 12px; font-size: .78rem; font-weight: 600; }
+    .tag-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: .8rem; padding: 0; line-height: 1; }
+    .tag-input-row { display: flex; gap: 8px; }
+    .tag-add-btn { padding: 9px 14px; border: 1.5px solid var(--green); border-radius: 9px; background: rgba(5,150,105,.08); color: var(--green); font-weight: 700; font-size: .8rem; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; }
+    .photo-upload-wrap { display: flex; align-items: center; gap: 16px; }
+    .photo-preview-small { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, var(--green), var(--teal)); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #fff; font-family: 'Fraunces', serif; overflow: hidden; flex-shrink: 0; }
+    .photo-preview-small img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-upload-btn { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); font-size: .82rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .18s; }
+    .photo-upload-btn:hover { border-color: var(--green); color: var(--green); }
+
+    /* PASSWORD */
+    .pw-wrap { position: relative; }
+    .pw-wrap .dhas-input { padding-right: 44px; }
+    .eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; }
+    .eye-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .strength-bars { display: flex; gap: 4px; margin-top: 6px; }
+    .strength-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background .3s; }
+    .strength-lbl { font-size: .72rem; font-weight: 600; color: var(--muted); margin-top: 4px; }
+    .req-list { list-style: none; padding: 0; margin: 8px 0 0; font-size: .75rem; }
+    .req-list li { display: flex; align-items: center; gap: 6px; color: var(--muted); margin-bottom: 3px; }
+    .req-list li::before { content: "✗"; font-weight: 700; color: #ef4444; min-width: 14px; }
+    .req-list li.ok { color: #27ae60; }
+    .req-list li.ok::before { content: "✓"; color: #27ae60; }
+    .pw-alert { display: none; padding: 11px 14px; border-radius: 10px; font-size: .84rem; font-weight: 600; margin-bottom: 14px; }
+    .pw-alert.error   { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+    .pw-alert.success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    body.dark .pw-alert.error   { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #fca5a5; }
+    body.dark .pw-alert.success { background: rgba(5,150,105,.12); border-color: rgba(5,150,105,.3); color: #6ee7b7; }
+    .google-pw-note { display: none; padding: 12px 14px; border-radius: 10px; font-size: .84rem; font-weight: 600; margin-bottom: 14px; background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+    body.dark .google-pw-note { background: rgba(244,160,53,.1); border-color: rgba(244,160,53,.3); color: #fcd34d; }
+
+    .empty-box { text-align: center; padding: 40px 20px; background: var(--surface); border: 1.5px dashed var(--border); border-radius: var(--radius); }
+    .empty-box i { font-size: 48px; opacity: .3; display: block; margin-bottom: 12px; color: var(--green); }
+    .empty-box p { font-size: .88rem; color: var(--muted); line-height: 1.6; }
+
+    .disclaimer { text-align: center; font-size: .7rem; color: var(--muted); margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); line-height: 1.7; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="dhasToast" role="status" aria-live="polite"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon"><i class="ti ti-alert-triangle"></i></div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-msg" id="confirmMsg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="confirmResolve(false)">Cancel</button>
+      <button class="confirm-ok danger" id="confirmOkBtn" onclick="confirmResolve(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+    </div>
+    <span class="sidebar-logo-text">DHAS Doctor</span>
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sidebar-section-label">Overview</div>
+  <button class="side-link active" id="sl-dashboard" onclick="showView('dashboard'); closeSidebar();"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
+  <button class="side-link" id="sl-patients"  onclick="showView('patients'); closeSidebar();"><i class="ti ti-users"></i><span>My Patients</span></button>
+  <button class="side-link" id="sl-chat" onclick="window.openChat('doctor'); closeSidebar();"><i class="ti ti-message-circle-2"></i><span>Chat</span></button>
+  <div class="sidebar-section-label">Account</div>
+  <button class="side-link" id="sl-profile"  onclick="showView('profile'); closeSidebar();"><i class="ti ti-user-circle"></i><span>My Profile</span></button>
+  <button class="side-link" id="sl-edit"     onclick="showView('edit'); closeSidebar();"><i class="ti ti-edit"></i><span>Edit Profile</span></button>
+  <button class="side-link" id="sl-password" onclick="showView('password'); closeSidebar();"><i class="ti ti-lock"></i><span>Change Password</span></button>
+  <button class="side-link" onclick="window.location.href='language.html';"><i class="ti ti-language"></i><span>Language</span></button>
+  <button class="side-link" onclick="doLogout()" style="color:rgba(242,92,125,.7);margin-top:8px;"><i class="ti ti-logout"></i><span>Logout</span></button>
+</nav>
+
+<div class="main-layout" id="mainLayout">
+  <header class="topbar">
+    <button class="ham" onclick="toggleSidebar()" aria-label="Open menu">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-brand"><div class="topbar-brand-dot"></div>DHAS Doctor</div>
+    <div class="topbar-right">
+      <div class="theme-pill" onclick="toggleTheme()" role="button">
+        <svg class="theme-icon" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        <span class="theme-label">Dark</span>
+      </div>
+      <div class="notif-wrap">
+        <div class="notif-btn" id="notifBtn" onclick="toggleNotifDrop()" title="Notifications" aria-label="Notifications">
+          <i class="ti ti-bell"></i>
+          <div class="notif-badge" id="notifBadge"></div>
+        </div>
+        <div class="notif-drop" id="notifDrop">
+          <div class="notif-drop-head">
+            <div class="notif-drop-title">Notifications</div>
+            <button class="notif-clear-btn" onclick="clearAllNotifs()">Clear all</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-empty"><i class="ti ti-bell-off"></i>No notifications yet</div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-wrap">
+        <div class="avatar-btn" id="avatarBtn" onclick="toggleDropdown()">
+          <span id="avatarInitial">D</span>
+          <div class="online-dot"></div>
+        </div>
+        <div class="pdrop" id="pdrop">
+          <div class="pdrop-header">
+            <div class="pdrop-name"  id="dropName">Dr. Doctor</div>
+            <div class="pdrop-email" id="dropEmail">doctor@email.com</div>
+            <div class="pdrop-badge" id="dropBadge" style="display:none;"><i class="ti ti-circle-check"></i> Verified</div>
+          </div>
+          <div class="pdrop-divider"></div>
+          <div class="pdrop-item" onclick="showView('profile'); closePdrop();"><i class="ti ti-user-circle"></i> My Profile</div>
+          <div class="pdrop-item" onclick="showView('edit'); closePdrop();"><i class="ti ti-edit"></i> Edit Profile</div>
+          <div class="pdrop-item" id="dropChangePw" onclick="showView('password'); closePdrop();"><i class="ti ti-lock"></i> Change Password</div>
+          <div class="pdrop-item" onclick="window.openChat('doctor'); closePdrop();"><i class="ti ti-message-circle-2"></i> Chat</div>
+          <div class="pdrop-item" onclick="window.location.href='language.html'"><i class="ti ti-language"></i> Language</div>
+          <div class="pdrop-divider"></div>
+          <div class="pdrop-item danger" onclick="doLogout()"><i class="ti ti-logout"></i> Logout</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div class="view active page" id="view-dashboard">
+      <div class="hero-card">
+        <div class="hero-top">
+          <div class="hero-avatar" id="heroAvatar">D</div>
+          <div class="hero-text">
+            <div class="hero-greeting">Welcome back</div>
+            <div class="hero-name" id="heroName"><span class="skeleton" style="width:200px;height:32px;border-radius:8px;"></span></div>
+            <div class="hero-spec"><i class="ti ti-stethoscope"></i><span id="heroSpec">General Physician</span></div>
+          </div>
+        </div>
+        <div class="invite-box">
+          <div>
+            <div class="invite-label">Your Patient Invite Code</div>
+            <div class="invite-code" id="inviteCode">DR-XXXXXX</div>
+          </div>
+          <button class="copy-btn" id="copyBtn" onclick="copyCode()">
+            <i class="ti ti-copy" style="font-size:13px"></i> Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="statPat"><span class="skeleton" style="width:36px;height:32px;border-radius:6px;"></span></div><div class="stat-lbl">Patients</div></div>
+        <div class="stat-card"><div class="stat-val" id="statSym"><span class="skeleton" style="width:36px;height:32px;border-radius:6px;"></span></div><div class="stat-lbl">Total Symptoms</div></div>
+        <div class="stat-card"><div class="stat-val" id="statRep"><span class="skeleton" style="width:36px;height:32px;border-radius:6px;"></span></div><div class="stat-lbl">Total Reports</div></div>
+      </div>
+
+      <div class="sec-head" style="margin-top:8px;">
+        <div class="sec-title">Quick Actions</div>
+      </div>
+      <div class="actions-grid">
+        <div class="action-tile c-blue" onclick="window.openChat('doctor')">
+          <div class="at-icon"><i class="ti ti-message-circle-2"></i></div>
+          <div class="at-lbl">Chat</div>
+        </div>
+        <div class="action-tile c-green" onclick="showView('patients')">
+          <div class="at-icon"><i class="ti ti-users"></i></div>
+          <div class="at-lbl">My Patients</div>
+        </div>
+        <div class="action-tile c-amber" onclick="showView('edit')">
+          <div class="at-icon"><i class="ti ti-edit"></i></div>
+          <div class="at-lbl">Edit Profile</div>
+        </div>
+      </div>
+
+      <div class="sec-head" id="pendingHead" style="display:none;">
+        <div class="sec-title">
+          <i class="ti ti-clock" style="color:var(--amber);font-size:16px;"></i>
+          Pending Requests
+          <span class="pending-count-badge" id="pendingBadge"></span>
+        </div>
+      </div>
+      <div id="pendingRequestList"></div>
+
+      <div class="sec-head">
+        <div class="sec-title">Connected Patients</div>
+        <span class="sec-link" onclick="showView('patients')">View all →</span>
+      </div>
+      <div id="dashPatientList"><div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div></div>
+
+      <p class="disclaimer">DHAS Doctor Portal · Patient data is private &amp; encrypted.</p>
+    </div>
+
+    <!-- PATIENTS -->
+    <div class="view page" id="view-patients">
+      <button class="detail-back" onclick="showView('dashboard')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard</button>
+      <div class="sec-head" style="margin-top:0;"><div class="sec-title">All Connected Patients</div></div>
+      <div id="allPatientList"><div style="text-align:center;padding:30px;color:var(--muted);">Loading…</div></div>
+    </div>
+
+    <!-- PATIENT DETAIL -->
+    <div class="view page" id="view-patientDetail">
+      <button class="detail-back" onclick="goBackFromDetail()"><i class="ti ti-chevron-left" style="font-size:15px"></i> Back</button>
+      <div id="detailContent"></div>
+    </div>
+
+    <!-- MY PROFILE -->
+    <div class="view page" id="view-profile">
+      <button class="detail-back" onclick="showView('dashboard')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Dashboard</button>
+
+      <div class="prof-hero">
+        <div class="avatar-wrap" onclick="showView('edit')" title="Edit photo">
+          <div class="avatar-circle" id="profAvatar">D</div>
+          <div class="avatar-edit-ring">
+            <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          </div>
+        </div>
+        <div class="prof-name" id="profName">Dr. Loading…</div>
+        <div class="prof-email" id="profEmail">doctor@email.com</div>
+        <div class="status-pill">
+          <span class="sdot" id="profSdot" style="background:var(--amber);"></span>
+          <span id="profStatus">Loading…</span>
+        </div>
+      </div>
+
+      <div class="prof-body" style="padding:0;">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-val" id="vStatPat">0</div><div class="stat-lbl">Patients</div></div>
+          <div class="stat-card"><div class="stat-val" id="vStatSym">0</div><div class="stat-lbl">Symptoms</div></div>
+          <div class="stat-card"><div class="stat-val" id="vStatRep">0</div><div class="stat-lbl">Reports</div></div>
+        </div>
+
+        <div class="v-banner verified" id="verifiedBanner" style="display:none;">
+          <div class="vb-icon"><i class="ti ti-circle-check"></i></div>
+          <div class="vb-content">
+            <div class="vb-title">Verified Doctor</div>
+            <div class="vb-sub">Your profile is visible in the patient directory.</div>
+          </div>
+        </div>
+        <div class="v-banner unverified" id="unverifiedBanner" style="display:none;">
+          <div class="vb-icon"><i class="ti ti-clock-hour-4"></i></div>
+          <div class="vb-content">
+            <div class="vb-title">Pending Verification</div>
+            <div class="vb-sub">Complete your profile to appear in the doctor directory.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><i class="ti ti-stethoscope"></i>Professional</div>
+          <div class="irow"><div class="iicon" style="background:#e6faf8;color:var(--teal);"><i class="ti ti-stethoscope"></i></div><div class="icontent"><div class="ilbl">Speciality</div><div class="ival" id="vi-spec">—</div></div></div>
+          <div class="irow"><div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-building-hospital"></i></div><div class="icontent"><div class="ilbl">Hospital / Clinic</div><div class="ival" id="vi-hospital">—</div></div></div>
+          <div class="irow"><div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-clock"></i></div><div class="icontent"><div class="ilbl">Experience</div><div class="ival" id="vi-exp">—</div></div></div>
+          <div class="irow"><div class="iicon" style="background:#faf5ff;color:#7c3aed;"><i class="ti ti-map-pin"></i></div><div class="icontent"><div class="ilbl">Location</div><div class="ival" id="vi-location">—</div></div></div>
+          <div class="irow"><div class="iicon" style="background:#fff0f4;color:var(--rose);"><i class="ti ti-message-circle"></i></div><div class="icontent"><div class="ilbl">Languages</div><div class="ival" id="vi-languages">—</div></div></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><i class="ti ti-lock"></i>Account</div>
+          <div class="irow"><div class="iicon" style="background:#f8fafc;color:var(--muted);"><i class="ti ti-key"></i></div><div class="icontent"><div class="ilbl">Sign-in Method</div><div class="ival" id="vi-provider">—</div></div></div>
+          <div class="irow"><div class="iicon" style="background:#f8fafc;color:var(--muted);"><i class="ti ti-calendar"></i></div><div class="icontent"><div class="ilbl">Member Since</div><div class="ival" id="vi-joined">—</div></div></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><i class="ti ti-settings"></i>Settings</div>
+          <div class="arow" onclick="showView('edit')"><div class="iicon" style="background:#e6faf8;color:var(--green);"><i class="ti ti-edit"></i></div><div class="acontent"><div class="albl">Edit Profile</div><div class="adesc">Update professional information</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow" id="profChangePwRow" onclick="showView('password')"><div class="iicon" style="background:#f0fdf4;color:var(--green);"><i class="ti ti-lock"></i></div><div class="acontent"><div class="albl">Change Password</div><div class="adesc">Update your account password</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow" onclick="window.location.href='language.html'"><div class="iicon" style="background:#eff6ff;color:var(--blue);"><i class="ti ti-language"></i></div><div class="acontent"><div class="albl">Language</div><div class="adesc">English · Hindi · Telugu</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow danger" onclick="doDeleteAccount()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-trash"></i></div><div class="acontent"><div class="albl">Delete Account</div><div class="adesc">Permanently remove your account</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+          <div class="arow danger" onclick="doLogout()"><div class="iicon" style="background:#fee2e2;color:var(--rose);"><i class="ti ti-logout"></i></div><div class="acontent"><div class="albl">Logout</div><div class="adesc">Sign out of Doctor Portal</div></div><div class="achev"><i class="ti ti-chevron-right"></i></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT PROFILE -->
+    <div class="view page" id="view-edit">
+      <button class="detail-back" onclick="showView('profile')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Profile</button>
+
+      <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+
+      <div class="form-card">
+        <div class="form-head"><i class="ti ti-camera"></i>Profile Photo</div>
+        <div class="form-body">
+          <div class="photo-upload-wrap">
+            <div class="photo-preview-small" id="photoPreview">D</div>
+            <div>
+              <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()"><i class="ti ti-upload" style="font-size:13px"></i> Upload Photo</button>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:5px;">JPG or PNG, max 2 MB. Visible to patients.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-head"><i class="ti ti-user"></i>Professional Info</div>
+        <div class="form-body">
+          <div class="field-group">
+            <label class="field-label">Speciality</label>
+            <select id="fSpec" class="dhas-input">
+              <option>General Physician</option><option>Cardiologist</option><option>Dermatologist</option>
+              <option>Neurologist</option><option>Paediatrician</option><option>Orthopaedic</option>
+              <option>Gynaecologist</option><option>Psychiatrist</option><option>ENT Specialist</option>
+              <option>Ophthalmologist</option><option>Oncologist</option><option>Urologist</option>
+              <option>Gastroenterologist</option><option>Pulmonologist</option><option>Endocrinologist</option><option>Other</option>
+            </select>
+            </div>
+          <div class="field-group"><label class="field-label">Experience (years)</label><input type="number" id="fExpYears" class="dhas-input" placeholder="e.g. 10" min="0" max="60"></div>
+          <div class="field-group"><label class="field-label">Hospital / Clinic</label><input type="text" id="fHospital" class="dhas-input" placeholder="e.g. Apollo Hospitals"></div>
+          <div class="two-col">
+            <div class="field-group"><label class="field-label">City</label><input type="text" id="fCity" class="dhas-input" placeholder="e.g. Hyderabad"></div>
+            <div class="field-group"><label class="field-label">State</label><input type="text" id="fState" class="dhas-input" placeholder="e.g. Telangana"></div>
+          </div>
+          <div class="field-group"><label class="field-label">Languages (comma-separated)</label><input type="text" id="fLanguages" class="dhas-input" placeholder="e.g. English, Telugu, Hindi"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-head"><i class="ti ti-file-text"></i>About / Bio</div>
+        <div class="form-body"><textarea id="fBio" class="dhas-input" rows="5" placeholder="Write a short bio visible to patients…"></textarea></div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-head"><i class="ti ti-certificate"></i>Areas of Expertise</div>
+        <div class="form-body">
+          <div class="tags-editor" id="expertiseTags"></div>
+          <div class="tag-input-row">
+            <input type="text" id="expertiseInput" class="dhas-input" placeholder="e.g. Diabetes management" onkeydown="if(event.key==='Enter'){addExpertise();event.preventDefault();}">
+            <button class="tag-add-btn" onclick="addExpertise()"><i class="ti ti-plus" style="font-size:13px"></i> Add</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-save" id="saveBtn" onclick="saveProfile()">
+        <i class="ti ti-device-floppy" style="font-size:15px"></i> Save Profile
+      </button>
+    </div>
+
+    <!-- CHANGE PASSWORD -->
+    <div class="view page" id="view-password">
+      <button class="detail-back" onclick="showView('profile')"><i class="ti ti-chevron-left" style="font-size:15px"></i> Profile</button>
+      <div class="form-card">
+        <div class="form-head"><i class="ti ti-lock"></i>Change Password</div>
+        <div class="form-body">
+          <div class="google-pw-note" id="googlePwNote">
+            <i class="ti ti-brand-google" style="margin-right:6px;"></i>
+            Your account uses Google Sign-In. Password change is not available for Google accounts.
+          </div>
+          <div class="pw-alert" id="pwAlert"></div>
+          <div id="pwFormFields">
+            <div class="field-group">
+              <label class="field-label">Current Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="pwCurrent" class="dhas-input" placeholder="Your current password" autocomplete="current-password">
+                <button type="button" class="eye-btn" onclick="toggleEye('pwCurrent','eyeCurrent')"><svg id="eyeCurrent" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">New Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="pwNew" class="dhas-input" placeholder="Min 6 chars — uppercase, number & symbol" autocomplete="new-password" oninput="evalPwStrength(this.value)">
+                <button type="button" class="eye-btn" onclick="toggleEye('pwNew','eyeNew')"><svg id="eyeNew" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+              </div>
+              <div class="strength-bars"><div class="strength-seg" id="ps1"></div><div class="strength-seg" id="ps2"></div><div class="strength-seg" id="ps3"></div><div class="strength-seg" id="ps4"></div></div>
+              <div class="strength-lbl" id="pwStrengthLbl">—</div>
+              <ul class="req-list" style="margin-top:8px;"><li id="pr-len">At least 6 characters</li><li id="pr-upper">One uppercase letter</li><li id="pr-lower">One lowercase letter</li><li id="pr-num">One number</li><li id="pr-sym">One symbol</li></ul>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Confirm New Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="pwConfirm" class="dhas-input" placeholder="Re-enter new password" autocomplete="new-password">
+                <button type="button" class="eye-btn" onclick="toggleEye('pwConfirm','eyeConfirm')"><svg id="eyeConfirm" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+              </div>
+            </div>
+            <button class="btn-save" id="pwSaveBtn" onclick="savePwChange()"><i class="ti ti-lock-check" style="font-size:15px"></i> Update Password</button>
+            <p style="font-size:.72rem;color:var(--muted);margin-top:0;line-height:1.6;">After changing your password you will be logged out and need to sign in again.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ── AUTH ── */
+const doctor = JSON.parse(localStorage.getItem("dhas_doctor") || "{}");
+if (!doctor || !doctor.id) window.location.href = "doctor_login.html";
+
+function getDoctorHeaders() {
+  const token = localStorage.getItem("dhas_doctor_token");
+  return { "Content-Type": "application/json", "Authorization": "Bearer " + (token || "") };
+}
+
+/* ── SAFE FETCH ── */
+async function safeFetchJSON(url, options) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (networkErr) {
+    return { success: false, message: "Cannot connect to server. Please check your connection.", _networkError: true };
+  }
+  const text = await res.text().catch(() => "");
+  let data = null;
+  if (text) { try { data = JSON.parse(text); } catch { data = null; } }
+  if (data && typeof data === "object") {
+    if (data.success === undefined) data.success = res.ok;
+    return data;
+  }
+  return {
+    success: false,
+    message: res.ok ? "Unexpected response from server." : `Server error (${res.status}). Please try again.`
+  };
+}
+
+/* ── TOAST ── */
+let _toastTimer = null;
+function showToast(text, type = "success", duration = 4000) {
+  const t = document.getElementById("dhasToast");
+  const ic = type === "success" ? "ti-circle-check" : type === "error" ? "ti-alert-circle" : "ti-info-circle";
+  t.className = type;
+  t.innerHTML = `<i class="ti ${ic}" style="font-size:16px;flex-shrink:0;margin-top:1px"></i><span>${text}</span><button class="toast-dismiss" onclick="this.parentElement.style.display='none'"><i class="ti ti-x"></i></button>`;
+  t.style.display = "flex";
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.style.display = "none"; }, duration);
+}
+
+/* ── CONFIRM MODAL ── */
+let _confirmResolve = null;
+function showConfirm({ title, msg, okLabel = "Confirm", okType = "danger", icon = "ti-alert-triangle" }) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent   = msg;
+    document.getElementById("confirmIcon").innerHTML    = `<i class="ti ${icon}"></i>`;
+    document.getElementById("confirmIcon").className    = "confirm-icon " + okType;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.textContent = okLabel;
+    btn.className   = "confirm-ok " + okType;
+    btn.disabled    = false;
+    document.getElementById("confirmOverlay").classList.add("show");
+  });
+}
+function confirmResolve(result) {
+  document.getElementById("confirmOverlay").classList.remove("show");
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+
+/* ── SIDEBAR / DROPDOWN ── */
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); document.getElementById("overlay").classList.toggle("show"); }
+function closeSidebar()  { document.getElementById("sidebar").classList.remove("open"); document.getElementById("overlay").classList.remove("show"); }
+function toggleDropdown() { document.getElementById("pdrop").classList.toggle("open"); }
+function closePdrop()     { document.getElementById("pdrop").classList.remove("open"); }
+document.addEventListener("click", e => { if (!document.querySelector(".profile-wrap").contains(e.target)) closePdrop(); });
+
+/* ── VIEW SYSTEM ── */
+const ALL_VIEWS = ["dashboard","patients","patientDetail","profile","edit","password"];
+const SL_MAP    = { dashboard:"sl-dashboard", patients:"sl-patients", profile:"sl-profile", edit:"sl-edit", password:"sl-password" };
+let _prevPatientView = "patients";
+function showView(name) {
+  ALL_VIEWS.forEach(v => { const el = document.getElementById("view-" + v); if (el) el.classList.toggle("active", v === name); });
+  Object.keys(SL_MAP).forEach(k => { const el = document.getElementById(SL_MAP[k]); if (el) el.classList.toggle("active", k === name); });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ── COPY INVITE CODE ── */
+function copyCode() {
+  const code = document.getElementById("inviteCode").textContent;
+  const btn  = document.getElementById("copyBtn");
+  navigator.clipboard.writeText(code).then(() => {
+    btn.classList.add("copied");
+    btn.innerHTML = '<i class="ti ti-check" style="font-size:13px"></i> Copied!';
+    showToast("Invite code " + code + " copied to clipboard!");
+    setTimeout(() => { btn.classList.remove("copied"); btn.innerHTML = '<i class="ti ti-copy" style="font-size:13px"></i> Copy'; }, 2500);
+  }).catch(() => showToast("Could not copy. Code: " + code, "error"));
+}
+
+/* ── SET AVATAR ── */
+function setAvatar(elId, src, name) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (src) {
+    el.innerHTML = `<img src="${src}" alt="${name || 'D'}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+  } else {
+    el.textContent = (name || "D").charAt(0).toUpperCase();
+  }
+}
+
+/* ── IS_VERIFIED CHECK ── */
+function checkVerified(val) {
+  if (val === null || val === undefined) return false;
+  if (typeof val === "number")  return val === 1;
+  if (typeof val === "boolean") return val === true;
+  if (typeof val === "string")  return val === "1" || val.toLowerCase() === "true";
+  return false;
+}
+
+function applyVerifiedUI(verified) {
+  document.getElementById("profSdot").style.background = verified ? "var(--green)" : "var(--amber)";
+  document.getElementById("profStatus").textContent    = verified ? "Verified Doctor" : "Pending Verification";
+  document.getElementById("verifiedBanner").style.display   = verified ? "flex" : "none";
+  document.getElementById("unverifiedBanner").style.display = verified ? "none" : "flex";
+  document.getElementById("dropBadge").style.display = verified ? "inline-flex" : "none";
+}
+
+function applyGoogleOnlyUI(isGoogleOnly) {
+  const pwEls = ["sl-password", "dropChangePw", "profChangePwRow"];
+  pwEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isGoogleOnly ? "none" : ""; });
+  const note   = document.getElementById("googlePwNote");
+  const fields = document.getElementById("pwFormFields");
+  if (note)   note.style.display   = isGoogleOnly ? "block" : "none";
+  if (fields) fields.style.display = isGoogleOnly ? "none"  : "";
+}
+
+/* ── PROFILE LOAD ── */
+let _profileData  = {};
+let profilePhotoBase64 = null;
+let expertiseList = [];
+let _isGoogleOnlyAccount = false;
+
+async function loadProfile() {
+  const data = await safeFetchJSON(window.API_BASE + "/doctor/profile", { headers: getDoctorHeaders() });
+  const d = (data.success && data.doctor) ? data.doctor : doctor;
+  if (!data.success) console.warn("Profile API failed, using localStorage fallback:", data.message);
+
+  _profileData = d;
+
+  document.getElementById("dropName").textContent  = "Dr. " + (d.name || "");
+  document.getElementById("dropEmail").textContent = d.email || "";
+  setAvatar("avatarBtn", d.profile_photo, d.name);
+  const ab = document.getElementById("avatarBtn");
+  if (!ab.querySelector(".online-dot")) { const dot = document.createElement("div"); dot.className = "online-dot"; ab.appendChild(dot); }
+
+  document.getElementById("heroName").textContent   = "Dr. " + (d.name || "");
+  document.getElementById("heroSpec").textContent   = d.speciality || "General Physician";
+  document.getElementById("inviteCode").textContent = d.invite_code || doctor.invite_code || "";
+  setAvatar("heroAvatar", d.profile_photo, d.name);
+
+  document.getElementById("profName").textContent  = "Dr. " + (d.name || "");
+  document.getElementById("profEmail").textContent = d.email || "";
+  setAvatar("profAvatar", d.profile_photo, d.name);
+
+  const verified = checkVerified(d.is_verified);
+  applyVerifiedUI(verified);
+
+  sv("vi-spec",      d.speciality || "General Physician");
+  sv("vi-hospital",  d.hospital);
+  sv("vi-exp",       d.experience_years ? d.experience_years + " years experience" : null);
+  sv("vi-location",  d.city && d.state ? d.city + ", " + d.state : (d.city || d.state || null));
+  sv("vi-languages", d.languages);
+
+  const isGoogleOnly = !!d.google_id && !d.password;
+  _isGoogleOnlyAccount = isGoogleOnly;
+  sv("vi-provider",  isGoogleOnly ? "Google Account" : "Email & Password");
+  sv("vi-joined",    d.created_at ? new Date(d.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : null);
+
+  applyGoogleOnlyUI(isGoogleOnly);
+
+  document.getElementById("fSpec").value      = d.speciality || "General Physician";
+  document.getElementById("fExpYears").value  = d.experience_years || "";
+  document.getElementById("fHospital").value  = d.hospital || "";
+  document.getElementById("fCity").value      = d.city || "";
+  document.getElementById("fState").value     = d.state || "";
+  document.getElementById("fLanguages").value = d.languages || "";
+  document.getElementById("fBio").value       = d.bio || d.about || "";
+
+  const pp = document.getElementById("photoPreview");
+  if (d.profile_photo) { pp.innerHTML = `<img src="${d.profile_photo}" alt="photo">`; }
+  else { pp.textContent = (d.name || "D").charAt(0).toUpperCase(); }
+
+  try { expertiseList = JSON.parse(d.expertise || "[]"); } catch { expertiseList = []; }
+  renderExpertiseTags();
+}
+
+function sv(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (val) { el.textContent = val; el.classList.remove("empty"); }
+  else     { el.textContent = "Not set"; el.classList.add("empty"); }
+}
+
+/* ── PENDING REQUESTS ── */
+async function loadPendingRequests() {
+  const res = await safeFetchJSON(window.API_BASE + "/doctor/pending-requests", { headers: getDoctorHeaders() });
+  const requests = res.success ? (res.data || []) : [];
+  const head  = document.getElementById("pendingHead");
+  const list  = document.getElementById("pendingRequestList");
+  const badge = document.getElementById("pendingBadge");
+
+  if (!requests.length) { head.style.display = "none"; list.innerHTML = ""; return; }
+
+  head.style.display  = "flex";
+  badge.textContent   = requests.length;
+
+  list.innerHTML = requests.map((r, idx) => {
+    const initials = (r.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const reqDate  = new Date(r.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const safeName = (r.name || "").replace(/'/g, "\\'");
+    return `
+      <div class="pending-req-card" style="animation-delay:${idx * 40}ms">
+        <div class="pending-avatar">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="patient-name">${r.name}</div>
+          <div class="patient-meta">
+            <span><i class="ti ti-mail"></i>${r.email}</span>
+            ${r.blood_group ? `<span><i class="ti ti-droplet"></i>${r.blood_group}</span>` : ""}
+            <span><i class="ti ti-calendar"></i>Requested ${reqDate}</span>
+          </div>
+        </div>
+        <div class="pending-actions">
+          <button class="accept-btn" onclick="handleConnection(${r.connection_id}, 'accept', '${safeName}')">
+            <i class="ti ti-check" style="font-size:13px"></i> Accept
+          </button>
+          <button class="reject-btn" onclick="handleConnection(${r.connection_id}, 'reject', '${safeName}')">
+            <i class="ti ti-x" style="font-size:13px"></i> Decline
+          </button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/* ── ACCEPT / REJECT CONNECTION ── */
+async function handleConnection(connectionId, action, patientName) {
+  const isAccept = action === "accept";
+  const ok = await showConfirm({
+    title:   isAccept ? `Accept ${patientName}?` : `Decline ${patientName}?`,
+    msg:     isAccept ? `${patientName} will be added to your patient list.` : `${patientName}'s request will be declined.`,
+    okLabel: isAccept ? "Accept" : "Decline",
+    okType:  isAccept ? "success" : "danger",
+    icon:    isAccept ? "ti-user-check" : "ti-user-x"
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled = true;
+  btn.textContent = isAccept ? "Accepting…" : "Declining…";
+
+  const endpoint = isAccept
+    ? `${window.API_BASE}/doctor/accept/${connectionId}`
+    : `${window.API_BASE}/doctor/reject/${connectionId}`;
+
+  const data = await safeFetchJSON(endpoint, { method: "POST", headers: getDoctorHeaders() });
+  confirmResolve(false);
+  if (data.success) {
+    showToast(isAccept ? `${patientName} has been accepted!` : `${patientName}'s request was declined.`, isAccept ? "success" : "info");
+    await loadPendingRequests();
+    await loadPatients();
+  } else {
+    showToast(data.message || "Action failed.", "error");
+  }
+}
+
+/* ── PATIENTS ──────────────────────────────────────────────────
+   CHANGED: symptom/report counts now reflect what was actually
+   shared in chat (symptom_share / report_share messages) rather
+   than the patient's total record counts. Each patient card shows
+   "X symptoms shared · Y reports shared" and the dashboard stat
+   tiles show the aggregate across all patients. */
+let _patients = [];
+let _prevFromView = "patients";
+
+async function loadPatients() {
+  const res = await safeFetchJSON(window.API_BASE + "/doctor/patients", { headers: getDoctorHeaders() });
+  _patients = res.success ? (res.data || []) : [];
+
+  // symptom_count and report_count come directly from the /doctor/patients
+  // SQL query (subselects on symptoms/reports tables) — no extra API calls needed.
+  let totalSym = 0;
+  let totalRep = 0;
+
+  _patients.forEach(p => {
+    p._sym_shared = parseInt(p.symptom_count) || 0;
+    p._rep_shared = parseInt(p.report_count)  || 0;
+    totalSym += p._sym_shared;
+    totalRep += p._rep_shared;
+  });
+
+  document.getElementById("statPat").textContent  = _patients.length;
+  document.getElementById("statSym").textContent  = totalSym;
+  document.getElementById("statRep").textContent  = totalRep;
+  document.getElementById("vStatPat").textContent = _patients.length;
+  document.getElementById("vStatSym").textContent = totalSym;
+  document.getElementById("vStatRep").textContent = totalRep;
+
+  renderPatientList("dashPatientList", _patients.slice(0, 3));
+  renderPatientList("allPatientList",  _patients);
+}
+
+/* Uses symptom_count / report_count from /doctor/patients API */
+function renderPatientList(containerId, patients) {
+  const list = document.getElementById(containerId);
+  if (!list) return;
+  if (!patients.length) {
+    list.innerHTML = `<div class="empty-box"><i class="ti ti-users"></i><p>No patients connected yet.<br>Share your invite code with patients to connect.</p></div>`;
+    return;
+  }
+  list.innerHTML = patients.map((p, idx) => {
+    const initials = (p.name || "P").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const connDate = new Date(p.connected_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const symCount = p._sym_shared !== undefined ? p._sym_shared : 0;
+    const repCount = p._rep_shared !== undefined ? p._rep_shared : 0;
+    return `<div class="patient-card" style="animation-delay:${idx * 40}ms" onclick="loadPatientDetail(${p.id}, '${containerId === 'dashPatientList' ? 'dashboard' : 'patients'}')">
+      <button class="chat-icon-btn" title="Chat with ${p.name}" aria-label="Chat with ${p.name}" onclick="event.stopPropagation(); openChatAsDoctor(${p.id})"><i class="ti ti-message-circle-2"></i></button>
+      <button class="disconnect-btn" title="Disconnect patient" aria-label="Disconnect ${p.name}" onclick="event.stopPropagation(); disconnectPatient(${p.connection_id}, '${p.name}', '${containerId}')"><i class="ti ti-minus"></i></button>
+      <div class="patient-avatar">${initials}</div>
+      <div style="flex:1;min-width:0;padding-right:64px;">
+        <div class="patient-name">${p.name}</div>
+        <div class="patient-meta">
+          <span><i class="ti ti-mail"></i>${p.email}</span>
+          ${p.blood_group ? `<span><i class="ti ti-droplet"></i>${p.blood_group}</span>` : ""}
+          <span><i class="ti ti-notes"></i>${symCount} symptom${symCount !== 1 ? "s" : ""}</span>
+          <span><i class="ti ti-file"></i>${repCount} report${repCount !== 1 ? "s" : ""}</span>
+          <span><i class="ti ti-calendar"></i>Since ${connDate}</span>
+        </div>
+      </div>
+      <i class="ti ti-chevron-right patient-arrow"></i>
+    </div>`;
+  }).join("");
+}
+
+async function disconnectPatient(connectionId, patientName, sourceContainerId) {
+  const ok = await showConfirm({
+    title: "Disconnect Patient?",
+    msg: `Remove ${patientName} from your patient list? They can reconnect using your invite code at any time.`,
+    okLabel: "Disconnect", okType: "danger", icon: "ti-user-minus"
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled = true; btn.textContent = "Disconnecting…";
+
+  const data = await safeFetchJSON(`${window.API_BASE}/doctor/connections/${connectionId}`, { method: "DELETE", headers: getDoctorHeaders() });
+  confirmResolve(false);
+  if (data.success) { showToast(`${patientName} has been disconnected.`, "success"); await loadPatients(); }
+  else { showToast(data.message || "Failed to disconnect.", "error"); }
+}
+
+function goBackFromDetail() { showView(_prevFromView); }
+
+async function loadPatientDetail(patientId, fromView) {
+  _prevFromView = fromView || "patients";
+  showView("patientDetail");
+  document.getElementById("detailContent").innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);">Loading…</div>`;
+
+  const res = await safeFetchJSON(`${window.API_BASE}/doctor/patients/${patientId}`, { headers: getDoctorHeaders() });
+
+  if (!res.success) {
+    document.getElementById("detailContent").innerHTML = `<div style="text-align:center;padding:40px;color:var(--rose);">Failed to load patient data.</div>`;
+    return;
+  }
+
+  const { profile, symptoms, reports } = res;
+  const vitals = [
+    profile.blood_group ? `<div class="vital-chip"><i class="ti ti-droplet"></i>${profile.blood_group}</div>` : "",
+    profile.height      ? `<div class="vital-chip"><i class="ti ti-ruler"></i>${profile.height} cm</div>` : "",
+    profile.weight      ? `<div class="vital-chip"><i class="ti ti-scale"></i>${profile.weight} kg</div>` : "",
+    profile.gender      ? `<div class="vital-chip"><i class="ti ti-user"></i>${profile.gender}</div>` : "",
+    profile.conditions && profile.conditions !== "None" ? `<div class="vital-chip"><i class="ti ti-alert-circle"></i>${profile.conditions}</div>` : "",
+  ].filter(Boolean).join("");
+
+  const symptomsHTML = symptoms.length ? symptoms.map(s => {
+    const sev   = (s.severity || "").toLowerCase();
+    const level = sev.includes("high") ? "high" : sev.includes("medium") ? "medium" : "low";
+    const dotColor = level === "high" ? "#ef4444" : level === "medium" ? "#f59e0b" : "#10b981";
+    let syms = "";
+    try { syms = JSON.parse(s.symptoms).join(", "); } catch { syms = s.symptoms; }
+    return `<div class="sym-row"><div class="sym-dot" style="background:${dotColor}"></div><div><div class="sym-cond">${s.condition_name || "General"}<span class="sev-tag sev-${level}">${s.severity}</span></div><div class="sym-date">${new Date(s.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · ${syms}</div></div></div>`;
+  }).join("") : `<p style="font-size:.85rem;color:var(--muted);">No symptom records found.</p>`;
+
+  const reportsHTML = reports.length ? reports.map(r => {
+    const isPdf   = r.filetype === "application/pdf";
+    const isImage = (r.filetype || "").startsWith("image/");
+    const iconName  = isPdf ? "ti-file-type-pdf" : isImage ? "ti-photo" : "ti-file";
+    const iconColor = isPdf ? "color:var(--rose)"  : isImage ? "color:var(--blue)" : "color:var(--muted)";
+    const wrapCls   = isPdf ? "pdf" : isImage ? "img" : "file";
+    const dateStr   = new Date(r.uploaded_at).toLocaleDateString("en-IN", { day:"numeric", month:"numeric", year:"numeric" });
+    return `<div class="report-row" onclick="openPatientReportById(${patientId}, ${r.id}, this)">
+      <div class="report-icon-wrap ${wrapCls}">
+        <i class="ti ${iconName}" style="${iconColor}"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="report-name">${r.filename}</div>
+        <div class="report-meta">
+          <i class="ti ti-calendar" style="color:var(--muted)"></i>
+          <span>${dateStr}</span>
+          <span class="sep">|</span>
+          <span>${r.filesize || ""}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("") : `<p style="font-size:.85rem;color:var(--muted);">No reports uploaded.</p>`;
+
+  document.getElementById("detailContent").innerHTML = `
+    <div class="detail-header">
+      <div class="detail-name">${profile.name}</div>
+      <div class="detail-email">${profile.email}${profile.phone ? " · " + profile.phone : ""}</div>
+      <div class="detail-vitals">${vitals || '<div class="vital-chip">No vitals on record</div>'}</div>
+    </div>
+    <div class="info-card"><div class="info-card-title"><i class="ti ti-notes"></i>Symptom History</div>${symptomsHTML}</div>
+    <div class="info-card"><div class="info-card-title"><i class="ti ti-folder-open"></i>Medical Reports</div>${reportsHTML}</div>`;
+}
+
+/* ── EXPERTISE TAGS ── */
+function renderExpertiseTags() {
+  document.getElementById("expertiseTags").innerHTML = expertiseList.map((e, i) =>
+    `<span class="tag-chip">${e}<button onclick="removeExpertise(${i})" aria-label="Remove">✕</button></span>`
+  ).join("");
+}
+function addExpertise() {
+  const input = document.getElementById("expertiseInput");
+  const val   = input.value.trim();
+  if (!val || expertiseList.includes(val)) { input.value = ""; return; }
+  expertiseList.push(val); input.value = ""; renderExpertiseTags();
+}
+function removeExpertise(i) { expertiseList.splice(i, 1); renderExpertiseTags(); }
+
+/* ── PHOTO UPLOAD ── */
+function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast("Photo must be under 2 MB.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    profilePhotoBase64 = ev.target.result;
+    document.getElementById("photoPreview").innerHTML = `<img src="${ev.target.result}" alt="photo">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── SAVE PROFILE ── */
+async function saveProfile() {
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Saving…';
+
+  const payload = {
+    speciality:       document.getElementById("fSpec").value,
+    experience_years: parseInt(document.getElementById("fExpYears").value) || null,
+    hospital:         document.getElementById("fHospital").value.trim(),
+    city:             document.getElementById("fCity").value.trim(),
+    state:            document.getElementById("fState").value.trim(),
+    languages:        document.getElementById("fLanguages").value.trim(),
+    bio:              document.getElementById("fBio").value.trim(),
+    expertise:        expertiseList,
+    profile_photo:    profilePhotoBase64 || null
+  };
+
+  const data = await safeFetchJSON(window.API_BASE + "/doctor/profile/update", { method: "POST", headers: getDoctorHeaders(), body: JSON.stringify(payload) });
+  if (data.success) {
+    showToast("Profile updated successfully!");
+    profilePhotoBase64 = null;
+    await loadProfile();
+    await loadPatients();
+    showView("profile");
+  } else {
+    showToast(data.message || "Save failed.", "error");
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy" style="font-size:15px"></i> Save Profile';
+}
+
+/* ── CHANGE PASSWORD ── */
+const PW_RULES = { len: v => v.length >= 6, upper: v => /[A-Z]/.test(v), lower: v => /[a-z]/.test(v), num: v => /[0-9]/.test(v), sym: v => /[^A-Za-z0-9]/.test(v) };
+function evalPwStrength(val) {
+  Object.keys(PW_RULES).forEach(k => document.getElementById("pr-" + k)?.classList.toggle("ok", PW_RULES[k](val)));
+  const score = Object.values(PW_RULES).filter(fn => fn(val)).length;
+  const bars  = val.length === 0 ? 0 : Math.max(1, Math.round(score * 4 / 5));
+  const colors = ["", "#e74c3c", "#e67e22", "#f1c40f", "#27ae60"];
+  const labels = ["", "Weak", "Fair", "Good", "Strong"];
+  const color  = colors[bars] || "#e0e0e0";
+  for (let i = 1; i <= 4; i++) document.getElementById("ps" + i).style.background = i <= bars ? color : "";
+  const lbl = document.getElementById("pwStrengthLbl");
+  lbl.textContent = val.length === 0 ? "—" : (labels[bars] || "—");
+  lbl.style.color = val.length === 0 ? "var(--muted)" : color;
+}
+function isPwStrong(v) { return Object.values(PW_RULES).every(fn => fn(v)); }
+
+function toggleEye(fieldId, iconId) {
+  const f = document.getElementById(fieldId);
+  const e = document.getElementById(iconId);
+  const h = f.type === "password";
+  f.type = h ? "text" : "password";
+  e.innerHTML = h
+    ? `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.637-4.217M6.53 6.53A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.107 5.02M15 12a3 3 0 00-3-3m0 0a3 3 0 00-2.122.879M3 3l18 18"/>`
+    : `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+}
+
+function showPwAlert(msg, type) {
+  const a = document.getElementById("pwAlert");
+  a.textContent = msg; a.className = "pw-alert " + type; a.style.display = "block";
+}
+
+async function savePwChange() {
+  if (_isGoogleOnlyAccount) {
+    showPwAlert("Your account uses Google Sign-In. Password change is not available for Google accounts.", "error");
+    return;
+  }
+  const current = document.getElementById("pwCurrent").value;
+  const next    = document.getElementById("pwNew").value;
+  const confirm = document.getElementById("pwConfirm").value;
+  const btn     = document.getElementById("pwSaveBtn");
+  document.getElementById("pwAlert").style.display = "none";
+
+  if (!current)          { showPwAlert("Please enter your current password.", "error"); return; }
+  if (!isPwStrong(next)) { showPwAlert("New password must meet all requirements.", "error"); return; }
+  if (next !== confirm)  { showPwAlert("Passwords do not match.", "error"); return; }
+  if (current === next)  { showPwAlert("New password must differ from current.", "error"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="font-size:15px;animation:spin .7s linear infinite"></i> Updating…';
+
+  const data = await safeFetchJSON(window.API_BASE + "/profile/change-password", {
+    method: "POST", headers: getDoctorHeaders(),
+    body: JSON.stringify({ current_password: current, new_password: next })
+  });
+
+  if (data.success) {
+    showPwAlert("Password changed! Logging you out…", "success");
+    setTimeout(() => {
+      localStorage.removeItem("dhas_doctor");
+      localStorage.removeItem("dhas_doctor_token");
+      window.location.href = "doctor_login.html";
+    }, 2000);
+  } else {
+    showPwAlert(data.message || "Failed to change password.", "error");
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-lock-check" style="font-size:15px"></i> Update Password';
+  }
+}
+
+/* ── LOGOUT ── */
+async function doLogout() {
+  const ok = await showConfirm({ title: "Log out?", msg: "You will be signed out of the Doctor Portal.", okLabel: "Log Out", okType: "warning", icon: "ti-logout" });
+  if (!ok) return;
+  localStorage.removeItem("dhas_doctor");
+  localStorage.removeItem("dhas_doctor_token");
+  window.location.href = "doctor_login.html";
+}
+
+/* ── DELETE ACCOUNT ── */
+async function doDeleteAccount() {
+  const ok = await showConfirm({ title: "Delete Account?", msg: "This permanently removes your doctor profile, invite code, and all patient connections. This cannot be undone.", okLabel: "Delete Account", okType: "danger", icon: "ti-trash" });
+  if (!ok) return;
+
+  const btn = document.getElementById("confirmOkBtn");
+  btn.disabled = true; btn.textContent = "Deleting…";
+
+  const data = await safeFetchJSON(window.API_BASE + "/doctor/delete-account", { method: "DELETE", headers: getDoctorHeaders() });
+  confirmResolve(false);
+  if (data.success) {
+    localStorage.removeItem("dhas_doctor");
+    localStorage.removeItem("dhas_doctor_token");
+    showToast("Account deleted. Redirecting…", "info");
+    setTimeout(() => { window.location.href = "doctor_login.html"; }, 1800);
+  } else {
+    showToast(data.message || "Delete failed.", "error");
+  }
+}
+
+/* ── CHAT ── */
+function openChatAsDoctor(patientId) {
+  window.openChat("doctor", patientId);
+}
+
+/* ── OPEN PATIENT REPORT (fetched securely from server) ── */
+async function openPatientReportById(patientId, reportId, rowEl) {
+  // Show loading state on the card row itself
+  if (rowEl) { rowEl.style.opacity = "0.55"; rowEl.style.pointerEvents = "none"; }
+
+  try {
+    const res = await safeFetchJSON(
+      `${window.API_BASE}/doctor/patients/${patientId}/reports/${reportId}`,
+      { headers: getDoctorHeaders() }
+    );
+
+    if (!res.success || !res.dataurl) {
+      showToast(res.message || "Report file not available.", "error");
+      return;
+    }
+
+    const dataurl  = res.dataurl;
+    const mimeType = res.filetype || "application/octet-stream";
+
+    const base64    = dataurl.includes(",") ? dataurl.split(",")[1] : dataurl;
+    const byteChars = atob(base64);
+    const byteNums  = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+
+    const blob    = new Blob([byteNums], { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const w = window.open(blobUrl, "_blank");
+    if (!w) {
+      const a = document.createElement("a");
+      a.href = blobUrl; a.target = "_blank"; a.download = res.filename || "report";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+
+  } catch (err) {
+    console.error("openPatientReportById error:", err);
+    showToast("Failed to load report. Please try again.", "error");
+  } finally {
+    if (rowEl) { rowEl.style.opacity = ""; rowEl.style.pointerEvents = ""; }
+  }
+}
+
+/* ── INIT ── */
+loadProfile();
+loadPatients();
+loadPendingRequests();
+
+// ══════════════════════════════════════════════════════════
+// DOCTOR NOTIFICATION SYSTEM
+// Tracks:
+//   (1) Pending patient connection requests
+//   (2) Unread chat messages from patients
+// Stored in localStorage; badge clears when user opens panel.
+// ══════════════════════════════════════════════════════════
+
+const DOC_NOTIF_KEY = "dhas_doctor_notifications_v4";
+
+function loadNotifs() {
+  try { return JSON.parse(localStorage.getItem(DOC_NOTIF_KEY) || "[]"); } catch { return []; }
+}
+function saveNotifs(list) {
+  try { localStorage.setItem(DOC_NOTIF_KEY, JSON.stringify(list)); } catch {}
+}
+
+function addNotif(notif) {
+  const list = loadNotifs();
+  if (list.find(n => n.id === notif.id)) return; // deduplicate
+  list.unshift({ ...notif, unread: true, ts: notif.ts || Date.now() });
+  saveNotifs(list.slice(0, 30));
+  renderNotifDrop();
+}
+
+function markAllRead() {
+  saveNotifs(loadNotifs().map(n => ({ ...n, unread: false })));
+  renderNotifDrop();
+}
+
+function clearAllNotifs() {
+  saveNotifs([]);
+  renderNotifDrop();
+}
+
+function toggleNotifDrop() {
+  const drop = document.getElementById("notifDrop");
+  const isOpen = drop.classList.contains("open");
+  if (isOpen) {
+    drop.classList.remove("open");
+    // Mark all read only when CLOSING — user has now seen all items
+    markAllRead();
+  } else {
+    drop.classList.add("open");
+    // Do NOT mark read on open — let user see which are new first
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", e => {
+  const wrap = document.querySelector(".notif-wrap");
+  if (wrap && !wrap.contains(e.target))
+    document.getElementById("notifDrop")?.classList.remove("open");
+});
+
+function humanAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60)   return "Just now";
+  if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + " hr ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+function escHTML(s) {
+  const d = document.createElement("div");
+  d.textContent = String(s || "");
+  return d.innerHTML;
+}
+
+function renderNotifDrop() {
+  const list   = loadNotifs();
+  const badge  = document.getElementById("notifBadge");
+  const listEl = document.getElementById("notifList");
+  if (!badge || !listEl) return;
+
+  const unread = list.filter(n => n.unread).length;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? "9+" : String(unread);
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+
+  if (!list.length) {
+    listEl.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off"></i>No notifications yet</div>`;
+    return;
+  }
+
+  // Store notif data in a map so click handler retrieves it safely
+  window._docNotifData = list;
+
+  listEl.innerHTML = list.map((n, idx) => {
+    const iconMap = { msg: "msg", request: "req", accepted: "ok" };
+    const iconNameMap = { msg: "ti-message-circle-2", request: "ti-user-plus", accepted: "ti-user-check" };
+    const cls  = iconMap[n.type]  || "req";
+    const icon = iconNameMap[n.type] || "ti-bell";
+    const indicator = n.unread
+      ? '<div class="notif-dot"></div>'
+      : '<span class="notif-read-label">Read</span>';
+    return `<div class="notif-item ${n.unread ? "unread" : ""}" data-idx="${idx}" onclick="handleNotifClick(${idx})">
+      <div class="notif-icon ${cls}"><i class="ti ${icon}"></i></div>
+      <div class="notif-content">
+        <div class="notif-content-title">${escHTML(n.title)}</div>
+        <div class="notif-content-sub">${escHTML(n.sub || "")} · ${humanAgo(n.ts)}</div>
+      </div>
+      ${indicator}
+    </div>`;
+  }).join("");
+}
+
+async function handleNotifClick(idx) {
+  const n = (window._docNotifData || [])[idx];
+  if (!n) return;
+
+  // Remove this notification (will only re-appear if new unread messages arrive)
+  const list = loadNotifs().filter(x => x.id !== n.id);
+  saveNotifs(list);
+  renderNotifDrop();
+  document.getElementById("notifDrop")?.classList.remove("open");
+
+  if (n.type === "msg") {
+    // Call backend to mark messages as read for this room
+    if (n.room_id) {
+      try {
+        await safeFetchJSON(`${window.API_BASE}/chat/read/${n.room_id}`, {
+          method: "PATCH",
+          headers: getDoctorHeaders()
+        });
+      } catch (_) {}
+    }
+    if (n.partner_id) {
+      window.openChat("doctor", n.partner_id);
+    } else {
+      window.openChat("doctor");
+    }
+  } else if (n.type === "request") {
+    showView("dashboard");
+    setTimeout(() => {
+      document.getElementById("pendingHead")?.scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  }
+}
+
+// ── 1. Poll for pending patient requests ──────────────────────
+async function fetchRequestNotifs() {
+  const res = await safeFetchJSON(window.API_BASE + "/doctor/pending-requests", { headers: getDoctorHeaders() });
+  const requests = res.success ? (res.data || []) : [];
+  requests.forEach(r => {
+    addNotif({
+      id:    `req_${r.connection_id}`,
+      type:  "request",
+      title: `New connection request`,
+      sub:   `${r.name} wants to connect with you`,
+      ts:    r.requested_at ? new Date(r.requested_at).getTime() : Date.now()
+    });
+  });
+}
+
+// ── 2. Poll for unread chat messages ──────────────────────────
+// ONE grouped notification per patient (keyed on room_id) —
+// updates in-place so the badge never inflates artificially.
+// When unread_count drops to 0 (messages read in chat), removes
+// the notification automatically on next poll.
+async function fetchChatNotifs() {
+  const res = await safeFetchJSON(window.API_BASE + "/chat/contacts", { headers: getDoctorHeaders() });
+  if (!res.success) return;
+
+  let current = loadNotifs();
+
+  (res.data || []).forEach(contact => {
+    const count = parseInt(contact.unread_count) || 0;
+    const notifId = `msg_${contact.room_id}`;
+
+    if (count <= 0) {
+      // Messages were read in the chat — remove any stale notification
+      current = current.filter(n => n.id !== notifId);
+      return;
+    }
+
+    const preview = contact.last_message_encrypted
+      ? "🔒 Encrypted message"
+      : (contact.last_message || "New message");
+    const ts = contact.last_message_at ? new Date(contact.last_message_at).getTime() : Date.now();
+
+    // Update-or-insert: remove stale entry for this room, re-add with fresh data
+    const wasUnread = current.find(n => n.id === notifId)?.unread ?? true;
+    current = current.filter(n => n.id !== notifId);
+    current.unshift({
+      id:           notifId,
+      type:         "msg",
+      title:        `${count} new message${count > 1 ? "s" : ""} from ${contact.name}`,
+      sub:          preview.length > 60 ? preview.slice(0, 60) + "…" : preview,
+      ts,
+      unread:       wasUnread,
+      partner_id:   contact.partner_id,
+      room_id:      contact.room_id,
+      unread_count: count
+    });
+  });
+
+  saveNotifs(current.slice(0, 30));
+  renderNotifDrop();
+}
+
+// ── Init notifications ────────────────────────────────────────
+renderNotifDrop();
+fetchRequestNotifs();
+fetchChatNotifs();
+
+// Refresh every 90 seconds
+setInterval(() => {
+  fetchRequestNotifs();
+  fetchChatNotifs();
+}, 90 * 1000);
+</script>
+</body>
+</html>

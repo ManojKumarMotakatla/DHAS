@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found | DHAS</title>
+  <script src="theme.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #0b1437; --navy-mid: #112057;
+      --blue: #2a6cf6; --blue-lt: #4f8ef9;
+      --teal: #00c9b1; --rose: #f25c7d;
+      --bg: #f4f6fc; --surface: #ffffff;
+      --border: #e4e9f4; --text: #0d1b3e;
+      --muted: #6b7fa3;
+      /* accent vars — overridden per-portal */
+      --accent:      #2a6cf6;
+      --accent-lt:   #4f8ef9;
+      --accent-bg:   #eff6ff;
+      --accent-glow: rgba(42,108,246,.35);
+      --hero-from:   #0b1437;
+      --hero-to:     #2a6cf6;
+    }
+    html.dark body, body.dark {
+      --bg: #080f28; --surface: #111c3c;
+      --border: #1e2e58; --text: #e8efff; --muted: #7d93c3;
+    }
+
+    /* ── Doctor portal override — applied when URL contains "doctor" ── */
+    body.doctor-portal {
+      --accent:      #059669;
+      --accent-lt:   #00c9b1;
+      --accent-bg:   #f0fdf4;
+      --accent-glow: rgba(5,150,105,.35);
+      --hero-from:   #064e3b;
+      --hero-to:     #059669;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px; text-align: center;
+      transition: background .35s, color .35s;
+      overflow: hidden;
+    }
+
+    /* Animated blobs */
+    .blob {
+      position: fixed; border-radius: 50%;
+      filter: blur(80px); opacity: .12; pointer-events: none;
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+    html.dark .blob { opacity: .06; }
+    .blob-1 { width: 400px; height: 400px; background: var(--accent);   top: -100px; left: -100px; animation-delay: 0s; }
+    .blob-2 { width: 300px; height: 300px; background: var(--teal);     bottom: -80px; right: -80px; animation-delay: -5s; }
+    .blob-3 { width: 200px; height: 200px; background: var(--rose);     top: 40%; right: 15%; animation-delay: -3s; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(20px,15px) scale(1.06); } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 48px 40px 40px;
+      max-width: 440px; width: 100%;
+      box-shadow: 0 8px 40px var(--accent-glow);
+      position: relative; z-index: 1;
+      animation: popIn .5s cubic-bezier(.4,0,.2,1) both;
+    }
+    @keyframes popIn { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+
+    .error-code {
+      font-family: 'Fraunces', serif;
+      font-size: 6rem; font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      animation: popIn .5s .08s cubic-bezier(.4,0,.2,1) both;
+    }
+
+    .pulse-icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      background: var(--accent-bg);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      animation: popIn .5s .04s cubic-bezier(.4,0,.2,1) both;
+    }
+    html.dark .pulse-icon { background: rgba(42,108,246,.15); }
+    body.doctor-portal html.dark .pulse-icon,
+    body.doctor-portal.dark .pulse-icon { background: rgba(5,150,105,.15); }
+    .pulse-icon svg { width: 36px; height: 36px; stroke: var(--accent); fill: none; stroke-width: 1.6; }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.5rem; font-weight: 700;
+      color: var(--text); margin-bottom: 10px;
+      animation: popIn .5s .12s cubic-bezier(.4,0,.2,1) both;
+    }
+    p {
+      font-size: .9rem; color: var(--muted); line-height: 1.65;
+      margin-bottom: 28px;
+      animation: popIn .5s .16s cubic-bezier(.4,0,.2,1) both;
+    }
+
+    /* Only one action now — a single centered dashboard button */
+    .actions {
+      display: flex; flex-direction: column; gap: 10px;
+      animation: popIn .5s .2s cubic-bezier(.4,0,.2,1) both;
+    }
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 24px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-lt));
+      color: #fff; font-family: 'DM Sans', sans-serif;
+      font-weight: 700; font-size: .95rem; cursor: pointer;
+      box-shadow: 0 4px 18px var(--accent-glow);
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+    .btn-primary svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.2; }
+
+    /* portal badge at top */
+    .portal-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .65rem; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; padding: 4px 12px;
+      border-radius: 20px; margin-bottom: 16px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid rgba(42,108,246,.2);
+    }
+    body.doctor-portal .portal-badge { border-color: rgba(5,150,105,.2); }
+    .portal-badge svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+  </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="card" id="mainCard">
+  <!-- Portal badge — filled by JS -->
+  <div class="portal-badge" id="portalBadge" style="display:none;"></div>
+
+  <div class="pulse-icon" id="pulseIcon">
+    <!-- Icon filled by JS -->
+  </div>
+
+  <div class="error-code">404</div>
+  <h1>Page not found</h1>
+  <p>The record you're looking for seems to have gone missing. It may have been moved, deleted, or never existed.</p>
+
+  <!-- Single dashboard action only — no "Go Back", no quick links -->
+  <div class="actions" id="actionsEl">
+    <!-- Filled by JS based on portal -->
+  </div>
+</div>
+
+<script>
+  // ── Detect which portal we're in ────────────────────────────
+  // Check referrer, localStorage, or URL path for doctor context
+  function isDocPortal() {
+    var ref    = document.referrer || '';
+    var path   = window.location.pathname || '';
+    var search = window.location.search  || '';
+    var hasDoc = localStorage.getItem('dhas_doctor') && !localStorage.getItem('dhas_user');
+    // If doctor token exists but no patient token, it's doctor portal
+    var docToken = localStorage.getItem('dhas_doctor_token');
+    var patToken = localStorage.getItem('dhas_token');
+    if (docToken && !patToken) return true;
+    if (hasDoc) return true;
+    if (ref.indexOf('doctor') !== -1 || path.indexOf('doctor') !== -1 || search.indexOf('portal=doctor') !== -1) return true;
+    return false;
+  }
+
+  var isDoc = isDocPortal();
+  if (isDoc) document.body.classList.add('doctor-portal');
+
+  // ── Fill icon ────────────────────────────────────────────────
+  var icon = document.getElementById('pulseIcon');
+  if (isDoc) {
+    icon.innerHTML = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>';
+  } else {
+    icon.innerHTML = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
+  }
+
+  // ── Portal badge ─────────────────────────────────────────────
+  var badge = document.getElementById('portalBadge');
+  if (isDoc) {
+    badge.style.display = 'inline-flex';
+    badge.innerHTML = '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Doctor Portal';
+  }
+
+  // ── Action — ONLY a dashboard button, nothing else ────────────
+  // Doctor → doctor_dashboard.html, Patient → dashboard.html
+  var actionsEl = document.getElementById('actionsEl');
+  var dashHref  = isDoc ? 'doctor_dashboard.html' : 'dashboard.html';
+  actionsEl.innerHTML =
+    '<a href="' + dashHref + '" class="btn-primary">'
+    + '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>'
+    + 'Go to Dashboard'
+    + '</a>';
+</script>
+</body>
+</html>
