@@ -4,7 +4,7 @@
 // Symptom checker — saves to DB + localStorage
 // ============================================
 
-const BASE_URL = window.API_BASE || "http://localhost:3007";
+const BASE_URL = window.API_BASE || "http://localhost:3006";
 
 const LS_SYMPTOMS  = "dhas_symptoms";
 const LS_CONDITION = "dhas_symptom_condition";

@@ -18,7 +18,7 @@
 //     Backend   → bcrypt.compare(plain, stored_hash) on login
 //
 // FIX P1.5 — Uses window.API_BASE from config.js instead of
-//             the hardcoded "http://localhost:3007" string.
+//             the hardcoded "http://localhost:3006" string.
 //
 // FIX P1.6 — Uses window.getAuthHeaders from config.js.
 //             The local getHeaders() function is removed.

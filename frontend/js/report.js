@@ -4,7 +4,7 @@
 // Matches reportController.js and schema.sql (v5+).
 // ============================================
 
-const BASE_URL = window.API_BASE || "http://localhost:3007";
+const BASE_URL = window.API_BASE || "http://localhost:3006";
 
 function getUser() {
     return JSON.parse(localStorage.getItem("dhas_user"));

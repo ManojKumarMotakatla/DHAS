@@ -15,7 +15,7 @@ const app = express();
 //             worked: there was no socket endpoint at all. ──
 const httpServer = http.createServer(app);
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3007";
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:3006";
 
 // ── Reusable origin check, shared between Express CORS and Socket.IO CORS ──
 function isAllowedOrigin(origin) {
@@ -133,7 +133,7 @@ initSocket(httpServer, [
     /^http:\/\/127\.0\.0\.1(:\d+)?$/
 ]);
 
-const PORT = process.env.PORT || 3007;
+const PORT = process.env.PORT || 3006;
 
 // ── CHANGED: listen on httpServer instead of app, so both Express
 //             routes AND Socket.IO share one port. ──

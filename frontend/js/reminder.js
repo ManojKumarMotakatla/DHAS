@@ -24,10 +24,23 @@ function getUserId() {
     return null;
 }
 
-let remindersCache = [];
-function getReminders() { return remindersCache; }
+// ── CHANGED: reminder cache + display logic now reads from the
+//             SHARED alarm engine (js/alarm-engine.js) instead of
+//             maintaining its own separate cache. This fixes the bug
+//             where reminder.js's own checkAlarms() fired every
+//             reminder immediately on page load (it computed
+//             nowMinutes/alarmMinutes but never compared them before
+//             calling triggerAlarm()). All alarm-firing logic
+//             (audio, ticker, popup card, SW sync) now lives in
+//             js/alarm-engine.js and runs identically on EVERY page
+//             that includes it — not just this one. ──
+function getReminders() {
+    return (window.DHAS_ALARM_ENGINE && window.DHAS_ALARM_ENGINE.getReminders())
+        ? window.DHAS_ALARM_ENGINE.getReminders()
+        : [];
+}
 
-// Normalize a reminder from the server so alarm engine fields are always correct
+// Normalize a reminder from the server so form-editing fields are always correct
 function normalizeReminder(r) {
     return {
         ...r,
@@ -95,26 +108,6 @@ function normalizeReminder(r) {
             font-weight: 700; cursor: pointer; color: inherit;
             font-family: 'DM Sans', sans-serif;
         }
-        #dhasAlarmContainer {
-            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-            z-index: 99999; display: flex; flex-direction: column;
-            gap: 10px; max-width: 360px; width: 92%;
-            pointer-events: none;
-        }
-        #dhasAlarmContainer > * { pointer-events: all; }
-        .alarm-card {
-            background: linear-gradient(135deg,#1a56db,#0ea5e9); color:#fff;
-            border-radius: 16px; padding: 16px 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
-            animation: alarmSlideIn 0.35s ease;
-        }
-        @keyframes alarmSlideIn { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
-        .alarm-card-title { display:flex; align-items:center; gap:8px; font-size:1rem; font-weight:700; margin-bottom:3px; }
-        .alarm-card-title i { font-size:18px; }
-        .alarm-card-sub { font-size:0.82rem; opacity:0.85; margin-bottom:10px; }
-        .alarm-card-actions { display:flex; gap:8px; }
-        .alarm-snooze { background:rgba(255,255,255,0.2); border:1.5px solid rgba(255,255,255,0.4); color:#fff; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'DM Sans',sans-serif; }
-        .alarm-dismiss { background:#fff; border:none; color:#1a56db; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:700; flex:1; display:flex; align-items:center; justify-content:center; gap:5px; font-size:0.78rem; font-family:'DM Sans',sans-serif; }
     `;
     document.head.appendChild(style);
 
@@ -123,12 +116,6 @@ function normalizeReminder(r) {
     toast.setAttribute("role", "status");
     toast.setAttribute("aria-live", "polite");
     document.body.appendChild(toast);
-
-    const alarmContainer = document.createElement("div");
-    alarmContainer.id = "dhasAlarmContainer";
-    alarmContainer.setAttribute("aria-live", "assertive");
-    alarmContainer.setAttribute("aria-label", "Medicine reminders");
-    document.body.appendChild(alarmContainer);
 })();
 
 let _msgTimer = null;
@@ -152,6 +139,10 @@ function showPageMsg(text, type = "success", duration = 4500) {
 }
 
 // ── Audio Engine ──────────────────────────────────────────────
+// NOTE: actual alarm-time audio playback now happens in
+// js/alarm-engine.js (shared across all pages). This local
+// playSound/previewSound pair remains here ONLY so the "Preview"
+// button in the Add-Reminder form keeps working unchanged.
 if ("Notification" in window) Notification.requestPermission();
 
 let audioCtx = null;
@@ -160,8 +151,6 @@ function getAudioCtx() {
     return audioCtx;
 }
 
-// Pre-warm AudioContext on every user interaction.
-// Browsers suspend audio created outside a user gesture — this keeps it alive.
 function _warmAudioCtx() {
     try { const ctx = getAudioCtx(); if (ctx.state === "suspended") ctx.resume(); } catch(e) {}
 }
@@ -204,33 +193,7 @@ window.previewSound = function () {
     playSound(document.getElementById("alarmSound").value);
 };
 
-// ── Snooze state ──────────────────────────────────────────────
-let snoozeTimers = {};
-
-function snoozeReminder(reminderId, soundKey, cardEl) {
-    cardEl.remove();
-    if (snoozeTimers[reminderId]) clearTimeout(snoozeTimers[reminderId]);
-    showPageMsg("Snoozed for 10 minutes.", "success");
-    snoozeTimers[reminderId] = setTimeout(() => {
-        const r = remindersCache.find(x => x.id === reminderId);
-        const t = r?.times?.[0] || { label:"Reminder", display:"" };
-        playSound(soundKey);
-        showAlarmCard(r || { id: reminderId, medicine: "Medicine", sound: soundKey }, t);
-        delete snoozeTimers[reminderId];
-    }, 10 * 60 * 1000);
-}
-
-// ── Service Worker ────────────────────────────────────────────
-async function registerSW() {
-    if (!("serviceWorker" in navigator)) return;
-    try {
-        await navigator.serviceWorker.register("/sw.js");
-        navigator.serviceWorker.addEventListener("message", e => {
-            if (e.data && e.data.type === "WAKE_CHECK") checkAlarms();
-        });
-    } catch (err) { console.warn("SW failed:", err); }
-}
-
+// ── Notification permission helpers (UI banner on this page) ──
 async function requestNotifPermission() {
     if (!("Notification" in window)) return false;
     if (Notification.permission === "granted") return true;
@@ -242,214 +205,6 @@ async function enableDHASNotifications() {
     } else {
         showPageMsg("Notifications are still blocked. Please allow them in your browser site settings.", "error", 6000);
     }
-}
-
-// ── Alarm engine ──────────────────────────────────────────────
-let lastFiredKey = {};
-
-function checkAlarms() {
-    const reminders = getReminders();
-    if (!reminders.length) return;
-    const now = new Date();
-    const dow = now.getDay(), dom = now.getDate();
-    const hh  = now.getHours(), mm = now.getMinutes();
-    if (navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type:"CHECK_ALARMS", reminders, now:now.toISOString()
-        });
-    }
-    reminders.forEach(r => {
-        if (!shouldFireToday(r, dow, dom)) return;
-        (r.times || []).forEach(t => {
-            const [alarmH, alarmM] = to24(t.h, t.m, t.ampm);
-            // Guard: skip if time parsing failed
-            if (isNaN(alarmH) || isNaN(alarmM)) return;
-            const nowMinutes   = hh * 60 + mm;
-            const alarmMinutes = alarmH * 60 + alarmM;
-            // Widen to ±4 minutes to survive page load delays and slow ticks
-            
-            const key = `${r.id}-${t.label}-${alarmH}-${alarmM}`;
-            if (lastFiredKey[key]) return;
-            lastFiredKey[key] = true;
-            setTimeout(() => delete lastFiredKey[key], 5 * 60 * 1000);
-            triggerAlarm(r, t);
-        });
-    });
-}
-
-function triggerAlarm(reminder, timeSlot) {
-    playSound(reminder.sound || "bell");
-    showAlarmCard(reminder, timeSlot);
-    if (Notification.permission === "granted") {
-        navigator.serviceWorker.ready.then(reg =>
-            reg.showNotification(`${reminder.medicine}`, {
-                body: `${timeSlot.label}: ${timeSlot.display}\n${reminder.scheduleLabel}`,
-                icon:"/favicon.ico", badge:"/favicon.ico",
-                vibrate:[300,100,300], requireInteraction:true,
-                tag:`dhas-${reminder.id}-${timeSlot.label}`
-            })
-        );
-    }
-
-    // After the last alarm of the day fires, schedule a post-alarm purge (5 min grace)
-    if (reminder.duration && reminder.duration !== "forever") {
-        schedulePostAlarmPurge(reminder, timeSlot);
-    }
-}
-
-// Checks if this timeSlot is the last one for today; if so, deletes the reminder after 5 min
-function schedulePostAlarmPurge(reminder, timeSlot) {
-    const times = reminder.times || [];
-    if (!times.length) return;
-
-    // Find the latest alarm minute across all time slots
-    const latestMinute = Math.max(...times.map(t => {
-        let h = parseInt(t.h); const m = parseInt(t.m);
-        if (t.ampm === "PM" && h !== 12) h += 12;
-        if (t.ampm === "AM" && h === 12) h = 0;
-        return h * 60 + m;
-    }));
-
-    // Convert this slot to minutes
-    let slotH = parseInt(timeSlot.h); const slotM = parseInt(timeSlot.m);
-    if (timeSlot.ampm === "PM" && slotH !== 12) slotH += 12;
-    if (timeSlot.ampm === "AM" && slotH === 12) slotH = 0;
-    const thisSlotMinute = slotH * 60 + slotM;
-
-    // Only schedule purge when the LAST time slot fires
-    if (thisSlotMinute !== latestMinute) return;
-
-    // Check if this is the last day (duration days have elapsed including today)
-    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-    const base = reminder.startDate
-        ? new Date(reminder.startDate + "T00:00:00")
-        : (reminder.createdAt ? new Date(reminder.createdAt) : new Date());
-    base.setHours(0,0,0,0);
-    const daysSince = Math.floor((todayMidnight - base) / 86400000);
-    const dur = parseInt(reminder.duration);
-
-    // For a 1-day reminder: daysSince === 0, dur - 1 === 0 → this is the last day
-    if (daysSince < dur) return;
-
-    console.log(`[DHAS] Scheduling auto-delete for "${reminder.medicine}" in 5 minutes (last alarm fired).`);
-
-    setTimeout(async () => {
-        try {
-            const res  = await fetch(`${API}/delete/${reminder.id}`, {
-                method: "DELETE",
-                headers: window.getAuthHeaders()
-            });
-            const data = await res.json();
-            if (data.success) {
-                remindersCache = remindersCache.filter(x => x.id !== reminder.id);
-                displayReminders();
-                showPageMsg(`"${reminder.medicine}" reminder completed and removed automatically.`, "success", 6000);
-                console.log(`[DHAS] Auto-deleted reminder id=${reminder.id} after last alarm.`);
-            }
-        } catch (err) {
-            console.warn("[DHAS] Post-alarm purge failed:", err);
-        }
-    }, 5 * 60 * 1000); // 5 minute grace period
-}
-
-function showAlarmCard(reminder, timeSlot) {
-    const container = document.getElementById("dhasAlarmContainer");
-    if (!container) return;
-
-    const rid   = reminder.id;
-    const sound = reminder.sound || "bell";
-    const cardId = `alarmCard_${rid}_${timeSlot.label || "dose"}`.replace(/\s+/g,"_");
-
-    if (document.getElementById(cardId)) return;
-
-    const card = document.createElement("div");
-    card.className = "alarm-card";
-    card.id = cardId;
-    card.innerHTML = `
-        <div class="alarm-card-title">
-            <i class="ti ti-bell-ringing" aria-hidden="true"></i>
-            Medicine Time!
-        </div>
-        <div style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-            <i class="ti ti-pill" style="font-size:15px" aria-hidden="true"></i>
-            ${reminder.medicine}
-        </div>
-        <div class="alarm-card-sub">${timeSlot.label}: ${timeSlot.display || "—"}</div>
-        <div class="alarm-card-actions">
-            <button class="alarm-snooze" id="snooze_${cardId}">
-                <i class="ti ti-player-pause" style="font-size:13px" aria-hidden="true"></i>
-                Snooze 10 min
-            </button>
-            <button class="alarm-dismiss" onclick="document.getElementById('${cardId}').remove()">
-                <i class="ti ti-check" style="font-size:13px" aria-hidden="true"></i>
-                Dismiss
-            </button>
-        </div>`;
-
-    container.appendChild(card);
-
-    document.getElementById(`snooze_${cardId}`)?.addEventListener("click", () => {
-        snoozeReminder(rid, sound, card);
-    });
-
-    setTimeout(() => card.remove(), 40000);
-}
-
-// ── Schedule helpers ──────────────────────────────────────────
-function shouldFireToday(r, dow, dom) {
-    // Allow calling without args (defaults to now)
-    if (dow === undefined) { const n = new Date(); dow = n.getDay(); dom = n.getDate(); }
-    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-    if (r.startDate) {
-        const start = new Date(r.startDate + "T00:00:00");
-        if (todayMidnight < start) return false;
-    }
-    if (r.duration && r.duration !== "forever") {
-        const base = r.startDate ? new Date(r.startDate + "T00:00:00") : new Date(r.createdAt);
-        base.setHours(0,0,0,0);
-        // >= means: after the last valid day, don't fire
-        if (Math.floor((todayMidnight - base) / 86400000) >= parseInt(r.duration)) return false;
-    }
-    switch (r.sched) {
-        case "daily":      return true;
-        case "alternate": {
-            if (!r.altBase) return true;
-            const base = new Date(r.altBase);
-            const today = new Date(); today.setHours(0,0,0,0);
-            const bDay = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-            return Math.round((today - bDay) / 86400000) % 2 === 0;
-        }
-        case "weekly": case "twice_week": case "three_week": case "custom":
-            return (r.days || []).map(Number).includes(dow);
-        case "monthly": return dom === (parseInt(r.monthDay) || 1);
-        default: return false;
-    }
-}
-
-function to24(h, m, ampm) {
-    let hour = parseInt(h, 10);
-    if (ampm === "PM" && hour !== 12) hour += 12;
-    if (ampm === "AM" && hour === 12) hour  = 0;
-    return [hour, parseInt(m, 10)];
-}
-
-function startAlarmTicker() {
-    // Align ticker to fire at the START of every minute (xx:yy:00)
-    // This guarantees checkAlarms() always runs when hh:mm changes,
-    // so an exact-minute match never gets skipped.
-    function scheduleNextMinuteTick() {
-        const now = new Date();
-        // ms remaining until the next whole minute + 200ms buffer
-        const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 200;
-        setTimeout(() => {
-            checkAlarms();
-            // After the first aligned tick, repeat every 60 s exactly
-            setInterval(checkAlarms, 60 * 1000);
-        }, msUntilNextMinute);
-    }
-    // Also do an immediate check in case we loaded right at alarm time
-    setTimeout(checkAlarms, 500);
-    scheduleNextMinuteTick();
 }
 
 // ── Constants ─────────────────────────────────────────────────
@@ -651,60 +406,6 @@ function previewRow(label, value, iconClass) {
             </div>`;
 }
 
-// ── API: fetch reminders ──────────────────────────────────────
-async function loadRemindersFromServer() {
-    const uid = getUserId();
-    if (!uid) { displayReminders(); return; }
-    try {
-        const res  = await fetch(`${API}/get/${uid}`, {
-            headers: window.getAuthHeaders()
-        });
-        const data = await res.json();
-        if (data.success) {
-            remindersCache = (data.data || []).map(normalizeReminder);
-            await purgeExpiredReminders();
-        }
-    } catch (err) { console.error("loadReminders error:", err); }
-    displayReminders();
-}
-
-async function purgeExpiredReminders() {
-    const now = new Date();
-    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-    const toDelete = remindersCache.filter(r => {
-        if (!r.duration || r.duration === "forever") return false;
-        const base = r.startDate
-            ? new Date(r.startDate + "T00:00:00")
-            : (r.createdAt ? new Date(r.createdAt) : new Date());
-        base.setHours(0,0,0,0);
-        const daysSince = Math.floor((todayMidnight - base) / 86400000);
-        const dur = parseInt(r.duration);
-        // daysSince > dur: clearly past — delete immediately
-        if (daysSince > dur) return true;
-        // daysSince === dur: last day has passed; delete only after all alarms + 5 min grace
-        if (daysSince === dur) {
-            const times = r.times || [];
-            if (!times.length) return true;
-            const latestMin = Math.max(...times.map(t => {
-                let h = parseInt(t.h); const m = parseInt(t.m);
-                if (t.ampm === "PM" && h !== 12) h += 12;
-                if (t.ampm === "AM" && h === 12) h = 0;
-                return h * 60 + m;
-            }));
-            return (now.getHours() * 60 + now.getMinutes()) >= latestMin + 5;
-        }
-        return false;
-    });
-    for (const r of toDelete) {
-        try {
-            await fetch(`${API}/delete/${r.id}`, { method:"DELETE", headers:window.getAuthHeaders() });
-            remindersCache = remindersCache.filter(x => x.id !== r.id);
-            showPageMsg(`"${r.medicine}" reminder completed and removed.`, "success", 5000);
-        } catch(e) { console.warn("purge failed", r.id, e); }
-    }
-    if (toDelete.length) { console.log(`Purged ${toDelete.length} expired reminder(s).`); }
-}
-
 // ── Save reminder ─────────────────────────────────────────────
 // FIX: Removed the aggressive "filter past times" logic that blocked saving.
 // Now we save ALL selected times and let the alarm engine decide what fires.
@@ -776,7 +477,10 @@ window.addReminder = async function () {
             return;
         }
 
-        await loadRemindersFromServer();
+        // ── CHANGED: refresh the SHARED alarm engine's cache (and SW
+        // sync) instead of a local loadRemindersFromServer(). ──
+        if (window.DHAS_ALARM_ENGINE) await window.DHAS_ALARM_ENGINE.reload();
+        displayReminders();
         showPageMsg(`✅ Reminder for "${medicine}" saved successfully at ${times[0]?.display}.`, "success", 5000);
 
         document.getElementById("medicine").value     = "";
@@ -808,7 +512,7 @@ window.deleteReminder = async function (id) {
             });
             const data = await res.json();
             if (!data.success) { showPageMsg("Could not delete reminder. Please try again.", "error"); return; }
-            remindersCache = remindersCache.filter(r => r.id !== id);
+            if (window.DHAS_ALARM_ENGINE) await window.DHAS_ALARM_ENGINE.reload();
             displayReminders();
             showPageMsg("Reminder deleted.", "success");
         } catch (err) {
@@ -824,7 +528,7 @@ window.deleteReminder = async function (id) {
 
 // ── FIX-2: hasUnsavedChanges ──────────────────────────────────
 function hasUnsavedChanges(id) {
-    const r = remindersCache.find(x => x.id === id);
+    const r = getReminders().find(x => x.id === id);
     if (!r) return false;
 
     const container = document.getElementById(`editContainer_${id}`);
@@ -891,7 +595,7 @@ function showDiscardBar(id, onConfirm) {
 
 // ── EDIT REMINDER (inline) ────────────────────────────────────
 window.openEditReminder = function(id) {
-    const r = remindersCache.find(x => x.id === id);
+    const r = getReminders().find(x => x.id === id);
     if (!r) return;
 
     const container = document.getElementById(`editContainer_${id}`);
@@ -1081,7 +785,7 @@ window.onEditSchedChange = function(id) {
 
 window.onEditDoseChange = function(id) {
     const doseCount    = document.getElementById(`edit_doseCount_${id}`).value;
-    const r            = remindersCache.find(x => x.id === id);
+    const r            = getReminders().find(x => x.id === id);
     const currentTimes = r?.times || [];
     const slots        = DOSE_DEFAULTS[doseCount] || DOSE_DEFAULTS["1"];
     document.getElementById(`edit_timeSlots_${id}`).innerHTML = slots.map((slot, i) => {
@@ -1101,7 +805,7 @@ window.onEditDoseChange = function(id) {
 };
 
 window.saveEditReminder = async function (id) {
-    const r = remindersCache.find(x => x.id === id);
+    const r = getReminders().find(x => x.id === id);
     if (!r) return;
 
     const sched     = document.getElementById(`edit_sched_${id}`).value;
@@ -1162,7 +866,8 @@ window.saveEditReminder = async function (id) {
         const container = document.getElementById(`editContainer_${id}`);
         if (container) container.innerHTML = "";
 
-        await loadRemindersFromServer();
+        if (window.DHAS_ALARM_ENGINE) await window.DHAS_ALARM_ENGINE.reload();
+        displayReminders();
         showPageMsg(`Reminder for "${r.medicine}" updated successfully.`, "success");
 
     } catch (err) {
@@ -1262,8 +967,12 @@ function displayReminders() {
 function goBack() { window.location.href = "dashboard.html"; }
 
 // ── Init ──────────────────────────────────────────────────────
+// CHANGED: no longer creates its own loadRemindersFromServer/startAlarmTicker.
+// Those live exclusively in js/alarm-engine.js now (loaded before this
+// script via <script src="js/alarm-engine.js"> in reminder.html), so the
+// alarm-firing behaviour is identical here and on every other page.
 window.onload = async function () {
-    // ── 1. DOM setup FIRST — before any async calls that could pause execution ──
+    // ── 1. DOM setup FIRST ──
     buildMonthDayOptions();
     renderScheduleUI();
 
@@ -1274,21 +983,31 @@ window.onload = async function () {
         startDateEl.value = today;
     }
 
-    // Force-render time slots directly in case renderScheduleUI ran too early
     const doseEl = document.getElementById("doseCount");
     const tsEl   = document.getElementById("timeSlots");
     if (doseEl && tsEl && tsEl.innerHTML.trim() === "") {
         renderTimeSlots(doseEl.value || "1");
     }
 
-    // ── 2. Async: SW + notifications (won't block DOM) ──
-    registerSW();  // fire-and-forget — no await so SW install never blocks UI
+    // ── 2. Notification banner UI (engine itself requests permission too,
+    //      but this keeps the on-page banner accurate) ──
     requestNotifPermission().then(granted => updateNotifBanner(granted));
 
-    // ── 3. Load data + start alarm ticker ──
-    await loadRemindersFromServer();
-    startAlarmTicker();
+    // ── 3. Wait for the shared engine to have loaded reminders at least
+    //      once, then render the list. The engine starts loading itself
+    //      automatically as soon as alarm-engine.js executes — we just
+    //      poll briefly here so this page's list renders promptly. ──
+    let tries = 0;
+    while ((!window.DHAS_ALARM_ENGINE || window.DHAS_ALARM_ENGINE.getReminders().length === 0) && tries < 20) {
+        await new Promise(r => setTimeout(r, 150));
+        tries++;
+    }
+    displayReminders();
 };
+
+// Re-render this page's list whenever the shared engine purges an
+// expired reminder in the background.
+window.addEventListener("dhas-reminders-changed", displayReminders);
 
 document.addEventListener("input",  updateReminderPreview);
 document.addEventListener("change", updateReminderPreview);

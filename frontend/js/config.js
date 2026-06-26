@@ -38,7 +38,7 @@
 (function () {
   "use strict";
 
-  var PORT = "3007";
+  var PORT = "3006";
   var hostname = window.location.hostname;
   var API_BASE;
 
